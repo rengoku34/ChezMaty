@@ -18,9 +18,9 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./chezmaty.db
       - key: CORS_ORIGINS
-        value: https://chezmaty.ci,https://www.chezmaty.ci
+        value: https://chezmaty.ci,https://www.chezmaty.ci,https://chezmaty.netlify.app
       - key: FRONTEND_URL
-        value: https://chezmaty.ci
+        value: https://chezmaty.netlify.app
       - key: COOKIE_SECURE
         value: "true"
       - key: COOKIE_SAMESITE

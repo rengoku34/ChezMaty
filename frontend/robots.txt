@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /compte.html
+Disallow: /panier.html
+
+Sitemap: https://chezmaty.netlify.app/sitemap.xml
