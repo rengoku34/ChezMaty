@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#7651a6">
+  <meta name="description" content="Découvrez un cadeau personnalisé Chez Maty et composez une jolie attention pour bébé.">
+  <title>Un joli cadeau personnalisé — Chez Maty</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+  <script src="js/produit.js" defer></script>
+</head>
+<body data-page="produit">
+  <div class="announcement">Livraison en 24 h sur les zones couvertes en Côte d'Ivoire <span aria-hidden="true">♡</span></div>
+  <header class="site-header" id="site-header"></header>
+  <main class="section-wrap page-main product-detail-main">
+    <nav class="breadcrumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">/</span><a href="catalogue.html">La boutique</a><span aria-hidden="true">/</span><span id="product-breadcrumb" aria-current="page">Une jolie création</span></nav>
+    <div class="detail-loading" id="detail-loading" role="status"><span class="spinner"></span>Nous préparons votre jolie découverte…</div>
+    <p class="api-message" id="detail-error" role="alert" hidden></p>
+    <section class="product-detail" id="product-detail" hidden>
+      <div class="detail-gallery">
+        <div class="detail-main-image" id="detail-main-image"><img id="product-image" src="images/coffret.svg" alt=""></div>
+        <div class="thumbnail-list" id="product-thumbnails" aria-label="Photos du produit"></div>
+      </div>
+      <div class="detail-copy">
+        <span class="eyebrow" id="product-category">Une création Chez Maty</span>
+        <h1 id="product-name"></h1>
+        <div class="detail-rating" id="detail-rating"><span class="stars" aria-label="Aucune note pour le moment">☆☆☆☆☆</span><span>Pas encore d'avis</span></div>
+        <p class="detail-price" id="product-price"></p>
+        <p class="stock-status" id="product-stock"></p>
+        <p class="detail-description" id="product-description"></p>
+
+        <section class="personalization-card" aria-labelledby="personalization-title">
+          <span class="eyebrow">Une attention rien qu'à vous</span>
+          <h2 id="personalization-title">Personnalisez votre cadeau</h2>
+          <label for="custom-name">Le prénom à ajouter</label>
+          <input id="custom-name" type="text" maxlength="30" placeholder="Ex. Aïcha" autocomplete="off">
+          <label for="custom-color">La couleur préférée</label>
+          <select id="custom-color"><option value="">Choisir une couleur</option><option>Rose poudré</option><option>Violet</option><option>Bleu ciel</option><option>Beige</option><option>Blanc</option></select>
+          <label for="custom-message">Un petit message <span class="optional-label">(facultatif)</span></label>
+          <textarea id="custom-message" rows="2" maxlength="160" placeholder="Un mot tout doux…"></textarea>
+          <div class="preview-card" aria-live="polite">
+            <img src="images/tetine.svg" alt="" aria-hidden="true">
+            <span class="preview-caption">Un aperçu de votre création</span>
+            <strong id="personalization-preview">Bébé</strong>
+          </div>
+        </section>
+        <div class="detail-actions">
+          <button class="button button-primary add-to-cart-button" id="add-to-cart" type="button">Ajouter au panier <span aria-hidden="true">♡</span></button>
+          <button class="icon-button detail-favorite" id="detail-favorite" type="button" aria-label="Ajouter ce produit aux favoris" aria-pressed="false"><span aria-hidden="true">♡</span></button>
+        </div>
+        <a class="whatsapp-order" id="whatsapp-order" href="https://wa.me/2250709109224" target="_blank" rel="noopener noreferrer">Une question ? Commander sur WhatsApp <span aria-hidden="true">↗</span></a>
+        <p class="delivery-note"><span aria-hidden="true">⌖</span> Livraison annoncée en 24 h dans les zones couvertes en Côte d'Ivoire.</p>
+        <div class="share-actions"><span>Partager ce petit bonheur</span><button class="text-link" id="share-whatsapp" type="button">WhatsApp ↗</button><button class="text-link" id="share-facebook" type="button">Facebook ↗</button></div>
+      </div>
+    </section>
+
+    <section class="reviews-section" id="reviews-section" aria-labelledby="reviews-title" hidden>
+      <div class="section-heading"><div><span class="eyebrow">Vos petits mots</span><h2 id="reviews-title">Avis des familles</h2></div></div>
+      <div class="reviews-list" id="reviews-list"></div>
+      <p class="api-message" id="reviews-message" role="status" hidden></p>
+    </section>
+
+    <section class="related-section" id="related-section" aria-labelledby="related-title" hidden>
+      <div class="section-heading"><div><span class="eyebrow">Pour compléter la surprise</span><h2 id="related-title">Les autres ont aussi aimé</h2></div></div>
+      <div class="product-grid" id="related-products"></div>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" role="img" aria-labelledby="title desc">
+  <title id="title">Tétine personnalisable</title>
+  <desc id="desc">Illustration d'une tétine rose pastel avec un petit cœur.</desc>
+  <defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#e7f3f7"/><stop offset="1" stop-color="#f9e7ef"/></linearGradient><filter id="shadow" x="-25%" y="-25%" width="150%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#607892" flood-opacity=".16"/></filter></defs>
+  <rect width="520" height="520" rx="56" fill="url(#bg)"/><circle cx="120" cy="112" r="38" fill="#fff" opacity=".65"/><circle cx="404" cy="404" r="50" fill="#fff" opacity=".55"/>
+  <g filter="url(#shadow)">
+    <path d="M260 114c-47 0-74 37-71 80l7 80c3 38 30 61 64 61s61-23 64-61l7-80c3-43-24-80-71-80Z" fill="#fff2dc" stroke="#e8c9a6" stroke-width="8"/>
+    <path d="M214 216h92c29 0 53 23 53 52v42c0 29-24 53-53 53h-92c-29 0-53-24-53-53v-42c0-29 24-52 53-52Z" fill="#e9a8bb" stroke="#c97897" stroke-width="8"/>
+    <circle cx="181" cy="289" r="13" fill="#f7dbe4"/><circle cx="339" cy="289" r="13" fill="#f7dbe4"/>
+    <path d="M260 265c-14-19-40-18-41 2-1 17 25 34 41 45 16-11 42-28 41-45-1-20-27-21-41-2Z" fill="#fff7f4"/>
+    <text x="260" y="406" text-anchor="middle" font-family="Nunito,Arial,sans-serif" font-size="27" font-weight="800" fill="#795c7c">tout doux</text>
+  </g>
+  <path d="m89 207 7 14 16 2-12 11 3 15-14-7-14 7 3-15-12-11 16-2 7-14Zm342 93 6 12 13 2-10 9 2 13-11-6-11 6 2-13-10-9 13-2 6-12Z" fill="#d4ae69"/>
+</svg>

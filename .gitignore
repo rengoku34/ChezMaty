@@ -1,0 +1,31 @@
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+
+# Environnements Python et fichiers temporaires
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Base de donnees locale et fichiers de sauvegarde
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+
+# Images envoyees en developpement et fichiers generes
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.pdf
+
+# Editeurs et systeme
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

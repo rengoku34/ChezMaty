@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#7651a6">
+  <meta name="description" content="Connectez-vous à votre compte Chez Maty pour gérer votre profil, vos adresses et suivre vos commandes.">
+  <title>Mon compte — Chez Maty</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/app.js" defer></script>
+  <script src="js/compte.js" defer></script>
+</head>
+<body data-page="compte">
+  <div class="announcement">Livraison en 24 h sur les zones couvertes en Côte d'Ivoire <span aria-hidden="true">♡</span></div>
+  <header class="site-header" id="site-header"></header>
+  <main class="section-wrap page-main">
+    <nav class="breadcrumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">/</span><span aria-current="page">Mon compte</span></nav>
+    <section class="account-heading">
+      <span class="eyebrow">Votre espace tout doux</span>
+      <h1>Mon compte</h1>
+      <p>Vos informations, vos adresses et le suivi de vos commandes, au même endroit.</p>
+    </section>
+    <p class="api-message" id="account-message" role="status" hidden></p>
+    <section class="auth-section" id="auth-section" aria-label="Connexion ou création de compte">
+      <form class="form-card auth-form" id="login-form">
+        <span class="eyebrow">Heureuse de vous revoir</span>
+        <h2>Connexion</h2>
+        <label for="login-email">Adresse e-mail</label>
+        <input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254">
+        <label for="login-password">Mot de passe</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button class="text-link forgot-link" id="show-forgot-form" type="button">Mot de passe oublié ?</button>
+        <button class="button button-primary" type="submit">Me connecter</button>
+        <p class="form-error" id="login-error" role="alert" hidden></p>
+      </form>
+      <form class="form-card auth-form" id="forgot-password-form" hidden>
+        <span class="eyebrow">On va retrouver l’accès</span>
+        <h2>Mot de passe oublié</h2>
+        <p class="form-help">Saisissez l’adresse de votre compte. Si elle est enregistrée, un lien de récupération vous sera envoyé.</p>
+        <label for="forgot-email">Adresse e-mail</label>
+        <input id="forgot-email" name="email" type="email" autocomplete="email" required maxlength="254">
+        <button class="button button-primary" type="submit">Recevoir un lien sécurisé</button>
+        <button class="text-link" id="cancel-forgot-form" type="button">Retour à la connexion</button>
+        <p class="form-error" id="forgot-error" role="alert" hidden></p>
+        <p class="form-help" id="forgot-success" role="status" hidden></p>
+      </form>
+      <form class="form-card auth-form" id="reset-password-form" hidden>
+        <span class="eyebrow">Un nouveau départ</span>
+        <h2>Choisir un nouveau mot de passe</h2>
+        <input id="reset-token" name="token" type="hidden">
+        <label for="reset-new-password">Nouveau mot de passe</label>
+        <input id="reset-new-password" name="new_password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
+        <button class="button button-primary" type="submit">Enregistrer mon nouveau mot de passe</button>
+        <p class="form-error" id="reset-error" role="alert" hidden></p>
+      </form>
+      <form class="form-card auth-form" id="register-form">
+        <span class="eyebrow">Bienvenue dans la famille</span>
+        <h2>Créer mon compte</h2>
+        <label for="register-name">Nom complet</label>
+        <input id="register-name" name="full_name" type="text" autocomplete="name" required minlength="2" maxlength="120">
+        <label for="register-email">Adresse e-mail</label>
+        <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254">
+        <label for="register-phone">Téléphone <span class="optional-label">(facultatif)</span></label>
+        <input id="register-phone" name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="30" placeholder="07 09 10 92 24">
+        <label for="register-password">Mot de passe <span class="form-help-inline">(10 caractères minimum)</span></label>
+        <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
+        <button class="button button-primary" type="submit">Créer mon compte</button>
+        <p class="form-error" id="register-error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section class="customer-dashboard" id="customer-dashboard" hidden>
+      <div class="dashboard-welcome">
+        <div><span class="eyebrow">Ravie de vous retrouver</span><h2 id="welcome-name"></h2></div>
+        <button class="button button-quiet" id="logout-button" type="button">Me déconnecter</button>
+      </div>
+      <div class="dashboard-grid">
+        <section class="form-card dashboard-card">
+          <span class="eyebrow">Vos informations</span>
+          <h2>Mon profil</h2>
+          <form id="profile-form">
+            <label for="profile-name">Nom complet</label>
+            <input id="profile-name" name="full_name" type="text" required minlength="2" maxlength="120">
+            <label for="profile-email">Adresse e-mail</label>
+            <input id="profile-email" name="email" type="email" readonly aria-describedby="email-help">
+            <span id="email-help" class="form-help">Pour modifier votre e-mail, contactez Chez Maty.</span>
+            <label for="profile-phone">Téléphone</label>
+            <input id="profile-phone" name="phone" type="tel" minlength="7" maxlength="30">
+            <fieldset class="preference-fields">
+              <legend>Mes notifications</legend>
+              <label class="checkbox-label"><input id="email-notifications" type="checkbox"> Recevoir les nouveautés par e-mail</label>
+              <label class="checkbox-label"><input id="push-notifications" type="checkbox"> Autoriser les notifications sur cet appareil</label>
+            </fieldset>
+            <button class="button button-primary" type="submit">Enregistrer mon profil</button>
+            <p class="form-error" id="profile-error" role="alert" hidden></p>
+          </form>
+        </section>
+        <section class="form-card dashboard-card" id="addresses">
+          <span class="eyebrow">Pour vous livrer avec soin</span>
+          <h2>Mes adresses</h2>
+          <div class="address-list" id="address-list"></div>
+          <form id="address-form">
+            <input id="address-id" type="hidden">
+            <h3 id="address-form-title">Ajouter une adresse</h3>
+            <label for="address-recipient">Nom du destinataire</label>
+            <input id="address-recipient" type="text" required minlength="2" maxlength="120" autocomplete="name">
+            <label for="address-phone">Téléphone</label>
+            <input id="address-phone" type="tel" required minlength="7" maxlength="30" autocomplete="tel">
+            <div class="address-fields">
+              <div><label for="address-city">Ville</label><input id="address-city" type="text" required minlength="2" maxlength="100" value="Abidjan"></div>
+              <div><label for="address-commune">Commune</label><input id="address-commune" type="text" required minlength="2" maxlength="100"></div>
+            </div>
+            <label for="address-details">Quartier et indication de livraison</label>
+            <textarea id="address-details" required minlength="5" maxlength="500" rows="3" placeholder="Quartier, rue, repère…"></textarea>
+            <label class="checkbox-label"><input id="address-default" type="checkbox"> Utiliser comme adresse principale</label>
+            <div class="form-actions"><button class="button button-primary" id="address-submit" type="submit">Enregistrer l’adresse</button><button class="button button-quiet" id="address-cancel" type="button" hidden>Annuler</button></div>
+            <p class="form-help" id="address-zone-help">Les zones couvertes sont vérifiées au moment de la commande.</p>
+            <p class="form-error" id="address-error" role="alert" hidden></p>
+          </form>
+        </section>
+      </div>
+      <section class="orders-section" id="orders">
+        <div class="section-heading"><div><span class="eyebrow">Le fil de vos jolies surprises</span><h2>Mes commandes</h2></div></div>
+        <div class="customer-order-list" id="customer-order-list"></div>
+        <p class="api-message" id="orders-message" role="status" hidden></p>
+      </section>
+    </section>
+  </main>
+  <footer class="site-footer" id="site-footer"></footer>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

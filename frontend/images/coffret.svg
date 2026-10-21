@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 520" role="img" aria-labelledby="title desc">
+  <title id="title">Coffret cadeau pour bébé</title>
+  <desc id="desc">Illustration douce d'un coffret crème noué d'un ruban rose sur fond pastel.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fbe8ef"/><stop offset="1" stop-color="#efe8f8"/></linearGradient>
+    <linearGradient id="box" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fffdf6"/><stop offset="1" stop-color="#f5e9d7"/></linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="160%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#745487" flood-opacity=".16"/></filter>
+  </defs>
+  <rect width="520" height="520" rx="56" fill="url(#bg)"/>
+  <circle cx="112" cy="115" r="36" fill="#fff" opacity=".6"/><circle cx="416" cy="352" r="57" fill="#fff" opacity=".45"/>
+  <path d="M102 398c26-58 70-73 104-55-8 43-51 71-104 55Zm213-245c15-58 55-80 90-68-1 42-34 70-90 68Z" fill="#c8d9cc" opacity=".75"/>
+  <g filter="url(#shadow)">
+    <path d="M115 218h290l-24 180H140l-25-180Z" fill="url(#box)" stroke="#e7d6c7" stroke-width="5"/>
+    <path d="M103 202c0-13 11-24 24-24h266c13 0 24 11 24 24v38H103v-38Z" fill="#f9f0e6" stroke="#e7d6c7" stroke-width="5"/>
+    <path d="M244 178h32v220h-32z" fill="#d88ba8"/><path d="M103 218h314v34H103z" fill="#e5a8ba"/>
+    <path d="M260 187c-22-25-72-43-77-11-5 30 45 41 77 31 32 10 82-1 77-31-5-32-55-14-77 11Z" fill="none" stroke="#c97496" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="260" cy="207" r="17" fill="#c97496"/>
+    <path d="M203 298c20-31 44-31 57 0 13-31 37-31 57 0-1 38-30 58-57 75-27-17-56-37-57-75Z" fill="#e9a5b8"/>
+    <text x="260" y="369" text-anchor="middle" font-family="Nunito,Arial,sans-serif" font-size="22" font-weight="800" fill="#795c7c">avec amour</text>
+  </g>
+  <path d="m80 180 8 17 18 2-14 12 4 18-16-9-16 9 4-18-14-12 18-2 8-17Zm350 67 6 12 13 2-10 9 2 13-11-6-11 6 2-13-10-9 13-2 6-12Z" fill="#d4ae69"/>
+</svg>

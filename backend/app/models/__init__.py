@@ -1,0 +1,47 @@
+"""Modeles SQLAlchemy et relations de la boutique."""
+
+from app.models.entities import (
+    Address,
+    AuditLog,
+    Cart,
+    CartItem,
+    Category,
+    DeliveryZone,
+    Favorite,
+    Notification,
+    Order,
+    OrderItem,
+    Payment,
+    PaymentWebhookEvent,
+    PasswordResetToken,
+    Product,
+    ProductImage,
+    PushDevice,
+    RefreshToken,
+    Review,
+    User,
+)
+from app.models.entities import Base
+
+__all__ = [
+    "Address",
+    "AuditLog",
+    "Base",
+    "Cart",
+    "CartItem",
+    "Category",
+    "DeliveryZone",
+    "Favorite",
+    "Notification",
+    "Order",
+    "OrderItem",
+    "Payment",
+    "PaymentWebhookEvent",
+    "PasswordResetToken",
+    "Product",
+    "ProductImage",
+    "PushDevice",
+    "RefreshToken",
+    "Review",
+    "User",
+]
