@@ -30,7 +30,7 @@ def build_client(tmp_path: Path) -> tuple[TestClient, sessionmaker[Session]]:
 
 
 def test_catalog_schema_is_initialized_in_production(tmp_path: Path) -> None:
-    """Les routes publiques fonctionnent avec une base neuve en production."""
+    """Le catalogue de départ est créé en production et visible par les routes."""
     limiter.reset()
     settings = Settings(
         _env_file=None,
@@ -42,9 +42,32 @@ def test_catalog_schema_is_initialized_in_production(tmp_path: Path) -> None:
     client = TestClient(create_app(settings, create_session_factory(settings)))
 
     with client:
-        assert client.get("/api/products").status_code == 200
-        assert client.get("/api/products").json() == []
-        assert client.get("/api/categories").status_code == 200
+        products = client.get("/api/products")
+        assert products.status_code == 200
+        assert len(products.json()) == 7
+        assert products.json()[0]["images"][0]["image_path"].startswith(
+            "https://chezmaty.netlify.app/images/"
+        )
+        assert len(client.get("/api/categories").json()) == 3
+
+
+def test_production_catalog_seed_does_not_overwrite_existing_products(tmp_path: Path) -> None:
+    """Ne pas dupliquer ni remplacer les articles existants au redémarrage."""
+    limiter.reset()
+    settings = Settings(
+        _env_file=None,
+        app_name="Chez Maty production tests",
+        app_env="production",
+        secret_key="cle-test-production-suffisamment-longue-987654",
+        database_url=f"sqlite:///{(tmp_path / 'existing.db').as_posix()}",
+    )
+    factory = create_session_factory(settings)
+    client = TestClient(create_app(settings, factory))
+
+    with client:
+        first_count = len(client.get("/api/products").json())
+        assert first_count == 7
+        assert len(client.get("/api/products").json()) == first_count
 
 
 def seed_catalog(factory: sessionmaker[Session]) -> tuple[int, int]:

@@ -42,6 +42,22 @@ def send_password_reset_email(
     _send_email(settings, message)
 
 
+def send_welcome_email(settings: Settings, recipient: str, full_name: str) -> None:
+    """Envoyer un message de bienvenue apres la creation du compte."""
+    message = EmailMessage()
+    message["Subject"] = "Bienvenue chez Chez Maty !"
+    message["To"] = recipient
+    message.set_content(
+        f"Bonjour {full_name},\n\n"
+        "Bienvenue dans la famille Chez Maty ! Votre compte est prêt. "
+        "Vous pouvez découvrir nos créations personnalisées et suivre vos commandes "
+        f"sur {settings.frontend_url.rstrip('/')}.\n\n"
+        "Merci de faire confiance à Chez Maty.\n"
+        "À très bientôt !"
+    )
+    _send_email(settings, message)
+
+
 def send_order_receipt_email(
     settings: Settings,
     recipient: str,

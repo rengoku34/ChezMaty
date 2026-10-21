@@ -144,7 +144,12 @@
     setUpImage(image, product.name);
     imageWrap.append(image);
 
-    if (product.stock > 0 && product.stock <= 3) {
+    if (product.description.startsWith("Prix estimatif provisoire")) {
+      const badge = document.createElement("span");
+      badge.className = "product-badge";
+      badge.textContent = "Prix provisoire";
+      imageWrap.append(badge);
+    } else if (product.stock > 0 && product.stock <= 3) {
       const badge = document.createElement("span");
       badge.className = "product-badge";
       badge.textContent = "Dernières pièces";

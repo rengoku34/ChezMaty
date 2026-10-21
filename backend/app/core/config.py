@@ -3,7 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -58,11 +58,13 @@ class Settings(BaseSettings):
 
     @field_validator("cookie_samesite")
     @classmethod
-    def validate_cookie_samesite(cls, value: str) -> str:
+    def validate_cookie_samesite(cls, value: str, info: ValidationInfo) -> str:
         """Limiter SameSite aux valeurs reconnues par les navigateurs."""
         normalized = value.lower()
         if normalized not in {"lax", "strict", "none"}:
             raise ValueError("COOKIE_SAMESITE doit valoir lax, strict ou none.")
+        if normalized == "none" and not info.data.get("cookie_secure"):
+            raise ValueError("COOKIE_SECURE doit etre active quand COOKIE_SAMESITE vaut none.")
         return normalized
 
     @property

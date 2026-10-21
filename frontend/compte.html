@@ -24,52 +24,62 @@
       <p>Vos informations, vos adresses et le suivi de vos commandes, au même endroit.</p>
     </section>
     <p class="api-message" id="account-message" role="status" hidden></p>
-    <section class="auth-section" id="auth-section" aria-label="Connexion ou création de compte">
-      <form class="form-card auth-form" id="login-form">
-        <span class="eyebrow">Heureuse de vous revoir</span>
-        <h2>Connexion</h2>
-        <label for="login-email">Adresse e-mail</label>
-        <input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254">
-        <label for="login-password">Mot de passe</label>
-        <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
-        <button class="text-link forgot-link" id="show-forgot-form" type="button">Mot de passe oublié ?</button>
-        <button class="button button-primary" type="submit">Me connecter</button>
-        <p class="form-error" id="login-error" role="alert" hidden></p>
-      </form>
-      <form class="form-card auth-form" id="forgot-password-form" hidden>
-        <span class="eyebrow">On va retrouver l’accès</span>
-        <h2>Mot de passe oublié</h2>
-        <p class="form-help">Saisissez l’adresse de votre compte. Si elle est enregistrée, un lien de récupération vous sera envoyé.</p>
-        <label for="forgot-email">Adresse e-mail</label>
-        <input id="forgot-email" name="email" type="email" autocomplete="email" required maxlength="254">
-        <button class="button button-primary" type="submit">Recevoir un lien sécurisé</button>
-        <button class="text-link" id="cancel-forgot-form" type="button">Retour à la connexion</button>
-        <p class="form-error" id="forgot-error" role="alert" hidden></p>
-        <p class="form-help" id="forgot-success" role="status" hidden></p>
-      </form>
-      <form class="form-card auth-form" id="reset-password-form" hidden>
-        <span class="eyebrow">Un nouveau départ</span>
-        <h2>Choisir un nouveau mot de passe</h2>
-        <input id="reset-token" name="token" type="hidden">
-        <label for="reset-new-password">Nouveau mot de passe</label>
-        <input id="reset-new-password" name="new_password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
-        <button class="button button-primary" type="submit">Enregistrer mon nouveau mot de passe</button>
-        <p class="form-error" id="reset-error" role="alert" hidden></p>
-      </form>
-      <form class="form-card auth-form" id="register-form">
-        <span class="eyebrow">Bienvenue dans la famille</span>
-        <h2>Créer mon compte</h2>
-        <label for="register-name">Nom complet</label>
-        <input id="register-name" name="full_name" type="text" autocomplete="name" required minlength="2" maxlength="120">
-        <label for="register-email">Adresse e-mail</label>
-        <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254">
-        <label for="register-phone">Téléphone <span class="optional-label">(facultatif)</span></label>
-        <input id="register-phone" name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="30" placeholder="07 09 10 92 24">
-        <label for="register-password">Mot de passe <span class="form-help-inline">(10 caractères minimum)</span></label>
-        <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
-        <button class="button button-primary" type="submit">Créer mon compte</button>
-        <p class="form-error" id="register-error" role="alert" hidden></p>
-      </form>
+    <section class="auth-section" id="auth-section" aria-label="Espace client">
+      <div class="auth-card-stack">
+        <form class="form-card auth-form" id="login-form">
+          <span class="eyebrow">Heureuse de vous revoir</span>
+          <h2>Se connecter</h2>
+          <label for="login-email">Adresse e-mail</label>
+          <input id="login-email" name="email" type="email" autocomplete="email" required maxlength="254">
+          <label for="login-password">Mot de passe</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+          <button class="text-link forgot-link" id="show-forgot-form" type="button">Mot de passe oublié ?</button>
+          <button class="button button-primary" type="submit">Me connecter</button>
+          <p class="form-error" id="login-error" role="alert" hidden></p>
+          <p class="auth-switch">Pas encore de compte ? <button class="text-link" id="show-register-form" type="button">Créer un compte</button></p>
+        </form>
+        <form class="form-card auth-form" id="register-form" hidden>
+          <span class="eyebrow">Bienvenue dans la famille</span>
+          <h2>Créer mon compte</h2>
+          <label for="register-name">Nom complet</label>
+          <input id="register-name" name="full_name" type="text" autocomplete="name" required minlength="2" maxlength="120">
+          <label for="register-email">Adresse e-mail</label>
+          <input id="register-email" name="email" type="email" autocomplete="email" required maxlength="254">
+          <label for="register-phone">Téléphone <span class="optional-label">(facultatif)</span></label>
+          <input id="register-phone" name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="30" placeholder="07 09 10 92 24">
+          <label for="register-password">Mot de passe <span class="form-help-inline">(10 caractères minimum)</span></label>
+          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
+          <button class="button button-primary" type="submit">Créer mon compte</button>
+          <p class="form-error" id="register-error" role="alert" hidden></p>
+          <p class="auth-switch">Déjà un compte ? <button class="text-link" id="show-login-form" type="button">Se connecter</button></p>
+        </form>
+        <div class="social-auth">
+          <div class="auth-divider"><span>ou continuer avec</span></div>
+          <button class="social-auth-button" type="button" disabled aria-describedby="social-auth-help"><span class="social-auth-mark" aria-hidden="true">G</span>Continuer avec Google</button>
+          <button class="social-auth-button" type="button" disabled aria-describedby="social-auth-help"><span class="social-auth-mark social-auth-apple" aria-hidden="true">A</span>Continuer avec Apple</button>
+          <p class="form-help" id="social-auth-help">Google et Apple seront activés après la configuration des comptes développeur.</p>
+        </div>
+        <form class="form-card auth-form" id="forgot-password-form" hidden>
+          <span class="eyebrow">On va retrouver l’accès</span>
+          <h2>Mot de passe oublié</h2>
+          <p class="form-help">Saisissez l’adresse de votre compte. Si elle est enregistrée, un lien de récupération vous sera envoyé.</p>
+          <label for="forgot-email">Adresse e-mail</label>
+          <input id="forgot-email" name="email" type="email" autocomplete="email" required maxlength="254">
+          <button class="button button-primary" type="submit">Recevoir un lien sécurisé</button>
+          <button class="text-link" id="cancel-forgot-form" type="button">Retour à la connexion</button>
+          <p class="form-error" id="forgot-error" role="alert" hidden></p>
+          <p class="form-help" id="forgot-success" role="status" hidden></p>
+        </form>
+        <form class="form-card auth-form" id="reset-password-form" hidden>
+          <span class="eyebrow">Un nouveau départ</span>
+          <h2>Choisir un nouveau mot de passe</h2>
+          <input id="reset-token" name="token" type="hidden">
+          <label for="reset-new-password">Nouveau mot de passe</label>
+          <input id="reset-new-password" name="new_password" type="password" autocomplete="new-password" required minlength="10" maxlength="128">
+          <button class="button button-primary" type="submit">Enregistrer mon nouveau mot de passe</button>
+          <p class="form-error" id="reset-error" role="alert" hidden></p>
+        </form>
+      </div>
     </section>
 
     <section class="customer-dashboard" id="customer-dashboard" hidden>

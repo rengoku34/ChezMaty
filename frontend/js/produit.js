@@ -83,7 +83,10 @@
     document.getElementById("product-price").textContent = api.formatPrice(product.price_xof);
     document.getElementById("product-description").textContent = product.description;
     const stock = document.getElementById("product-stock");
-    if (product.stock <= 0) {
+    if (product.description.startsWith("Prix estimatif provisoire")) {
+      stock.textContent = "Prix provisoire : confirmez le tarif et la disponibilité sur WhatsApp avant de commander.";
+      stock.classList.add("is-low");
+    } else if (product.stock <= 0) {
       stock.textContent = "Rupture de stock — écrivez-nous pour une prochaine disponibilité.";
       stock.classList.add("is-out");
     } else if (product.stock <= 3) {
@@ -103,6 +106,7 @@
     favoriteButton.querySelector("span").textContent = isFavorite ? "♥" : "♡";
 
     const addButton = document.getElementById("add-to-cart");
+    addButton.hidden = product.description.startsWith("Prix estimatif provisoire") || product.stock <= 0;
     addButton.disabled = product.stock <= 0;
     if (product.stock <= 0) addButton.textContent = "Indisponible";
     else addButton.addEventListener("click", addProductToCart);

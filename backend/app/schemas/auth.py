@@ -65,6 +65,7 @@ class AuthResponse(BaseModel):
 
     user: UserResponse
     message: str
+    email_sent: bool | None = None
 
 
 class ProfileUpdateRequest(BaseModel):

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_app_settings, get_current_user, require_csrf
 from app.core.config import Settings
-from app.core.email import send_password_reset_email
+from app.core.email import send_password_reset_email, send_welcome_email
 from app.core.rate_limit import limiter
 from app.core.security import (
     DUMMY_PASSWORD_HASH,
@@ -101,7 +101,20 @@ def register(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cette adresse email est deja utilisee.") from exc
 
     db.refresh(user)
-    return AuthResponse(user=UserResponse.model_validate(user), message="Compte cree avec succes.")
+    try:
+        send_welcome_email(settings, user.email, user.full_name)
+    except (OSError, smtplib.SMTPException, RuntimeError):
+        logger.exception("Echec de l'envoi de l'email de bienvenue.")
+        return AuthResponse(
+            user=UserResponse.model_validate(user),
+            message="Compte créé et connexion ouverte, mais l'e-mail de bienvenue n'a pas pu être envoyé.",
+            email_sent=False,
+        )
+    return AuthResponse(
+        user=UserResponse.model_validate(user),
+        message="Compte créé, connexion ouverte et e-mail de bienvenue envoyé.",
+        email_sent=True,
+    )
 
 
 @router.post("/login", response_model=AuthResponse)

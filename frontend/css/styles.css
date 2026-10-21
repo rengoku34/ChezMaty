@@ -458,7 +458,18 @@ h1, h2, h3 {
 .account-heading h1 { margin: 7px 0 8px; font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 900; }
 .account-heading h1 span { color: var(--pink); }
 .account-heading p { max-width: 620px; margin: 0; color: var(--muted); }
-.auth-section { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.auth-section { display: grid; grid-template-columns: minmax(0, 560px); justify-content: center; gap: 20px; }
+.auth-card-stack { display: grid; gap: 18px; }
+.auth-switch { margin: 8px 0 0; color: var(--muted); font-size: .85rem; }
+.auth-switch .text-link { margin-left: 4px; }
+.social-auth { display: grid; gap: 10px; }
+.social-auth > .form-help { text-align: center; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .76rem; }
+.auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: var(--line); content: ""; }
+.social-auth-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; padding: 10px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; opacity: .65; cursor: not-allowed; }
+.social-auth-mark { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; color: #4285f4; font-weight: 900; }
+.social-auth-apple { color: var(--ink); font-size: .75rem; }
+.social-auth[hidden] { display: none; }
 .form-card { padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-small); }
 .form-card h2 { margin: 7px 0 18px; font-size: 1.55rem; font-weight: 900; }
 .form-card h3 { margin: 18px 0 9px; font-size: 1.06rem; }

@@ -15,6 +15,12 @@ Acheter ou posséder un domaine du type `chezmaty.ci` chez un registrar.
 
 Le backend initialise son schéma de base de données au démarrage. Le système de fichiers d’un service Render gratuit étant éphémère, ne stockez pas les données réelles de la boutique dans la base SQLite locale : configurez `DATABASE_URL` avec une base persistante avant d’y saisir les données de production.
 
+Au premier démarrage en production, le catalogue de présentation ajoute les photos du projet avec des tarifs estimatifs provisoires. Les produits restent indisponibles à l'achat en ligne et invitent les clients à confirmer prix et disponibilité sur WhatsApp.
+
+Pour envoyer le message de bienvenue et les e-mails de récupération, configurez un service SMTP dans Render. Pour Gmail, utilisez `smtp.gmail.com`, le port `587`, l'adresse Gmail comme `SMTP_USERNAME` et `SMTP_FROM_EMAIL`, ainsi qu'un mot de passe d'application Google dans `SMTP_PASSWORD` (pas le mot de passe normal du compte). Activez `SMTP_USE_TLS=true`. Sans ces paramètres, l'inscription fonctionne mais l'API indique que l'e-mail de bienvenue n'a pas été envoyé.
+
+Les boutons de connexion Google et Apple restent désactivés tant que leurs clients OAuth ne sont pas configurés. Cela nécessite un client OAuth Google et un identifiant de service Apple, ainsi que leurs secrets conservés dans les variables privées Render; ne collez jamais ces secrets dans le code ni dans une conversation.
+
 ## 3) Déployer le frontend sur Netlify
 
 1. Créer un compte sur Netlify.

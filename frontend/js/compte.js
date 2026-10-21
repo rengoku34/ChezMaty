@@ -34,6 +34,15 @@
     return Object.fromEntries(new FormData(form).entries());
   }
 
+  function showAuthForm(mode) {
+    const isLogin = mode === "login";
+    document.getElementById("login-form").hidden = !isLogin;
+    document.getElementById("register-form").hidden = isLogin;
+    document.getElementById("forgot-password-form").hidden = true;
+    document.querySelector(".social-auth").hidden = false;
+    document.getElementById(isLogin ? "login-email" : "register-name").focus();
+  }
+
   function afterAuthentication() {
     if (nextPage === "panier.html") {
       window.location.assign("panier.html");
@@ -238,15 +247,20 @@
     event.preventDefault();
     submitAuthentication(event.currentTarget, "register", "register-error");
   });
+  document.getElementById("show-register-form").addEventListener("click", () => showAuthForm("register"));
+  document.getElementById("show-login-form").addEventListener("click", () => showAuthForm("login"));
   document.getElementById("show-forgot-form").addEventListener("click", () => {
+    document.getElementById("login-form").hidden = true;
+    document.getElementById("register-form").hidden = true;
+    document.querySelector(".social-auth").hidden = true;
     document.getElementById("forgot-password-form").hidden = false;
     document.getElementById("forgot-email").value = document.getElementById("login-email").value;
     document.getElementById("forgot-email").focus();
   });
   document.getElementById("cancel-forgot-form").addEventListener("click", () => {
-    document.getElementById("forgot-password-form").hidden = true;
     clearFormError("forgot-error");
     document.getElementById("forgot-success").hidden = true;
+    showAuthForm("login");
   });
   document.getElementById("forgot-password-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -277,7 +291,8 @@
       });
       document.getElementById("reset-password-form").hidden = true;
       document.getElementById("login-form").hidden = false;
-      document.getElementById("register-form").hidden = false;
+      document.getElementById("register-form").hidden = true;
+      document.querySelector(".social-auth").hidden = false;
       document.getElementById("forgot-password-form").hidden = true;
       showAccountMessage("Votre mot de passe a été modifié. Vous pouvez vous connecter.", false);
       window.history.replaceState({}, "", "compte.html");
@@ -355,6 +370,7 @@
       document.getElementById("auth-section").hidden = false;
       document.getElementById("login-form").hidden = true;
       document.getElementById("register-form").hidden = true;
+      document.querySelector(".social-auth").hidden = true;
       document.getElementById("reset-password-form").hidden = false;
       document.getElementById("reset-token").value = resetToken;
       window.history.replaceState({}, "", "compte.html");

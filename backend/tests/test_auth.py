@@ -32,6 +32,33 @@ def create_test_client(tmp_path: Path, *, smtp_enabled: bool = False) -> TestCli
     return TestClient(application)
 
 
+def test_cross_site_session_cookie_configuration(tmp_path: Path) -> None:
+    """Émettre des cookies compatibles avec les appels du frontend Netlify."""
+    settings = Settings(
+        _env_file=None,
+        app_name="Chez Maty tests",
+        app_env="production",
+        secret_key="cle-de-test-locale-suffisamment-longue-123456",
+        database_url=f"sqlite:///{(tmp_path / 'cross-site.db').as_posix()}",
+        cors_origins="https://chezmaty.netlify.app",
+        cookie_secure=True,
+        cookie_samesite="none",
+    )
+    client = TestClient(create_app(settings, create_session_factory(settings)))
+    with client:
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "full_name": "Awa Kouassi",
+                "email": "awa@example.com",
+                "password": "motdepasse-solide-123",
+            },
+        )
+    assert response.status_code == 201
+    cookies = response.headers.get_list("set-cookie")
+    assert any("samesite=none" in cookie.lower() and "secure" in cookie.lower() for cookie in cookies)
+
+
 def test_register_current_user_refresh_and_logout(tmp_path: Path) -> None:
     """Verifier la creation du compte, la rotation du refresh et la deconnexion."""
     with create_test_client(tmp_path) as client:
@@ -68,6 +95,47 @@ def test_register_current_user_refresh_and_logout(tmp_path: Path) -> None:
         )
         assert logout.status_code == 204
         assert client.get("/api/auth/me").status_code == 401
+
+
+def test_registration_sends_welcome_email(tmp_path: Path, monkeypatch) -> None:
+    """Notifier le client après la création de son compte."""
+    import app.api.routes.auth as auth_routes
+
+    sent: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        auth_routes,
+        "send_welcome_email",
+        lambda settings, recipient, full_name: sent.append((recipient, full_name)),
+    )
+    with create_test_client(tmp_path, smtp_enabled=True) as client:
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "full_name": "Awa Kouassi",
+                "email": "awa@example.com",
+                "password": "motdepasse-solide-123",
+            },
+        )
+    assert response.status_code == 201
+    assert response.json()["email_sent"] is True
+    assert sent == [("awa@example.com", "Awa Kouassi")]
+
+
+def test_registration_reports_unavailable_welcome_email(tmp_path: Path) -> None:
+    """Créer le compte même si l'e-mail de bienvenue n'est pas configuré."""
+    with create_test_client(tmp_path) as client:
+        response = client.post(
+            "/api/auth/register",
+            json={
+                "full_name": "Awa Kouassi",
+                "email": "awa@example.com",
+                "password": "motdepasse-solide-123",
+            },
+        )
+        assert response.status_code == 201
+        assert response.json()["email_sent"] is False
+        assert "e-mail de bienvenue n'a pas pu être envoyé" in response.json()["message"]
+        assert client.get("/api/auth/me").status_code == 200
 
 
 def test_duplicate_registration_and_invalid_login(tmp_path: Path) -> None:
