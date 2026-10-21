@@ -123,6 +123,7 @@ button { color: inherit; }
 .main-nav a:hover, .main-nav a[aria-current="page"] { color: var(--purple); }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .header-action {
+  position: relative;
   display: inline-flex;
   min-width: 42px;
   min-height: 42px;
@@ -152,6 +153,50 @@ button { color: inherit; }
   color: #fff;
   font-size: .7rem;
 }
+.header-icon { display: inline-grid; width: 20px; height: 20px; place-items: center; }
+.header-icon svg, .favorite-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.favorite-count { min-width: 19px !important; height: 19px !important; padding-inline: 4px !important; }
+.account-menu-wrap { position: relative; }
+.account-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 11px);
+  right: 0;
+  display: grid;
+  width: 260px;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.account-menu > a, .account-menu-logout {
+  display: block;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account-menu > a:hover, .account-menu-logout:hover { background: var(--purple-soft); color: var(--purple); }
+.account-menu-profile { color: var(--purple) !important; font-weight: 900 !important; }
+.account-menu-error { margin: 2px 3px 0; color: #a13f54; font-size: .69rem; line-height: 1.4; }
+.account-menu-logout { border-top: 1px solid var(--line); border-radius: 0 0 11px 11px; color: #a13f54; }
 .menu-toggle { display: none; }
 
 .hero {
@@ -307,13 +352,17 @@ h1, h2, h3 {
 }
 .product-card:hover { transform: translateY(-6px); box-shadow: var(--shadow); }
 .product-card-link { display: block; color: inherit; text-decoration: none; }
-.product-card-image { position: relative; display: grid; overflow: hidden; aspect-ratio: 1 / .91; place-items: center; background: var(--pink-soft); }
+.product-card-image { position: relative; display: grid; overflow: hidden; aspect-ratio: 1 / 1; place-items: center; background: var(--pink-soft); }
 .product-card:nth-child(4n+2) .product-card-image { background: var(--blue-soft); }
 .product-card:nth-child(4n+3) .product-card-image { background: var(--purple-soft); }
 .product-card:nth-child(4n) .product-card-image { background: #f6f0df; }
-.product-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.product-card-image-link { position: absolute; inset: 0; display: grid; place-items: center; }
+.product-card-image img { width: 100%; height: 100%; padding: 12px; object-fit: contain; transition: transform .35s ease; }
 .product-card:hover .product-card-image img { transform: scale(1.045); }
 .product-card-image img.image-placeholder { width: 72%; height: 72%; object-fit: contain; }
+.product-image-dots, .detail-image-dots { position: absolute; z-index: 2; right: 0; bottom: 11px; left: 0; display: flex; justify-content: center; gap: 6px; }
+.image-dot { width: 8px; height: 8px; padding: 0; border: 1px solid rgba(89, 55, 127, .55); border-radius: 50%; background: var(--surface); cursor: pointer; }
+.image-dot[aria-pressed="true"] { width: 19px; border-color: var(--purple); border-radius: 99px; background: var(--purple); }
 .product-badge {
   position: absolute;
   top: 13px;
@@ -350,6 +399,7 @@ h1, h2, h3 {
 }
 .icon-button:hover { transform: scale(1.07); background: var(--pink-soft); }
 .icon-button[aria-pressed="true"] { color: #d45f84; animation: heart-pulse .35s ease; }
+.favorite-button[aria-pressed="true"] svg, .detail-favorite[aria-pressed="true"] svg { fill: currentColor; }
 .product-skeleton { height: 310px; border-radius: 21px; }
 .skeleton { background: linear-gradient(100deg, var(--line) 20%, color-mix(in srgb, var(--surface), white 35%) 40%, var(--line) 60%); background-size: 200% 100%; animation: shimmer 1.35s linear infinite; }
 .promise-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 30px max(20px, calc((100% - 1160px) / 2)); background: var(--purple-soft); }
@@ -412,13 +462,14 @@ h1, h2, h3 {
 .spinner { width: 24px; height: 24px; border: 3px solid var(--purple-soft); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
 .product-detail { display: grid; grid-template-columns: 1fr .9fr; align-items: start; gap: clamp(28px, 6vw, 76px); padding-block: 5px 55px; }
 .detail-gallery { min-width: 0; }
-.detail-main-image { display: grid; overflow: hidden; min-height: 360px; aspect-ratio: 1 / .9; place-items: center; border-radius: 28px; background: var(--pink-soft); }
-.detail-main-image img { width: 100%; height: 100%; object-fit: cover; }
-.detail-main-image img.image-placeholder { width: 74%; height: 74%; object-fit: contain; }
+.detail-main-image { position: relative; display: grid; overflow: hidden; min-height: 360px; aspect-ratio: 1 / 1; place-items: center; border-radius: 28px; background: linear-gradient(145deg, var(--pink-soft), var(--purple-soft)); }
+.detail-main-image img { width: 100%; height: 100%; padding: 20px; object-fit: contain; }
+.detail-main-image img.image-placeholder { width: 74%; height: 74%; padding: 0; object-fit: contain; }
+.detail-image-dots { bottom: 14px; }
 .thumbnail-list { display: flex; gap: 10px; overflow-x: auto; padding: 12px 2px 4px; }
 .thumbnail-button { width: 70px; height: 70px; flex: 0 0 auto; overflow: hidden; padding: 0; border: 2px solid transparent; border-radius: 14px; background: var(--pink-soft); cursor: pointer; }
 .thumbnail-button[aria-pressed="true"] { border-color: var(--purple); }
-.thumbnail-button img { width: 100%; height: 100%; object-fit: cover; }
+.thumbnail-button img { width: 100%; height: 100%; padding: 5px; object-fit: contain; }
 .detail-copy { min-width: 0; }
 .detail-copy h1 { margin: 8px 0 7px; font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 900; }
 .detail-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; color: var(--muted); font-size: .84rem; }
@@ -468,7 +519,9 @@ h1, h2, h3 {
 .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: var(--line); content: ""; }
 .social-auth-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; padding: 10px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; opacity: .65; cursor: not-allowed; }
 .social-auth-mark { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; color: #4285f4; font-weight: 900; }
+.social-auth-mark svg { width: 21px; height: 21px; }
 .social-auth-apple { color: var(--ink); font-size: .75rem; }
+.social-auth-apple svg { width: 19px; height: 19px; fill: currentColor; }
 .social-auth[hidden] { display: none; }
 .form-card { padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow-small); }
 .form-card h2 { margin: 7px 0 18px; font-size: 1.55rem; font-weight: 900; }
@@ -592,7 +645,6 @@ h1, h2, h3 {
   .main-nav a { padding: 13px 8px; border-bottom: 1px solid var(--line); }
   .menu-toggle { display: inline-flex; }
   .header-action { min-width: 39px; min-height: 39px; padding: 7px 9px; }
-  .account-action { display: none; }
   .header-action-label { display: none; }
   .hero { min-height: unset; grid-template-columns: 1fr; gap: 5px; padding-block: 44px 50px; }
   .hero h1 { max-width: 590px; font-size: clamp(2.6rem, 10vw, 4rem); }
@@ -646,6 +698,8 @@ h1, h2, h3 {
 @media (max-width: 380px) {
   .header-actions { gap: 6px; }
   .header-action { min-width: 35px; min-height: 36px; padding: 6px; }
+  .header-icon { width: 17px; height: 17px; }
+  .account-menu { right: -45px; width: min(260px, calc(100vw - 24px)); }
   .brand { gap: 7px; font-size: 1.1rem; }
   .brand-logo { width: 40px; height: 40px; }
   .category-card img { width: 61px; height: 61px; }

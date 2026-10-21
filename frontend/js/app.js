@@ -12,6 +12,11 @@
   const FAVORITES_STORAGE_KEY = "chezmaty_favorites_v1";
   const FALLBACK_IMAGE = "images/coffret.svg";
   const moneyFormatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+  const icons = {
+    heart: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>',
+    cart: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6"/><path d="M9 20h.01M18 20h.01"/></svg>',
+    account: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>'
+  };
 
   function escapeImageUrl(value) {
     if (!value) return FALLBACK_IMAGE;
@@ -117,21 +122,31 @@
   }
 
   function setUpImage(image, alt, fallback) {
+    image.dataset.fallbackApplied = "false";
+    image.classList.remove("image-placeholder");
     image.src = escapeImageUrl(image.src);
     image.alt = alt || "";
     image.loading = "lazy";
     image.decoding = "async";
-    image.addEventListener("error", () => {
-      if (image.dataset.fallbackApplied === "true") return;
-      image.dataset.fallbackApplied = "true";
-      image.src = fallback || FALLBACK_IMAGE;
-      image.classList.add("image-placeholder");
-    });
+    if (image.dataset.fallbackHandlerAttached !== "true") {
+      image.addEventListener("error", () => {
+        if (image.dataset.fallbackApplied === "true") return;
+        image.dataset.fallbackApplied = "true";
+        image.src = fallback || FALLBACK_IMAGE;
+        image.classList.add("image-placeholder");
+      });
+      image.dataset.fallbackHandlerAttached = "true";
+    }
   }
 
   function createProductCard(product, categoryName) {
     const article = document.createElement("article");
     article.className = "product-card";
+    const productImages = Array.isArray(product.images) ? [...product.images] : [];
+    productImages.sort((left, right) => left.position - right.position);
+    const imageSources = productImages.length
+      ? productImages.map((item) => escapeImageUrl(item.image_path))
+      : [imageForProduct(product)];
     const link = document.createElement("a");
     link.className = "product-card-link";
     link.href = `produit.html?slug=${encodeURIComponent(product.slug)}`;
@@ -140,9 +155,43 @@
     const imageWrap = document.createElement("div");
     imageWrap.className = "product-card-image";
     const image = document.createElement("img");
-    image.src = imageForProduct(product);
-    setUpImage(image, product.name);
-    imageWrap.append(image);
+    image.src = imageSources[0];
+    setUpImage(image, productImages[0]?.alt_text || product.name);
+    const imageLink = document.createElement("a");
+    imageLink.className = "product-card-image-link";
+    imageLink.href = link.href;
+    imageLink.setAttribute("aria-label", `Voir les photos de ${product.name}`);
+    imageLink.append(image);
+    imageWrap.append(imageLink);
+
+    if (imageSources.length > 1) {
+      const dots = document.createElement("div");
+      dots.className = "product-image-dots";
+      dots.setAttribute("aria-label", "Photos du produit");
+      imageSources.forEach((source, index) => {
+        const dot = document.createElement("button");
+        dot.className = "image-dot";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Afficher la photo ${index + 1}`);
+        dot.setAttribute("aria-pressed", String(index === 0));
+        dot.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          image.src = source;
+          setUpImage(image, productImages[index]?.alt_text || product.name);
+          dots.querySelectorAll(".image-dot").forEach((item) => {
+            item.setAttribute("aria-pressed", String(item === dot));
+          });
+        });
+        dots.append(dot);
+      });
+      imageWrap.append(dots);
+      bindImageSwipe(imageWrap, (direction) => {
+        const activeIndex = [...dots.children].findIndex((dot) => dot.getAttribute("aria-pressed") === "true");
+        const nextIndex = (activeIndex + direction + imageSources.length) % imageSources.length;
+        dots.children[nextIndex].click();
+      });
+    }
 
     if (product.description.startsWith("Prix estimatif provisoire")) {
       const badge = document.createElement("span");
@@ -190,9 +239,23 @@
     const favoriteButton = createFavoriteButton(product.id, product.name);
     controls.append(addButton, favoriteButton);
     info.append(title, meta);
-    link.append(imageWrap, info);
+    link.append(info);
     article.append(link, controls);
+    article.insertBefore(imageWrap, link);
     return article;
+  }
+
+  function bindImageSwipe(element, onSwipe) {
+    let startX = null;
+    element.addEventListener("touchstart", (event) => {
+      startX = event.changedTouches[0].clientX;
+    }, { passive: true });
+    element.addEventListener("touchend", (event) => {
+      if (startX === null) return;
+      const delta = event.changedTouches[0].clientX - startX;
+      startX = null;
+      if (Math.abs(delta) >= 45) onSwipe(delta < 0 ? 1 : -1);
+    }, { passive: true });
   }
 
   function createFavoriteButton(productId, productName) {
@@ -205,8 +268,10 @@
     button.setAttribute("aria-pressed", String(isFavorite));
     button.setAttribute("aria-label", `${isFavorite ? "Retirer des" : "Ajouter aux"} favoris : ${productName}`);
     const icon = document.createElement("span");
+    icon.className = "favorite-icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = isFavorite ? "♥" : "♡";
+    icon.innerHTML = icons.heart;
+    if (isFavorite) button.classList.add("is-favorite");
     button.append(icon);
     return button;
   }
@@ -250,10 +315,12 @@
     const wasFavorite = favorites.includes(id);
     const next = wasFavorite ? favorites.filter((favoriteId) => favoriteId !== id) : [...favorites, id];
     if (!writeStorage(FAVORITES_STORAGE_KEY, next)) return;
+    updateFavoriteCount();
     button.setAttribute("aria-pressed", String(!wasFavorite));
     button.setAttribute("aria-label", `${wasFavorite ? "Ajouter aux" : "Retirer des"} favoris : ${button.dataset.favoriteName || "ce produit"}`);
     const icon = button.querySelector("span");
-    if (icon) icon.textContent = wasFavorite ? "♡" : "♥";
+    if (icon) icon.innerHTML = icons.heart;
+    button.classList.toggle("is-favorite", !wasFavorite);
     showToast(wasFavorite ? "Produit retiré de vos favoris." : "Produit ajouté à vos favoris.");
 
     if (document.cookie.includes("access_token=") && getCsrfToken()) {
@@ -264,8 +331,10 @@
       }).catch((error) => {
         const rollback = wasFavorite ? [...next, id] : next.filter((favoriteId) => favoriteId !== id);
         writeStorage(FAVORITES_STORAGE_KEY, rollback);
+        updateFavoriteCount();
         button.setAttribute("aria-pressed", String(wasFavorite));
-        if (icon) icon.textContent = wasFavorite ? "♥" : "♡";
+        if (icon) icon.innerHTML = icons.heart;
+        button.classList.toggle("is-favorite", wasFavorite);
         showToast(error.message || "Impossible de synchroniser les favoris.", true);
       });
     } else {
@@ -285,8 +354,6 @@
       { label: "Accueil", href: "index.html", page: "home" },
       { label: "La boutique", href: "catalogue.html", page: "catalogue" },
       { label: "Nos créations", href: "catalogue.html?sort=newest", page: "produit" },
-      { label: "Mon compte", href: "compte.html", page: "compte" },
-      { label: "Mon panier", href: "panier.html", page: "panier" },
       { label: "Nous écrire", href: "https://wa.me/2250709109224", external: true }
     ].forEach((item) => {
       const link = document.createElement("a");
@@ -320,19 +387,25 @@
     favoriteLink.dataset.headerFavorites = "";
     favoriteLink.setAttribute("aria-label", "Voir les favoris enregistrés sur cet appareil");
     const favoriteIcon = document.createElement("span");
+    favoriteIcon.className = "header-icon";
     favoriteIcon.setAttribute("aria-hidden", "true");
-    favoriteIcon.textContent = "♡";
+    favoriteIcon.innerHTML = icons.heart;
     const favoriteLabel = document.createElement("span");
     favoriteLabel.className = "header-action-label";
     favoriteLabel.textContent = "Favoris";
-    favoriteLink.append(favoriteIcon, favoriteLabel);
+    const favoriteCount = document.createElement("span");
+    favoriteCount.className = "cart-count favorite-count";
+    favoriteCount.dataset.favoriteCount = "";
+    favoriteCount.textContent = "0";
+    favoriteLink.append(favoriteIcon, favoriteLabel, favoriteCount);
     const cartLink = document.createElement("a");
     cartLink.className = "header-action";
     cartLink.href = "panier.html";
     cartLink.setAttribute("aria-label", "Voir le panier");
     const cartIcon = document.createElement("span");
+    cartIcon.className = "header-icon";
     cartIcon.setAttribute("aria-hidden", "true");
-    cartIcon.textContent = "♧";
+    cartIcon.innerHTML = icons.cart;
     const cartLabel = document.createElement("span");
     cartLabel.className = "header-action-label";
     cartLabel.textContent = "Panier";
@@ -341,17 +414,34 @@
     cartCount.dataset.cartCount = "";
     cartCount.textContent = "0";
     cartLink.append(cartIcon, cartLabel, cartCount);
-    const accountLink = document.createElement("a");
+    const accountWrap = document.createElement("div");
+    accountWrap.className = "account-menu-wrap";
+    const accountLink = document.createElement("button");
     accountLink.className = "header-action account-action";
-    accountLink.href = "compte.html";
-    accountLink.setAttribute("aria-label", "Mon compte client");
+    accountLink.type = "button";
+    accountLink.dataset.accountToggle = "";
+    accountLink.setAttribute("aria-label", "Ouvrir le menu du compte");
+    accountLink.setAttribute("aria-expanded", "false");
+    accountLink.setAttribute("aria-controls", "account-menu");
     const accountIcon = document.createElement("span");
+    accountIcon.className = "header-icon";
     accountIcon.setAttribute("aria-hidden", "true");
-    accountIcon.textContent = "☺";
+    accountIcon.innerHTML = icons.account;
     const accountLabel = document.createElement("span");
     accountLabel.className = "header-action-label";
-    accountLabel.textContent = "Mon compte";
+    accountLabel.textContent = "Compte";
     accountLink.append(accountIcon, accountLabel);
+    const accountMenu = document.createElement("div");
+    accountMenu.className = "account-menu";
+    accountMenu.id = "account-menu";
+    accountMenu.hidden = true;
+    accountMenu.innerHTML = `
+      <a class="account-menu-profile" href="compte.html">Mon compte</a>
+      <a class="account-menu-signin" href="compte.html">Se connecter</a>
+      <a class="account-menu-register" href="compte.html#creer-compte">Créer un compte</a>
+      <button class="account-menu-logout" type="button" hidden>Se déconnecter</button>
+      <p class="account-menu-error" role="status" hidden></p>`;
+    accountWrap.append(accountLink, accountMenu);
     const menuButton = document.createElement("button");
     menuButton.className = "header-action menu-toggle";
     menuButton.type = "button";
@@ -362,8 +452,45 @@
     menuIcon.setAttribute("aria-hidden", "true");
     menuIcon.textContent = "☰";
     menuButton.append(menuIcon);
-    actions.append(favoriteLink, cartLink, accountLink, menuButton);
+    actions.append(favoriteLink, cartLink, accountWrap, menuButton);
     header.replaceChildren(brand, nav, actions);
+    updateFavoriteCount();
+    updateAccountMenu();
+  }
+
+  function updateFavoriteCount() {
+    const total = getFavorites().length;
+    document.querySelectorAll("[data-favorite-count]").forEach((element) => {
+      element.textContent = String(total);
+      element.setAttribute("aria-label", `${total} favori${total === 1 ? "" : "s"}`);
+    });
+  }
+
+  async function updateAccountMenu() {
+    const menu = document.getElementById("account-menu");
+    if (!menu) return;
+    const signIn = menu.querySelector(".account-menu-signin");
+    const register = menu.querySelector(".account-menu-register");
+    const profile = menu.querySelector(".account-menu-profile");
+    const logout = menu.querySelector(".account-menu-logout");
+    const errorMessage = menu.querySelector(".account-menu-error");
+    try {
+      const user = await apiFetch("/auth/me");
+      profile.textContent = user.full_name ? `Bonjour ${user.full_name}` : "Mon compte";
+      signIn.hidden = true;
+      register.hidden = true;
+      logout.hidden = false;
+    } catch (error) {
+      if (error.status === 401) {
+        signIn.hidden = false;
+        register.hidden = false;
+        logout.hidden = true;
+        return;
+      }
+      errorMessage.hidden = false;
+      errorMessage.textContent = "Impossible de vérifier votre session. Réessayez depuis Mon compte.";
+      console.error("Erreur de vérification de session :", error);
+    }
   }
 
   function createFooter() {
@@ -378,7 +505,7 @@
         <div class="footer-column"><h2>La boutique</h2><a href="catalogue.html">Tous nos cadeaux</a><a href="catalogue.html?sort=newest">Les nouveautés</a><a href="https://wa.me/2250709109224" target="_blank" rel="noopener noreferrer">Commander sur WhatsApp</a></div>
         <div class="footer-column"><h2>Restons en contact</h2><a href="https://wa.me/2250709109224" target="_blank" rel="noopener noreferrer">WhatsApp : 07 09 10 92 24</a><a href="https://www.instagram.com/chez_maty/" target="_blank" rel="noopener noreferrer">Instagram : @chez_maty</a><a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer">Facebook : Chez Maty</a><button class="theme-toggle text-link" type="button" data-theme-toggle aria-pressed="false">Passer au thème sombre</button></div>
       </div>
-      <div class="footer-bottom">© <span data-current-year></span> Chez Maty · Côte d’Ivoire · Livraison en 24 h dans les zones couvertes.</div>`;
+      <div class="footer-bottom">© <span data-current-year></span> Chez Maty · Côte d’Ivoire · Livraison dans les zones couvertes.</div>`;
     const year = footer.querySelector("[data-current-year]");
     if (year) year.textContent = String(new Date().getFullYear());
   }
@@ -432,6 +559,42 @@
         showToast(count ? `${count} favori${count === 1 ? "" : "s"} enregistré${count === 1 ? "" : "s"} sur cet appareil.` : "Vos favoris apparaîtront ici.");
         return;
       }
+      const accountToggle = target.closest("[data-account-toggle]");
+      if (accountToggle) {
+        const menu = document.getElementById("account-menu");
+        if (!menu) return;
+        const isOpen = accountToggle.getAttribute("aria-expanded") === "true";
+        accountToggle.setAttribute("aria-expanded", String(!isOpen));
+        menu.hidden = isOpen;
+        return;
+      }
+      const logoutButton = target.closest(".account-menu-logout");
+      if (logoutButton) {
+        logoutButton.disabled = true;
+        const errorMessage = document.querySelector(".account-menu-error");
+        if (errorMessage) errorMessage.hidden = true;
+        apiFetch("/auth/logout", {
+          method: "POST",
+          headers: { "X-CSRF-Token": getCsrfToken() }
+        }).then(() => {
+          window.location.assign("compte.html");
+        }).catch((error) => {
+          if (errorMessage) {
+            errorMessage.hidden = false;
+            errorMessage.textContent = `La déconnexion a échoué : ${error.message}`;
+          }
+          logoutButton.disabled = false;
+        });
+        return;
+      }
+      if (!target.closest(".account-menu-wrap")) {
+        const accountMenu = document.getElementById("account-menu");
+        const accountButton = document.querySelector("[data-account-toggle]");
+        if (accountMenu && accountButton) {
+          accountMenu.hidden = true;
+          accountButton.setAttribute("aria-expanded", "false");
+        }
+      }
       if (target.closest("[data-theme-toggle]")) {
         const isDark = document.body.classList.toggle("dark-mode");
         writeStorage("chezmaty_theme_v1", isDark ? "dark" : "light");
@@ -465,6 +628,17 @@
 
     window.addEventListener("storage", (event) => {
       if (event.key === CART_STORAGE_KEY) updateCartCount();
+      if (event.key === FAVORITES_STORAGE_KEY) updateFavoriteCount();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const accountMenu = document.getElementById("account-menu");
+      const accountButton = document.querySelector("[data-account-toggle]");
+      if (accountMenu && accountButton && !accountMenu.hidden) {
+        accountMenu.hidden = true;
+        accountButton.setAttribute("aria-expanded", "false");
+        accountButton.focus();
+      }
     });
   }
 
@@ -475,6 +649,7 @@
     setUpMotion();
     bindCommonEvents();
     updateCartCount();
+    updateFavoriteCount();
   }
 
   window.ChezMaty = {
@@ -482,8 +657,10 @@
     FALLBACK_IMAGE,
     addToCart,
     apiFetch,
+    bindImageSwipe,
     createFavoriteButton,
     createProductCard,
+    favoriteIcon: () => icons.heart,
     formatPrice,
     getCart,
     getCsrfToken,

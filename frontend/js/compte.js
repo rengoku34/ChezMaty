@@ -386,6 +386,7 @@
       if (error.status === 401) {
         authSection.hidden = false;
         dashboard.hidden = true;
+        if (window.location.hash === "#creer-compte") showAuthForm("register");
         return;
       }
       showAccountMessage(`Impossible de vérifier votre compte : ${error.message}`, true);

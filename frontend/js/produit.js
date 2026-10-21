@@ -25,7 +25,9 @@
     images.sort((left, right) => left.position - right.position);
     const mainImage = document.getElementById("product-image");
     const thumbnails = document.getElementById("product-thumbnails");
+    const mainImageWrap = document.getElementById("detail-main-image");
     thumbnails.replaceChildren();
+    mainImageWrap.querySelector(".detail-image-dots")?.remove();
     if (!images.length) {
       mainImage.src = api.FALLBACK_IMAGE;
       mainImage.alt = product.name;
@@ -51,9 +53,40 @@
         thumbnails.querySelectorAll(".thumbnail-button").forEach((thumbnail) => {
           thumbnail.setAttribute("aria-pressed", String(thumbnail === button));
         });
+        mainImageWrap.querySelectorAll(".image-dot").forEach((dot, dotIndex) => {
+          dot.setAttribute("aria-pressed", String(dotIndex === index));
+        });
       });
       thumbnails.append(button);
     });
+    if (images.length > 1) {
+      const dots = document.createElement("div");
+      dots.className = "detail-image-dots";
+      dots.setAttribute("aria-label", "Photos du produit");
+      images.forEach((item, index) => {
+        const dot = document.createElement("button");
+        dot.className = "image-dot";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Afficher la photo ${index + 1}`);
+        dot.setAttribute("aria-pressed", String(index === 0));
+        dot.addEventListener("click", () => {
+          mainImage.src = api.resolveImageUrl(item.image_path);
+          api.setUpImage(mainImage, item.alt_text || product.name);
+          thumbnails.querySelectorAll(".thumbnail-button").forEach((thumbnail, thumbnailIndex) => {
+            thumbnail.setAttribute("aria-pressed", String(thumbnailIndex === index));
+          });
+          dots.querySelectorAll(".image-dot").forEach((otherDot) => {
+            otherDot.setAttribute("aria-pressed", String(otherDot === dot));
+          });
+        });
+        dots.append(dot);
+      });
+      mainImageWrap.append(dots);
+      api.bindImageSwipe(mainImageWrap, (direction) => {
+        const activeIndex = [...dots.children].findIndex((dot) => dot.getAttribute("aria-pressed") === "true");
+        dots.children[(activeIndex + direction + images.length) % images.length].click();
+      });
+    }
   }
 
   function updatePreview() {
@@ -103,7 +136,8 @@
     const isFavorite = api.getFavorites().includes(String(product.id));
     favoriteButton.setAttribute("aria-pressed", String(isFavorite));
     favoriteButton.setAttribute("aria-label", `${isFavorite ? "Retirer des" : "Ajouter aux"} favoris : ${product.name}`);
-    favoriteButton.querySelector("span").textContent = isFavorite ? "♥" : "♡";
+    favoriteButton.querySelector("span").innerHTML = api.favoriteIcon();
+    favoriteButton.classList.toggle("is-favorite", isFavorite);
 
     const addButton = document.getElementById("add-to-cart");
     addButton.hidden = product.description.startsWith("Prix estimatif provisoire") || product.stock <= 0;
