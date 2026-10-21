@@ -36,11 +36,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-        """Initialiser les tables automatiquement uniquement en developpement."""
-        if active_settings.app_env == "development":
-            engine = active_session_factory.kw["bind"]
-            migrate_cart_item_customizations(engine)
-            Base.metadata.create_all(bind=engine)
+        """Initialiser le schema et appliquer les migrations connues au demarrage."""
+        engine = active_session_factory.kw["bind"]
+        migrate_cart_item_customizations(engine)
+        Base.metadata.create_all(bind=engine)
         yield
 
     application = FastAPI(

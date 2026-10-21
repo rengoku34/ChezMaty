@@ -13,6 +13,8 @@ Acheter ou posséder un domaine du type `chezmaty.ci` chez un registrar.
 5. Déployer avec le fichier `render.yaml` déjà préparé.
 6. Vérifier l’URL publique affichée par Render (ex. `https://chezmaty-api.onrender.com`).
 
+Le backend initialise son schéma de base de données au démarrage. Le système de fichiers d’un service Render gratuit étant éphémère, ne stockez pas les données réelles de la boutique dans la base SQLite locale : configurez `DATABASE_URL` avec une base persistante avant d’y saisir les données de production.
+
 ## 3) Déployer le frontend sur Netlify
 
 1. Créer un compte sur Netlify.

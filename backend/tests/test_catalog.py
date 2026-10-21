@@ -29,6 +29,24 @@ def build_client(tmp_path: Path) -> tuple[TestClient, sessionmaker[Session]]:
     return TestClient(create_app(settings, factory)), factory
 
 
+def test_catalog_schema_is_initialized_in_production(tmp_path: Path) -> None:
+    """Les routes publiques fonctionnent avec une base neuve en production."""
+    limiter.reset()
+    settings = Settings(
+        _env_file=None,
+        app_name="Chez Maty production tests",
+        app_env="production",
+        secret_key="cle-test-production-suffisamment-longue-987654",
+        database_url=f"sqlite:///{(tmp_path / 'production.db').as_posix()}",
+    )
+    client = TestClient(create_app(settings, create_session_factory(settings)))
+
+    with client:
+        assert client.get("/api/products").status_code == 200
+        assert client.get("/api/products").json() == []
+        assert client.get("/api/categories").status_code == 200
+
+
 def seed_catalog(factory: sessionmaker[Session]) -> tuple[int, int]:
     """Creer une categorie, un produit publie et un brouillon prive."""
     with factory() as db:
