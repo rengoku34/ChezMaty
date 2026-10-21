@@ -14,7 +14,7 @@
   <script src="js/panier.js" defer></script>
 </head>
 <body data-page="panier">
-  <div class="announcement">Livraison en 24 h sur les zones couvertes en Côte d'Ivoire <span aria-hidden="true">♡</span></div>
+  
   <header class="site-header" id="site-header"></header>
   <main class="section-wrap page-main">
     <nav class="breadcrumbs" aria-label="Fil d'Ariane"><a href="index.html">Accueil</a><span aria-hidden="true">/</span><span aria-current="page">Mon panier</span></nav>
@@ -28,16 +28,17 @@
       <aside class="checkout-panel" aria-labelledby="checkout-title">
         <h2 id="checkout-title">Récapitulatif</h2>
         <div class="cart-total-row"><span>Sous-total</span><strong id="cart-subtotal">0 FCFA</strong></div>
-        <p class="checkout-hint">La livraison est confirmée selon la commune. Le paiement sécurisé sera proposé à l’étape suivante.</p>
+        <p class="checkout-hint">La livraison est confirmée selon la commune. Le paiement est sécurisé par CinetPay.</p>
         <div id="checkout-address-section" hidden>
           <label for="checkout-address">Adresse de livraison</label>
           <select id="checkout-address"><option value="">Choisir une adresse</option></select>
           <p class="form-help" id="delivery-zone-help">La commune est vérifiée au moment de la commande.</p>
-          <a class="text-link" href="compte.html#addresses">Gérer mes adresses →</a>
+          <a class="text-link" href="compte.html#addresses">Gérer mes adresses</a>
         </div>
-        <button class="button button-primary checkout-button" id="checkout-button" type="button" disabled>Continuer ma commande</button>
+        <button class="button button-primary checkout-button" id="checkout-button" type="button" disabled>Commander et payer</button>
         <a class="button button-quiet checkout-login" id="checkout-login" href="compte.html?next=panier.html" hidden>Me connecter pour commander</a>
         <p class="api-message checkout-message" id="checkout-message" role="status" hidden></p>
+        <button class="button button-quiet" id="retry-payment-button" type="button" hidden>Réessayer le paiement</button>
         <a class="continue-shopping" href="catalogue.html">Continuer mes découvertes</a>
       </aside>
     </div>
@@ -45,7 +46,7 @@
       <span aria-hidden="true">♡</span>
       <h2>Votre commande est enregistrée !</h2>
       <p id="order-success-details"></p>
-      <p>Elle est en attente de paiement. Le paiement sécurisé sera disponible à l’étape suivante.</p>
+      <p id="order-payment-status">Vous allez être redirigé vers CinetPay pour régler votre commande.</p>
       <a class="button button-primary" href="compte.html#orders">Voir mes commandes</a>
     </section>
   </main>
