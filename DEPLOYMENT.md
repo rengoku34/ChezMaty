@@ -53,4 +53,20 @@ Dans Render, configurer le domaine ou utiliser un sous-domaine dédié.
 
 ## 7) Paiement en ligne
 
-Le paiement en ligne ne sera visible et fonctionnel qu’après l’intégration du vrai fournisseur de paiement et la configuration de ses clés API.
+Le panier crée la commande puis redirige le client vers CinetPay Checkout. Le statut n'est jamais déduit de la page de retour : l'API demande confirmation à CinetPay avant de marquer la commande comme payée.
+
+### Configuration CinetPay
+
+Dans les paramètres d'environnement du service Render, définir :
+
+- `CINETPAY_API_KEY` : clé API privée du compte CinetPay.
+- `CINETPAY_API_PASSWORD` : mot de passe API défini dans **Ressources → API & sécurité**.
+- `PAYMENT_PUBLIC_API_URL` : URL HTTPS publique de l'API Render, par exemple `https://chezmaty-api.onrender.com` (sans `/api` final).
+- `FRONTEND_URL` : origine HTTPS Netlify ou domaine du site, sans chemin, par exemple `https://chezmaty.ci`.
+- `PAYMENT_SANDBOX` : `true` avec la clé `sk_test_...` pour les essais; `false` uniquement avec la clé `sk_live_...` pour les vrais paiements.
+
+En Sandbox, Chez Maty utilise `https://api.cinetpay.net`; en production, `https://api.cinetpay.co`. Le backend choisit l'adresse à partir de `PAYMENT_SANDBOX`. Les mêmes variables peuvent être définies dans un fichier `.env` local pour les essais. Ne pas committer ce fichier ni intégrer les clés dans le frontend.
+
+À la création d'un paiement, l'API enregistre le jeton de notification fourni par CinetPay. CinetPay doit pouvoir appeler `https://<api-publique>/api/payments/cinetpay/notify`; le backend vérifie le jeton puis confirme le statut, le montant et la devise directement auprès de CinetPay avant de marquer la commande comme payée. Au retour du checkout, le navigateur interroge également l'API avec la session du client. Le client peut réessayer un paiement non confirmé depuis la page panier.
+
+Le service Render gratuit utilise un système de fichiers éphémère. Avant tout encaissement réel, configure une base de données persistante pour que les commandes et confirmations de paiement survivent aux redémarrages.

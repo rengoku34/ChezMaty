@@ -11,10 +11,15 @@
   const checkoutLogin = document.getElementById("checkout-login");
   const checkoutSection = document.getElementById("checkout-address-section");
   const checkoutMessage = document.getElementById("checkout-message");
+  const retryPaymentButton = document.getElementById("retry-payment-button");
+  const orderSuccess = document.getElementById("order-success");
+  const orderSuccessDetails = document.getElementById("order-success-details");
+  const orderPaymentStatus = document.getElementById("order-payment-status");
   const syncStatus = document.getElementById("cart-sync-status");
   let customer = null;
   let addresses = [];
   let isSyncing = false;
+  let activeOrderId = null;
 
   function textMessage(message, isError) {
     checkoutMessage.hidden = false;
@@ -220,15 +225,69 @@
       api.setCart([]);
       renderCart(0);
       document.querySelector(".cart-layout").hidden = true;
-      const success = document.getElementById("order-success");
-      success.hidden = false;
-      document.getElementById("order-success-details").textContent = `Votre commande ${order.order_number} d’un montant de ${api.formatPrice(order.total_xof)} est enregistrée.`;
-      window.scrollTo({ top: success.offsetTop - 95, behavior: "smooth" });
+      activeOrderId = order.id;
+      orderSuccess.hidden = false;
+      orderSuccessDetails.textContent = `Votre commande ${order.order_number} d’un montant de ${api.formatPrice(order.total_xof)} est enregistrée.`;
+      orderPaymentStatus.textContent = "Préparation du paiement sécurisé avec CinetPay…";
+      retryPaymentButton.hidden = false;
+      await startPayment(order.id);
+      window.scrollTo({ top: orderSuccess.offsetTop - 95, behavior: "smooth" });
     } catch (error) {
       textMessage(error.message || "La commande n'a pas pu être créée.", true);
       checkoutButton.disabled = false;
     } finally {
-      checkoutButton.textContent = "Continuer ma commande";
+      checkoutButton.textContent = "Commander et payer";
+    }
+  }
+
+  async function startPayment(orderId) {
+    retryPaymentButton.disabled = true;
+    try {
+      const payment = await api.apiFetch(`/payments/orders/${orderId}/start`, {
+        method: "POST",
+        headers: { "X-CSRF-Token": api.getCsrfToken() }
+      });
+      orderPaymentStatus.textContent = "Redirection vers CinetPay…";
+      window.location.assign(payment.payment_url);
+    } catch (error) {
+      orderPaymentStatus.textContent = "La commande est enregistrée mais le paiement n’a pas pu démarrer. Vous pouvez réessayer.";
+      textMessage(error.message || "Impossible de démarrer le paiement CinetPay.", true);
+      retryPaymentButton.hidden = false;
+    } finally {
+      retryPaymentButton.disabled = false;
+    }
+  }
+
+  async function handlePaymentReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment_return") !== "1") return;
+    const orderId = Number(params.get("order_id"));
+    if (!Number.isSafeInteger(orderId) || orderId < 1) {
+      textMessage("La référence de commande reçue après le paiement est invalide.", true);
+      return;
+    }
+    activeOrderId = orderId;
+    document.querySelector(".cart-layout").hidden = true;
+    orderSuccess.hidden = false;
+    orderSuccessDetails.textContent = `Commande n° ${orderId}`;
+    orderPaymentStatus.textContent = "Vérification du paiement auprès de CinetPay…";
+    retryPaymentButton.hidden = true;
+    try {
+      const payment = await api.apiFetch(`/payments/orders/${orderId}/status`);
+      orderSuccessDetails.textContent = `Commande ${payment.order_number}`;
+      if (payment.payment_status === "paye") {
+        orderPaymentStatus.textContent = "Paiement confirmé. Merci pour votre commande !";
+      } else if (payment.payment_status === "echoue" || payment.payment_status === "erreur") {
+        orderPaymentStatus.textContent = "Le paiement n’a pas été confirmé. Vous pouvez effectuer une nouvelle tentative.";
+        retryPaymentButton.hidden = false;
+      } else {
+        orderPaymentStatus.textContent = "Le paiement est encore en cours de confirmation. Vous pouvez réessayer si vous n’avez pas pu le terminer.";
+        retryPaymentButton.hidden = false;
+      }
+    } catch (error) {
+      orderPaymentStatus.textContent = "Nous n’avons pas pu confirmer le paiement pour le moment.";
+      textMessage(error.message || "La vérification du paiement a échoué.", true);
+      retryPaymentButton.hidden = false;
     }
   }
 
@@ -250,6 +309,9 @@
     }
   });
   checkoutButton.addEventListener("click", createOrder);
+  retryPaymentButton.addEventListener("click", () => {
+    if (activeOrderId) startPayment(activeOrderId);
+  });
 
   async function init() {
     renderCart();
@@ -259,6 +321,7 @@
       checkoutSection.hidden = false;
       await loadAddresses();
       await synchronizeCart();
+      await handlePaymentReturn();
     } catch (error) {
       if (error.status === 401) {
         customer = null;

@@ -15,6 +15,7 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.catalog import router as catalog_router
 from app.api.routes.customer import router as customer_router
 from app.api.routes.favorites import router as favorites_router
+from app.api.routes.payments import router as payments_router
 from app.core.config import Settings, get_settings
 from app.core.rate_limit import limiter
 from app.db.base import Base
@@ -73,6 +74,7 @@ def create_app(
     application.include_router(catalog_router, prefix="/api")
     application.include_router(favorites_router, prefix="/api")
     application.include_router(customer_router, prefix="/api")
+    application.include_router(payments_router, prefix="/api")
 
     @application.get("/health", tags=["Santé"])
     def health_check() -> dict[str, str]:

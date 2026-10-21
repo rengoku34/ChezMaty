@@ -8,11 +8,13 @@ class PaymentStartRead(BaseModel):
 
     payment_url: str = Field(min_length=1, max_length=2000)
     status: str
+    order_id: int
 
 
 class PaymentStatusRead(BaseModel):
     """Statut du paiement d'une commande appartenant au client."""
 
     order_id: int
+    order_number: str
     order_status: str
     payment_status: str | None

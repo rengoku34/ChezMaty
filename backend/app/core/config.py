@@ -43,8 +43,13 @@ class Settings(BaseSettings):
     payment_provider: str = "cinetpay"
     payment_sandbox: bool = True
     cinetpay_api_key: str | None = None
-    cinetpay_site_id: str | None = None
+    cinetpay_api_password: str | None = None
     payment_public_api_url: str = "http://127.0.0.1:8000"
+
+    @property
+    def cinetpay_base_url(self) -> str:
+        """Choisir l'API CinetPay selon le mode de la clé configurée."""
+        return "https://api.cinetpay.net" if self.payment_sandbox else "https://api.cinetpay.co"
 
     @field_validator("secret_key")
     @classmethod
