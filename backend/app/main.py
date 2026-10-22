@@ -20,7 +20,7 @@ from app.core.config import Settings, get_settings
 from app.core.rate_limit import limiter
 from app.db.base import Base
 from app.db.migrations import migrate_cart_item_customizations
-from app.db.seed_catalog import seed_catalog
+from app.db.seed_catalog import seed_catalog, sync_sandbox_payment_product
 from app.db.session import create_session_factory
 from app.models import Base as ModelBase
 
@@ -44,6 +44,10 @@ def create_app(
         Base.metadata.create_all(bind=engine)
         if active_settings.app_env == "production":
             seed_catalog(active_session_factory)
+            sync_sandbox_payment_product(
+                active_session_factory,
+                enabled=active_settings.payment_sandbox,
+            )
         yield
 
     application = FastAPI(

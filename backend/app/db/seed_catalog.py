@@ -105,3 +105,46 @@ def seed_catalog(session_factory: sessionmaker) -> bool:
             )
         db.commit()
         return True
+
+
+def sync_sandbox_payment_product(session_factory: sessionmaker, enabled: bool) -> None:
+    """Expose a clearly labelled checkout item only while CinetPay is in sandbox."""
+    with session_factory() as db:
+        category = db.scalar(
+            select(Category).where(Category.slug == "paiement-test")
+        )
+        if category is None and enabled:
+            category = Category(
+                name="Test de paiement",
+                slug="paiement-test",
+                is_visible=True,
+            )
+            db.add(category)
+            db.flush()
+        elif category is not None:
+            category.is_visible = enabled
+
+        product = db.scalar(
+            select(Product).where(Product.slug == "test-paiement-cinetpay")
+        )
+        if product is None and enabled:
+            product = Product(
+                category_id=category.id,
+                name="Article test — CinetPay Sandbox",
+                slug="test-paiement-cinetpay",
+                description=(
+                    "Article de démonstration pour vérifier le paiement CinetPay. "
+                    "Disponible uniquement en mode Sandbox ; aucun débit réel."
+                ),
+                price_xof=500,
+                stock=99,
+                is_published=True,
+                is_featured=False,
+            )
+            db.add(product)
+        elif product is not None:
+            product.is_published = enabled
+            if enabled:
+                product.price_xof = 500
+                product.stock = max(product.stock, 99)
+        db.commit()
