@@ -3,4 +3,4 @@ Allow: /
 Disallow: /compte.html
 Disallow: /panier.html
 
-Sitemap: https://chezmaty.netlify.app/sitemap.xml
+Sitemap: https://chezmaty.pages.dev/sitemap.xml
