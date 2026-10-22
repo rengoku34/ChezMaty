@@ -21,6 +21,10 @@ services:
         value: https://chezmaty.ci,https://www.chezmaty.ci,https://chezmaty.netlify.app
       - key: FRONTEND_URL
         value: https://chezmaty.netlify.app
+      - key: PAYMENT_PROVIDER
+        value: cinetpay
+      - key: PAYMENT_SANDBOX
+        value: "true"
       - key: COOKIE_SECURE
         value: "true"
       - key: COOKIE_SAMESITE
