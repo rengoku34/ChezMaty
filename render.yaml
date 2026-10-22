@@ -18,9 +18,9 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./chezmaty.db
       - key: CORS_ORIGINS
-        value: https://chezmaty.ci,https://www.chezmaty.ci,https://chezmaty.netlify.app
+        value: https://chezmaty.ci,https://www.chezmaty.ci,https://chezmaty.netlify.app,https://chezmaty.pages.dev
       - key: FRONTEND_URL
-        value: https://chezmaty.netlify.app
+        value: https://chezmaty.pages.dev
       - key: PAYMENT_PUBLIC_API_URL
         value: https://chezmaty-api.onrender.com
       - key: PAYMENT_PROVIDER
