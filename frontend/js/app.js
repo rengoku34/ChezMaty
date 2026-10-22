@@ -3,11 +3,16 @@
   "use strict";
 
   const isLocalHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const isCloudflarePages = window.location.hostname.endsWith(".pages.dev");
   const defaultApiUrl = isLocalHost
     ? "http://127.0.0.1:8000/api"
-    : "https://chezmaty-api.onrender.com/api";
+    : isCloudflarePages
+      ? `${window.location.origin}/api`
+      : "https://chezmaty-api.onrender.com/api";
   const API_BASE = (window.CHEZ_MATY_API_URL || defaultApiUrl).replace(/\/$/, "");
-  const API_ORIGIN = window.CHEZ_MATY_API_ORIGIN || new URL(API_BASE, window.location.href).origin;
+  const API_ORIGIN = window.CHEZ_MATY_API_ORIGIN || (isCloudflarePages
+    ? window.location.origin
+    : new URL(API_BASE, window.location.href).origin);
   const CART_STORAGE_KEY = "chezmaty_cart_v1";
   const FAVORITES_STORAGE_KEY = "chezmaty_favorites_v1";
   const FALLBACK_IMAGE = "images/coffret.svg";

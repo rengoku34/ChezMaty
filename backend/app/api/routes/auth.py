@@ -65,7 +65,13 @@ def _social_provider_ready(provider: str, settings: Settings) -> bool:
 
 
 def _social_callback_url(provider: str, settings: Settings) -> str:
-    return f"{settings.payment_public_api_url.rstrip('/')}/api/auth/{provider}/callback"
+    frontend_origin = settings.frontend_url.rstrip("/")
+    callback_origin = (
+        frontend_origin
+        if frontend_origin.endswith(".pages.dev")
+        else settings.payment_public_api_url.rstrip("/")
+    )
+    return f"{callback_origin}/api/auth/{provider}/callback"
 
 
 def _social_state_cookie(provider: str, kind: str) -> str:

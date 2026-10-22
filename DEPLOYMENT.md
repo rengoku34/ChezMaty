@@ -29,6 +29,18 @@ Les boutons de connexion Google et Apple restent désactivés tant que leurs cli
 4. Laisser la commande de build vide, car ce site est statique.
 5. Déployer.
 
+### Alternative gratuite : Cloudflare Pages
+
+Le dépôt peut aussi être relié à Cloudflare Pages, sans retirer ni modifier le site Netlify existant :
+
+1. Créer un projet Pages depuis le dépôt GitHub `rengoku34/ChezMaty`.
+2. Laisser le répertoire racine vide, ne définir aucune commande de build et indiquer `frontend` comme répertoire de sortie.
+3. Utiliser d'abord l'adresse `*.pages.dev` fournie par Cloudflare pour vérifier le site. Les Pages Functions à la racine du dépôt relaient `/api/*` et `/uploads/*` vers l'API Render, afin que les sessions du navigateur restent sur la même origine que le site.
+4. Dans Render, mettre `FRONTEND_URL` à l'adresse Pages retenue et ajouter cette origine à `CORS_ORIGINS` si des appels directs à l'API sont utilisés. Garder `PAYMENT_PUBLIC_API_URL` sur l'URL Render.
+5. Pour Google et Apple, enregistrer les adresses de retour sur l'origine Pages : `https://<projet>.pages.dev/api/auth/google/callback` et `https://<projet>.pages.dev/api/auth/apple/callback`. N'ajouter un domaine personnalisé qu'après avoir vérifié la préversion Pages.
+
+Le plan gratuit Cloudflare Pages a des limites mensuelles. L'API Render gratuite peut s'endormir et son SQLite local n'est pas persistant : cette configuration convient aux essais, pas à la gestion fiable des commandes et paiements réels.
+
 ## 4) Configurer l’API publique du frontend
 
 Dans chaque page HTML, ou dans un script global, définir :
@@ -81,6 +93,6 @@ Dans les réglages d'environnement du service Render, ajoute :
 - Apple : `APPLE_OAUTH_CLIENT_ID` (Services ID), `APPLE_OAUTH_TEAM_ID`, `APPLE_OAUTH_KEY_ID` et `APPLE_OAUTH_PRIVATE_KEY` (contenu PEM de la clé `.p8`; conserver les retours à la ligne ou les remplacer par `\\n`).
 - Vérifie que `PAYMENT_PUBLIC_API_URL` contient l'origine HTTPS publique de l'API Render, sans `/api` final.
 
-Enregistre l'URL de retour exacte `https://chezmaty-api.onrender.com/api/auth/google/callback` dans le client OAuth Web de Google et `https://chezmaty-api.onrender.com/api/auth/apple/callback` dans la configuration du Services ID Apple. Le domaine de retour doit aussi être enregistré côté Apple. Apple exige un compte Apple Developer et un App ID principal associé au Services ID. N'expose jamais les secrets dans le frontend ni dans Git.
+Enregistre dans Google et Apple l'URL de retour sur le même domaine public que `FRONTEND_URL`, avec le chemin `/api/auth/google/callback` ou `/api/auth/apple/callback`. Sur Cloudflare Pages, les Pages Functions relaient ces retours jusqu'à Render en gardant les cookies de vérification sur le domaine du site. Le domaine de retour doit aussi être enregistré côté Apple. Apple exige un compte Apple Developer et un App ID principal associé au Services ID. N'expose jamais les secrets dans le frontend ni dans Git.
 
 Les comptes sociaux dont l'adresse e-mail est confirmée sont reliés au compte Chez Maty correspondant. La première connexion crée sinon un compte client. Les comptes existants dont le fournisseur confirme la même adresse sont reliés automatiquement.
