@@ -2,13 +2,17 @@
 
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
+import asyncio
+import json
 import logging
 import smtplib
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 import secrets
+from hmac import compare_digest
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -27,7 +31,14 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models import PasswordResetToken, RefreshToken, User
+from app.models import ExternalIdentity, PasswordResetToken, RefreshToken, User
+from app.services.social_auth import (
+    APPLE_AUTH_URL,
+    GOOGLE_AUTH_URL,
+    SocialAuthError,
+    exchange_apple_code,
+    exchange_google_code,
+)
 from app.schemas.auth import (
     AuthResponse,
     ForgotPasswordRequest,
@@ -40,6 +51,248 @@ from app.schemas.auth import (
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 logger = logging.getLogger(__name__)
+
+
+def _social_provider_ready(provider: str, settings: Settings) -> bool:
+    if provider == "google":
+        return bool(settings.google_oauth_client_id and settings.google_oauth_client_secret)
+    return bool(
+        settings.apple_oauth_client_id
+        and settings.apple_oauth_team_id
+        and settings.apple_oauth_key_id
+        and settings.apple_oauth_private_key
+    )
+
+
+def _social_callback_url(provider: str, settings: Settings) -> str:
+    return f"{settings.payment_public_api_url.rstrip('/')}/api/auth/{provider}/callback"
+
+
+def _social_state_cookie(provider: str, kind: str) -> str:
+    return f"chezmaty_oauth_{provider}_{kind}"
+
+
+def _clear_social_cookies(response: Response, provider: str) -> None:
+    for kind in ("state", "nonce", "next"):
+        response.delete_cookie(_social_state_cookie(provider, kind), path="/api/auth")
+
+
+def _social_error_redirect(settings: Settings, code: str) -> RedirectResponse:
+    frontend_url = f"{settings.frontend_url.rstrip('/')}/compte.html"
+    return RedirectResponse(f"{frontend_url}?social_error={quote(code)}", status_code=303)
+
+
+def _create_or_find_social_user(
+    provider: str,
+    claims: dict[str, object],
+    apple_user: dict[str, object] | None,
+    db: Session,
+) -> User:
+    subject = str(claims.get("sub", ""))
+    email = str(claims.get("email", "")).strip().lower()
+    if not subject or not email or claims.get("email_verified") not in (True, "true", "1"):
+        raise SocialAuthError("Le fournisseur n'a pas confirmé l'identité et l'adresse e-mail.")
+
+    identity = db.scalar(
+        select(ExternalIdentity).where(
+            ExternalIdentity.provider == provider,
+            ExternalIdentity.provider_subject == subject,
+        )
+    )
+    if identity is not None:
+        user = db.scalar(select(User).where(User.id == identity.user_id, User.is_active.is_(True)))
+        if user is None:
+            raise SocialAuthError("Ce compte Chez Maty est désactivé.")
+        return user
+
+    name = str(claims.get("name") or "").strip()
+    if not name and apple_user:
+        parts = apple_user.get("name")
+        if isinstance(parts, dict):
+            name = " ".join(str(parts.get(key, "")).strip() for key in ("firstName", "lastName")).strip()
+    if len(name) < 2:
+        name = email.split("@", 1)[0].replace(".", " ").replace("_", " ").strip().title()
+    if len(name) < 2:
+        name = "Client Chez Maty"
+
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None:
+        user = User(full_name=name[:120], email=email, password_hash=hash_password(secrets.token_urlsafe(48)))
+        db.add(user)
+        db.flush()
+    elif not user.is_active:
+        raise SocialAuthError("Ce compte Chez Maty est désactivé.")
+
+    db.add(ExternalIdentity(user_id=user.id, provider=provider, provider_subject=subject))
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise SocialAuthError("Ce compte social est déjà associé à un autre profil Chez Maty.") from exc
+    db.refresh(user)
+    return user
+
+
+@router.get("/providers")
+def read_social_providers(settings: Settings = Depends(get_app_settings)) -> dict[str, bool]:
+    """Indiquer à la page de connexion quels fournisseurs sont configurés."""
+    return {
+        "google": _social_provider_ready("google", settings),
+        "apple": _social_provider_ready("apple", settings),
+    }
+
+
+def _start_social_login(provider: str, request: Request, settings: Settings) -> RedirectResponse:
+    if not _social_provider_ready(provider, settings):
+        return _social_error_redirect(settings, f"{provider}_unavailable")
+
+    state, nonce = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    redirect_uri = _social_callback_url(provider, settings)
+    if provider == "google":
+        authorization_url = GOOGLE_AUTH_URL + "?" + urlencode({
+            "client_id": settings.google_oauth_client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "state": state,
+            "nonce": nonce,
+            "prompt": "select_account",
+        })
+    else:
+        authorization_url = APPLE_AUTH_URL + "?" + urlencode({
+            "client_id": settings.apple_oauth_client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "response_mode": "form_post",
+            "scope": "name email",
+            "state": state,
+            "nonce": nonce,
+        })
+
+    response = RedirectResponse(authorization_url, status_code=302)
+    for kind, value in (("state", state), ("nonce", nonce)):
+        response.set_cookie(
+            _social_state_cookie(provider, kind),
+            value,
+            max_age=600,
+            httponly=True,
+            secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite,
+            path="/api/auth",
+        )
+    next_page = request.query_params.get("next")
+    if next_page == "panier.html":
+        response.set_cookie(
+            _social_state_cookie(provider, "next"), next_page,
+            max_age=600, httponly=True, secure=settings.cookie_secure,
+            samesite=settings.cookie_samesite, path="/api/auth",
+        )
+    return response
+
+
+def _oauth_callback_valid(provider: str, state: str, request: Request) -> tuple[str, str]:
+    expected_state = request.cookies.get(_social_state_cookie(provider, "state"), "")
+    nonce = request.cookies.get(_social_state_cookie(provider, "nonce"), "")
+    if not expected_state or not nonce or not state or not compare_digest(state, expected_state):
+        raise SocialAuthError("La vérification de sécurité de la connexion a échoué.")
+    return nonce, request.cookies.get(_social_state_cookie(provider, "next"), "")
+
+
+async def _complete_social_login(
+    provider: str,
+    request: Request,
+    state: str,
+    code: str,
+    db: Session,
+    settings: Settings,
+    apple_user: dict[str, object] | None = None,
+) -> RedirectResponse:
+    try:
+        nonce, next_page = _oauth_callback_valid(provider, state, request)
+        exchanger = exchange_google_code if provider == "google" else exchange_apple_code
+        claims = await asyncio.to_thread(
+            exchanger, code, settings, _social_callback_url(provider, settings), nonce
+        )
+        user = _create_or_find_social_user(provider, claims, apple_user, db)
+        destination = f"{settings.frontend_url.rstrip('/')}/compte.html?social_login=success"
+        if next_page == "panier.html":
+            destination += "&next=panier.html"
+        response = RedirectResponse(destination, status_code=303)
+        set_auth_cookies(response, user, db, settings)
+        _clear_social_cookies(response, provider)
+        return response
+    except SocialAuthError:
+        db.rollback()
+        response = _social_error_redirect(settings, "failed")
+        _clear_social_cookies(response, provider)
+        return response
+
+
+@router.get("/google/start")
+def start_google_login(
+    request: Request,
+    settings: Settings = Depends(get_app_settings),
+) -> RedirectResponse:
+    """Démarrer la connexion Google avec state et nonce anti-rejeu."""
+    return _start_social_login("google", request, settings)
+
+
+@router.get("/google/callback")
+async def google_login_callback(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> RedirectResponse:
+    if request.query_params.get("error"):
+        response = _social_error_redirect(settings, "cancelled")
+        _clear_social_cookies(response, "google")
+        return response
+    code, state = request.query_params.get("code", ""), request.query_params.get("state", "")
+    if not code:
+        response = _social_error_redirect(settings, "failed")
+        _clear_social_cookies(response, "google")
+        return response
+    return await _complete_social_login("google", request, state, code, db, settings)
+
+
+@router.get("/apple/start")
+def start_apple_login(
+    request: Request,
+    settings: Settings = Depends(get_app_settings),
+) -> RedirectResponse:
+    """Démarrer la connexion Apple avec le retour sécurisé form_post."""
+    return _start_social_login("apple", request, settings)
+
+
+@router.post("/apple/callback")
+async def apple_login_callback(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+) -> RedirectResponse:
+    try:
+        form = await request.form()
+    except (ValueError, RuntimeError):
+        form = {}
+    if form.get("error"):
+        response = _social_error_redirect(settings, "cancelled")
+        _clear_social_cookies(response, "apple")
+        return response
+    code, state = str(form.get("code", "")), str(form.get("state", ""))
+    if not code:
+        response = _social_error_redirect(settings, "failed")
+        _clear_social_cookies(response, "apple")
+        return response
+    apple_user: dict[str, object] | None = None
+    raw_user = form.get("user")
+    if isinstance(raw_user, str):
+        try:
+            parsed_user = json.loads(raw_user)
+            if isinstance(parsed_user, dict):
+                apple_user = parsed_user
+        except ValueError:
+            pass
+    return await _complete_social_login("apple", request, state, code, db, settings, apple_user)
 
 
 def set_auth_cookies(response: Response, user: User, db: Session, settings: Settings) -> None:

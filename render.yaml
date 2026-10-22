@@ -21,6 +21,8 @@ services:
         value: https://chezmaty.ci,https://www.chezmaty.ci,https://chezmaty.netlify.app
       - key: FRONTEND_URL
         value: https://chezmaty.netlify.app
+      - key: PAYMENT_PUBLIC_API_URL
+        value: https://chezmaty-api.onrender.com
       - key: PAYMENT_PROVIDER
         value: cinetpay
       - key: PAYMENT_SANDBOX

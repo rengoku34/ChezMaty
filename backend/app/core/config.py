@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     cinetpay_api_key: str | None = None
     cinetpay_api_password: str | None = None
     payment_public_api_url: str = "http://127.0.0.1:8000"
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    apple_oauth_client_id: str | None = None
+    apple_oauth_team_id: str | None = None
+    apple_oauth_key_id: str | None = None
+    apple_oauth_private_key: str | None = None
 
     @property
     def cinetpay_base_url(self) -> str:

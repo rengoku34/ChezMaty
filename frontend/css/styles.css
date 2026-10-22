@@ -518,6 +518,8 @@ h1, h2, h3 {
 .auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .76rem; }
 .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; background: var(--line); content: ""; }
 .social-auth-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 10px; padding: 10px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; opacity: .65; cursor: not-allowed; }
+.social-auth-button:enabled { opacity: 1; cursor: pointer; }
+.social-auth-button:enabled:hover { border-color: var(--accent); }
 .social-auth-mark { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; color: #4285f4; font-weight: 900; }
 .social-auth-mark svg { width: 21px; height: 21px; }
 .social-auth-apple { color: var(--ink); font-size: .75rem; }

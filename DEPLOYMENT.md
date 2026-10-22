@@ -70,3 +70,17 @@ En Sandbox, Chez Maty utilise `https://api.cinetpay.net`; en production, `https:
 À la création d'un paiement, l'API enregistre le jeton de notification fourni par CinetPay. CinetPay doit pouvoir appeler `https://<api-publique>/api/payments/cinetpay/notify`; le backend vérifie le jeton puis confirme le statut, le montant et la devise directement auprès de CinetPay avant de marquer la commande comme payée. Au retour du checkout, le navigateur interroge également l'API avec la session du client. Le client peut réessayer un paiement non confirmé depuis la page panier.
 
 Le service Render gratuit utilise un système de fichiers éphémère. Avant tout encaissement réel, configure une base de données persistante pour que les commandes et confirmations de paiement survivent aux redémarrages.
+
+## 8) Connexion Google et Apple
+
+Le formulaire de compte active automatiquement chaque bouton quand ses identifiants sont configurés dans Render. Les retours OAuth sont traités par l'API, qui vérifie le jeton signé, l'audience, le nonce et l'adresse e-mail confirmée avant d'ouvrir la session Chez Maty.
+
+Dans les réglages d'environnement du service Render, ajoute :
+
+- Google : `GOOGLE_OAUTH_CLIENT_ID` et `GOOGLE_OAUTH_CLIENT_SECRET`.
+- Apple : `APPLE_OAUTH_CLIENT_ID` (Services ID), `APPLE_OAUTH_TEAM_ID`, `APPLE_OAUTH_KEY_ID` et `APPLE_OAUTH_PRIVATE_KEY` (contenu PEM de la clé `.p8`; conserver les retours à la ligne ou les remplacer par `\\n`).
+- Vérifie que `PAYMENT_PUBLIC_API_URL` contient l'origine HTTPS publique de l'API Render, sans `/api` final.
+
+Enregistre l'URL de retour exacte `https://chezmaty-api.onrender.com/api/auth/google/callback` dans le client OAuth Web de Google et `https://chezmaty-api.onrender.com/api/auth/apple/callback` dans la configuration du Services ID Apple. Le domaine de retour doit aussi être enregistré côté Apple. Apple exige un compte Apple Developer et un App ID principal associé au Services ID. N'expose jamais les secrets dans le frontend ni dans Git.
+
+Les comptes sociaux dont l'adresse e-mail est confirmée sont reliés au compte Chez Maty correspondant. La première connexion crée sinon un compte client. Les comptes existants dont le fournisseur confirme la même adresse sont reliés automatiquement.

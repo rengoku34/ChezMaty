@@ -9,6 +9,7 @@
   const dashboard = document.getElementById("customer-dashboard");
   const accountMessage = document.getElementById("account-message");
   const nextPage = new URLSearchParams(window.location.search).get("next");
+  const socialAuthHelp = document.getElementById("social-auth-help");
   let currentUser = null;
   let addresses = [];
 
@@ -49,6 +50,45 @@
       return;
     }
     window.location.hash = "profile-form";
+  }
+
+  async function configureSocialProviders() {
+    const buttons = Array.from(document.querySelectorAll("[data-social-provider]"));
+    try {
+      const providers = await api.apiFetch("/auth/providers");
+      let enabledCount = 0;
+      buttons.forEach((button) => {
+        const enabled = providers[button.dataset.socialProvider] === true;
+        button.disabled = !enabled;
+        button.setAttribute("aria-disabled", String(!enabled));
+        if (enabled) enabledCount += 1;
+      });
+      socialAuthHelp.textContent = enabledCount
+        ? "Choisissez un compte pour vous connecter en toute sécurité."
+        : "Google et Apple seront disponibles après l’ajout des identifiants développeur dans Render.";
+    } catch (error) {
+      socialAuthHelp.textContent = "Connexion sociale momentanément indisponible.";
+    }
+  }
+
+  function showSocialReturnMessage() {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("social_error");
+    const socialLogin = params.get("social_login");
+    const messages = {
+      cancelled: "Connexion annulée. Vous pouvez réessayer.",
+      failed: "La connexion avec ce fournisseur a échoué. Réessayez ou utilisez votre adresse e-mail.",
+      google_unavailable: "La connexion Google n’est pas encore configurée.",
+      apple_unavailable: "La connexion Apple n’est pas encore configurée."
+    };
+    if (error) showAccountMessage(messages[error] || messages.failed, true);
+    if (params.has("social_error") || params.has("social_login")) {
+      params.delete("social_error");
+      params.delete("social_login");
+      const query = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+    }
+    return { params, socialLogin };
   }
 
   async function submitAuthentication(form, endpoint, errorId) {
@@ -243,6 +283,14 @@
     event.preventDefault();
     submitAuthentication(event.currentTarget, "login", "login-error");
   });
+  document.querySelectorAll("[data-social-provider]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.disabled) return;
+      const provider = button.dataset.socialProvider;
+      const query = nextPage === "panier.html" ? "?next=panier.html" : "";
+      window.location.assign(`${api.API_BASE}/auth/${provider}/start${query}`);
+    });
+  });
   document.getElementById("register-form").addEventListener("submit", (event) => {
     event.preventDefault();
     submitAuthentication(event.currentTarget, "register", "register-error");
@@ -363,6 +411,8 @@
   });
 
   async function init() {
+    const socialReturn = showSocialReturnMessage();
+    void configureSocialProviders();
     const queryToken = new URLSearchParams(window.location.search).get("reset_token");
     const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get("reset_token");
     const resetToken = fragmentToken || queryToken;
@@ -379,6 +429,11 @@
     try {
       currentUser = await api.apiFetch("/auth/me");
       await showDashboard();
+      if (socialReturn.socialLogin === "success") {
+        showAccountMessage("Connexion réussie. Bienvenue chez Chez Maty !", false);
+        afterAuthentication();
+        return;
+      }
       if (window.location.hash === "#addresses" || window.location.hash === "#orders") {
         document.querySelector(window.location.hash).scrollIntoView({ block: "start" });
       }
