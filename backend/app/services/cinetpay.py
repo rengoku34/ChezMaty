@@ -86,33 +86,35 @@ def initialize_payment(
     return_url: str,
     customer_name: str,
     customer_email: str,
-    customer_phone: str,
+    customer_phone: str | None,
 ) -> tuple[str, str]:
     """Creer un paiement et retourner l'URL Checkout et le jeton webhook."""
     token = _access_token(settings)
     name_parts = customer_name.strip().split(maxsplit=1)
     first_name = name_parts[0] if name_parts else "Client"
     last_name = name_parts[1] if len(name_parts) > 1 else first_name
+    payment_payload: dict[str, Any] = {
+        "currency": "XOF",
+        "merchant_transaction_id": transaction_id,
+        "amount": amount_xof,
+        "lang": "fr",
+        "designation": description[:160],
+        "client_email": customer_email,
+        "client_first_name": first_name[:80],
+        "client_last_name": last_name[:80],
+        "success_url": return_url,
+        "failed_url": return_url,
+        "notify_url": notify_url,
+        "channel": "PUSH",
+    }
+    if customer_phone and customer_phone.strip():
+        payment_payload["client_phone_number"] = customer_phone.strip()
     result = _request(
         settings,
         "POST",
         "/v1/payment",
         access_token=token,
-        payload={
-            "currency": "XOF",
-            "merchant_transaction_id": transaction_id,
-            "amount": amount_xof,
-            "lang": "fr",
-            "designation": description[:160],
-            "client_email": customer_email,
-            "client_first_name": first_name[:80],
-            "client_last_name": last_name[:80],
-            "client_phone_number": customer_phone,
-            "success_url": return_url,
-            "failed_url": return_url,
-            "notify_url": notify_url,
-            "channel": "PUSH",
-        },
+        payload=payment_payload,
     )
     data = _data(result)
     payment_url = data.get("payment_url") or data.get("paymentUrl")

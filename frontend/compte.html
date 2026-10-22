@@ -117,8 +117,8 @@
             <h3 id="address-form-title">Ajouter une adresse</h3>
             <label for="address-recipient">Nom du destinataire</label>
             <input id="address-recipient" type="text" required minlength="2" maxlength="120" autocomplete="name">
-            <label for="address-phone">Téléphone</label>
-            <input id="address-phone" type="tel" required minlength="7" maxlength="30" autocomplete="tel">
+            <label for="address-phone">Téléphone <span class="optional-label">(facultatif)</span></label>
+            <input id="address-phone" type="tel" minlength="7" maxlength="30" autocomplete="tel" placeholder="Facultatif">
             <div class="address-fields">
               <div><label for="address-city">Ville</label><input id="address-city" type="text" required minlength="2" maxlength="100" value="Abidjan"></div>
               <div><label for="address-commune">Commune</label><input id="address-commune" type="text" required minlength="2" maxlength="100"></div>

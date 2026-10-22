@@ -377,7 +377,7 @@
     const id = document.getElementById("address-id").value;
     const payload = {
       recipient_name: document.getElementById("address-recipient").value.trim(),
-      phone: document.getElementById("address-phone").value.trim(),
+      phone: document.getElementById("address-phone").value.trim() || null,
       city: document.getElementById("address-city").value.trim(),
       commune: document.getElementById("address-commune").value.trim(),
       details: document.getElementById("address-details").value.trim(),

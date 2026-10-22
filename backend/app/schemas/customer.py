@@ -15,7 +15,7 @@ class AddressInput(BaseModel):
     """Champs d'une adresse de livraison situee en Cote d'Ivoire."""
 
     recipient_name: str = Field(min_length=2, max_length=120)
-    phone: str = Field(min_length=7, max_length=30)
+    phone: str | None = Field(default=None, min_length=7, max_length=30)
     city: str = Field(min_length=2, max_length=100)
     commune: str = Field(min_length=2, max_length=100)
     details: str = Field(min_length=5, max_length=500)
@@ -30,11 +30,14 @@ class AddressInput(BaseModel):
             raise ValueError("Ce champ doit contenir au moins deux caracteres.")
         return normalized
 
-    @field_validator("phone")
+    @field_validator("phone", mode="before")
     @classmethod
-    def clean_phone(cls, value: str) -> str:
-        """Supprimer les espaces superflus du numero."""
-        return normalize_spaces(value)
+    def clean_phone(cls, value: str | None) -> str | None:
+        """Normaliser le téléphone facultatif."""
+        if value is None:
+            return None
+        cleaned = normalize_spaces(str(value))
+        return cleaned or None
 
 
 class AddressRead(AddressInput):

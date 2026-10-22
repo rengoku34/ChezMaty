@@ -143,7 +143,9 @@ def create_address(
         db.query(Address).filter(Address.user_id == user.id).update(
             {Address.is_default: False}, synchronize_session=False
         )
-    address = Address(user_id=user.id, **payload.model_dump(exclude={"is_default"}), is_default=make_default)
+    address_data = payload.model_dump(exclude={"is_default"})
+    address_data["phone"] = address_data["phone"] or ""
+    address = Address(user_id=user.id, **address_data, is_default=make_default)
     db.add(address)
     db.commit()
     db.refresh(address)
@@ -170,7 +172,7 @@ def update_address(
             {Address.is_default: False}, synchronize_session=False
         )
     for field, value in payload.model_dump().items():
-        setattr(address, field, value)
+        setattr(address, field, (value or "") if field == "phone" else value)
     db.commit()
     db.refresh(address)
     return address
@@ -348,7 +350,7 @@ def create_order(
         order_number=f"CM-{datetime.now(timezone.utc):%Y%m%d}-{secrets.token_hex(4).upper()}",
         user_id=user.id,
         recipient_name=address.recipient_name,
-        recipient_phone=address.phone,
+        recipient_phone=user.phone or address.phone or "",
         delivery_city=address.city,
         delivery_commune=address.commune,
         delivery_details=address.details,
