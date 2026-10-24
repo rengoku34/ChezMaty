@@ -17,7 +17,8 @@ function parseSender(value) {
 }
 
 function loadConfig(env = process.env) {
-  const appUrl = (env.APP_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/+$/, '');
+  // Sur Render, RENDER_EXTERNAL_URL donne l'adresse publique du site sans réglage supplémentaire.
+  const appUrl = (env.APP_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/+$/, '');
   return {
     port: Number(env.PORT) || 3000,
     appUrl,

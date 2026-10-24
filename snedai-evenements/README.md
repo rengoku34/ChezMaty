@@ -67,7 +67,7 @@ Avec une adresse Gmail comme expéditeur, les premiers e-mails peuvent arriver d
 1. Allez sur <https://render.com> et connectez-vous avec **GitHub**.
 2. Appuyez sur **New → Web Service**, puis choisissez le dépôt **ChezMaty**.
 3. Remplissez les réglages :
-   - **Branch** : `main`, une fois la pull request fusionnée
+   - **Branch** : `main` une fois la pull request fusionnée, ou sinon `claude/snedai-stage-project-7ulwkv`
    - **Root Directory** : `snedai-evenements`
    - **Runtime** : Node
    - **Build Command** : `npm install`
@@ -82,7 +82,7 @@ Avec une adresse Gmail comme expéditeur, les premiers e-mails peuvent arriver d
    - `BREVO_API_KEY` = la clé Brevo
    - `MAIL_FROM` = `Événements SNEDAI <votre.adresse@gmail.com>`
 5. Appuyez sur **Deploy**. Render affiche l'adresse du site, du type `https://snedai-evenements.onrender.com`.
-6. Ajoutez ensuite la variable `APP_URL` avec cette adresse, sans `/` à la fin.
+   Le site détecte cette adresse tout seul. La variable `APP_URL` ne sert que pour un nom de domaine personnalisé.
 
 ### Étape 4 : le bouton Google
 
