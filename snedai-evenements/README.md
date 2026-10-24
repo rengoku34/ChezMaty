@@ -73,14 +73,12 @@ Avec une adresse Gmail comme expéditeur, les premiers e-mails peuvent arriver d
    - **Build Command** : `npm install`
    - **Start Command** : `npm start`
    - **Instance Type** : **Free**
-4. Dans **Environment Variables**, ajoutez :
-   - `NODE_ENV` = `production`
-   - `SESSION_SECRET` = une longue phrase au hasard, par exemple 40 lettres et chiffres mélangés
+4. Dans **Environment Variables**, ajoutez seulement trois variables :
    - `ADMIN_EMAILS` = votre adresse Gmail
-   - `FILIALES` = `SNEDAI Groupe;SNEDAI Technologies;OSIA;Autre`, à adapter
    - `DATABASE_URL` = l'adresse copiée chez Neon
    - `BREVO_API_KEY` = la clé Brevo
-   - `MAIL_FROM` = `Événements SNEDAI <votre.adresse@gmail.com>`
+
+   Le reste se règle tout seul : mode production, clé secrète des sessions (créée dans la base au premier démarrage) et expéditeur des e-mails (votre adresse administrateur). Variables facultatives : `FILIALES` (liste séparée par des `;`), `MAIL_FROM`, `SESSION_SECRET`.
 5. Appuyez sur **Deploy**. Render affiche l'adresse du site, du type `https://snedai-evenements.onrender.com`.
    Le site détecte cette adresse tout seul. La variable `APP_URL` ne sert que pour un nom de domaine personnalisé.
 

@@ -22,7 +22,8 @@ function loadConfig(env = process.env) {
   return {
     port: Number(env.PORT) || 3000,
     appUrl,
-    production: env.NODE_ENV === 'production',
+    // Render définit RENDER=true : le mode production s'active sans réglage.
+    production: env.NODE_ENV === 'production' || env.RENDER === 'true',
     sessionSecret: env.SESSION_SECRET || '',
     adminEmails: list(env.ADMIN_EMAILS, ',').map((email) => email.toLowerCase()),
     filiales: list(env.FILIALES, ';'),
@@ -39,7 +40,8 @@ function loadConfig(env = process.env) {
       password: env.SMTP_PASSWORD || '',
     },
     brevoApiKey: env.BREVO_API_KEY || '',
-    mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || ''),
+    // Par défaut, les e-mails partent de la première adresse administrateur.
+    mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || list(env.ADMIN_EMAILS, ',')[0] || ''),
     databaseUrl: env.DATABASE_URL || '',
     timezone: env.TIMEZONE || 'Africa/Abidjan',
   };

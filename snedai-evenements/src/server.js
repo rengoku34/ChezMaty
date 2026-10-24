@@ -15,6 +15,7 @@ async function main() {
   if (!config.google.clientID) console.warn('Attention : GOOGLE_CLIENT_ID est vide, la création de compte Google est désactivée.');
 
   const repo = await openDatabase(config.databaseUrl);
+  if (!config.sessionSecret) config.sessionSecret = await repo.getOrCreateSecret('session_secret');
   const app = createApp({ config, repo, mailer: createMailer(config) });
   app.listen(config.port, () => console.log(`Événements SNEDAI : ${config.appUrl} (port ${config.port})`));
 }

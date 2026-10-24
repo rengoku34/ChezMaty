@@ -51,7 +51,7 @@ before(async () => {
     FILIALES: 'SNEDAI Groupe;OSIA',
   });
   repo = await openDatabase(TEST_DATABASE_URL);
-  await repo.pool.query('TRUNCATE users, events, participations, sessions RESTART IDENTITY CASCADE');
+  await repo.pool.query('TRUNCATE users, events, participations, sessions, settings RESTART IDENTITY CASCADE');
   const passwordHash = bcrypt.hashSync('motdepasse1', 4);
   await repo.createUser({ nom: 'Admin', prenom: 'Stagiaire', filiale: 'SNEDAI Groupe', email: 'stagiaire@snedai.com', passwordHash });
   await repo.createUser({ nom: 'Kouassi', prenom: 'Awa', filiale: 'OSIA', email: 'awa@example.com', passwordHash });
@@ -175,6 +175,15 @@ test('création et connexion avec Google', async () => {
   assert.match((await handleGoogleProfile(repo, null, profile('g-2', 'inconnu@gmail.com'))).error, /Créez/);
   const unverified = { id: 'g-3', emails: [{ value: 'a@b.c', verified: false }] };
   assert.match((await handleGoogleProfile(repo, pending, unverified)).error, /vérifiée/);
+});
+
+test('réglages par défaut : secret de session créé une fois, expéditeur = administrateur', async () => {
+  const secret = await repo.getOrCreateSecret('session_secret');
+  assert.equal(secret.length, 96);
+  assert.equal(await repo.getOrCreateSecret('session_secret'), secret);
+  const config = loadConfig({ ADMIN_EMAILS: 'moi@gmail.com', RENDER: 'true' });
+  assert.deepEqual(config.mailFrom, { name: 'Événements SNEDAI', email: 'moi@gmail.com' });
+  assert.equal(config.production, true);
 });
 
 test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', async () => {

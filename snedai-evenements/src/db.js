@@ -39,6 +39,11 @@ CREATE TABLE IF NOT EXISTS participations (
   UNIQUE (event_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
   data JSONB NOT NULL,
@@ -69,6 +74,15 @@ function createRepository(pool) {
   return {
     pool,
     close: () => pool.end(),
+
+    // Valeur secrète créée au premier démarrage puis réutilisée (ex. : clé des sessions).
+    async getOrCreateSecret(key) {
+      await pool.query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING', [
+        key,
+        crypto.randomBytes(48).toString('hex'),
+      ]);
+      return (await one('SELECT value FROM settings WHERE key = $1', [key])).value;
+    },
 
     // Utilisateurs
     findUserById: (id) => one('SELECT * FROM users WHERE id = $1', [id]),
