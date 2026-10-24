@@ -8,9 +8,9 @@ module.exports = function agentRoutes({ repo, format, access }) {
 
   router.get('/', (req, res) => res.render('scan', { title: 'Scanner les QR codes' }));
 
-  router.post('/', (req, res) => {
+  router.post('/', async (req, res) => {
     const token = tokenFromScan(req.body.code);
-    const participation = token ? repo.findParticipationByToken(token) : null;
+    const participation = token ? await repo.findParticipationByToken(token) : null;
     if (!participation) return res.status(404).json({ ok: false, status: 'inconnu', message: 'QR code inconnu ou invalide.' });
 
     const person = {
@@ -30,7 +30,7 @@ module.exports = function agentRoutes({ repo, format, access }) {
         person,
       });
     }
-    if (repo.markScanned(participation.id, req.user.id).changes === 0) {
+    if (!(await repo.markScanned(participation.id, req.user.id))) {
       return res.status(409).json({ ok: false, status: 'deja', message: 'Ce QR code vient déjà d’être scanné.', person });
     }
     res.json({ ok: true, status: 'present', message: 'Présence confirmée.', person });

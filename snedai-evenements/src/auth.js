@@ -36,7 +36,7 @@ function createAccess(config) {
 
 // Traite le profil renvoyé par Google : création du compte si une inscription est en attente,
 // sinon connexion d'un compte existant.
-function handleGoogleProfile(repo, pendingSignup, profile) {
+async function handleGoogleProfile(repo, pendingSignup, profile) {
   const emailEntry = profile.emails?.[0];
   const email = emailEntry?.value?.toLowerCase();
   const verified = emailEntry?.verified ?? profile._json?.email_verified;
@@ -45,17 +45,17 @@ function handleGoogleProfile(repo, pendingSignup, profile) {
   }
 
   if (pendingSignup) {
-    if (repo.findUserByEmail(email) || repo.findUserByGoogleId(profile.id)) {
+    if ((await repo.findUserByEmail(email)) || (await repo.findUserByGoogleId(profile.id))) {
       return { error: 'Un compte existe déjà avec cette adresse Google. Connectez-vous.' };
     }
-    const user = repo.createUser({ ...pendingSignup, email, googleId: profile.id });
+    const user = await repo.createUser({ ...pendingSignup, email, googleId: profile.id });
     return { user, created: true };
   }
 
-  let user = repo.findUserByGoogleId(profile.id);
+  let user = await repo.findUserByGoogleId(profile.id);
   if (!user) {
-    user = repo.findUserByEmail(email);
-    if (user && !user.google_id) repo.linkGoogleId(user.id, profile.id);
+    user = await repo.findUserByEmail(email);
+    if (user && !user.google_id) await repo.linkGoogleId(user.id, profile.id);
   }
   if (!user) return { error: 'Aucun compte n’existe pour cette adresse. Créez d’abord votre compte.' };
   return { user };
@@ -64,11 +64,7 @@ function handleGoogleProfile(repo, pendingSignup, profile) {
 function configurePassport(config, repo) {
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser((id, done) => {
-    try {
-      done(null, repo.findUserById(id) || false);
-    } catch (error) {
-      done(error);
-    }
+    repo.findUserById(id).then((user) => done(null, user || false), done);
   });
 
   const googleEnabled = Boolean(config.google.clientID && config.google.clientSecret);
@@ -77,14 +73,9 @@ function configurePassport(config, repo) {
       new GoogleStrategy(
         { ...config.google, passReqToCallback: true },
         (req, _accessToken, _refreshToken, profile, done) => {
-          try {
-            const pending = req.session.pendingSignup;
-            delete req.session.pendingSignup;
-            const result = handleGoogleProfile(repo, pending, profile);
-            done(null, result.user || false, result);
-          } catch (error) {
-            done(error);
-          }
+          const pending = req.session.pendingSignup;
+          delete req.session.pendingSignup;
+          handleGoogleProfile(repo, pending, profile).then((result) => done(null, result.user || false, result), done);
         }
       )
     );

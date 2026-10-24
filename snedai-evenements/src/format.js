@@ -1,5 +1,5 @@
 // Les horaires saisis (champ datetime-local) sont des heures « murales » sans fuseau :
-// on les affiche telles quelles. Les horodatages SQLite sont en UTC et convertis vers le fuseau choisi.
+// on les affiche telles quelles. Les horodatages de la base sont et convertis vers le fuseau choisi.
 function createFormatters(timezone) {
   const wallClock = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone: 'UTC' });
   const hourOnly = new Intl.DateTimeFormat('fr-FR', { timeStyle: 'short', timeZone: 'UTC' });
@@ -27,7 +27,7 @@ function createFormatters(timezone) {
     },
     timestamp(value) {
       if (!value) return '';
-      const date = new Date(`${value.replace(' ', 'T')}Z`);
+      const date = new Date(value);
       return Number.isNaN(date.getTime()) ? '' : timestamp.format(date);
     },
   };

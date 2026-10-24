@@ -9,6 +9,13 @@ function list(value, separator) {
     .filter(Boolean);
 }
 
+// « Nom <adresse> » ou simplement « adresse ».
+function parseSender(value) {
+  const match = value.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  return { name: 'Événements SNEDAI', email: value.trim() };
+}
+
 function loadConfig(env = process.env) {
   const appUrl = (env.APP_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/+$/, '');
   return {
@@ -29,10 +36,10 @@ function loadConfig(env = process.env) {
       secure: env.SMTP_SECURE === 'true',
       user: env.SMTP_USER || '',
       password: env.SMTP_PASSWORD || '',
-      from: env.MAIL_FROM || env.SMTP_USER || '',
     },
-    databasePath: path.resolve(ROOT, env.DATABASE_PATH || 'data/snedai.db'),
-    uploadDir: path.resolve(ROOT, env.UPLOAD_DIR || 'uploads'),
+    brevoApiKey: env.BREVO_API_KEY || '',
+    mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || ''),
+    databaseUrl: env.DATABASE_URL || '',
     timezone: env.TIMEZONE || 'Africa/Abidjan',
   };
 }

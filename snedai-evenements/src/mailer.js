@@ -4,23 +4,49 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
-function createMailer(config, logger = console) {
-  const configured = Boolean(config.smtp.host && config.smtp.from);
-  const transport = configured
-    ? nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.secure,
-        auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.password } : undefined,
-      })
-    : null;
+// Envoi par l'API HTTPS de Brevo (gratuit, et fonctionne sur les hébergeurs qui bloquent le SMTP).
+function brevoTransport(apiKey, sender, fetchImpl) {
+  return async ({ to, subject, text, html, attachments = [] }) => {
+    const response = await fetchImpl('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to }],
+        subject,
+        textContent: text,
+        htmlContent: html,
+        ...(attachments.length && {
+          attachment: attachments.map((a) => ({ name: a.filename, content: a.content.toString('base64') })),
+        }),
+      }),
+    });
+    if (!response.ok) throw new Error(`Brevo ${response.status} : ${await response.text()}`);
+  };
+}
+
+function smtpTransport(smtp, sender) {
+  const transport = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    auth: smtp.user ? { user: smtp.user, pass: smtp.password } : undefined,
+  });
+  return (message) => transport.sendMail({ from: { name: sender.name, address: sender.email }, ...message });
+}
+
+function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
+  let deliver = null;
+  if (config.brevoApiKey && config.mailFrom.email) deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
+  else if (config.smtp.host && config.mailFrom.email) deliver = smtpTransport(config.smtp, config.mailFrom);
+  const configured = Boolean(deliver);
 
   async function send(message) {
-    if (!transport) {
-      logger.info(`[e-mail non envoyé : SMTP non configuré] À ${message.to} — ${message.subject}`);
+    if (!deliver) {
+      logger.info(`[e-mail non envoyé : aucun service d’envoi configuré] À ${message.to} — ${message.subject}`);
       return false;
     }
-    await transport.sendMail({ from: config.smtp.from, ...message });
+    await deliver(message);
     return true;
   }
 
@@ -64,14 +90,14 @@ function createMailer(config, logger = console) {
       return send({
         to: user.email,
         subject: `Votre QR code pour : ${event.titre}`,
-        text: `Bonjour ${user.prenom},\n\nVotre présence à « ${event.titre} » est notée. Présentez le QR code joint à l’agent d’accueil le jour de l’événement.\nVous pouvez aussi l’afficher ici : ${config.appUrl}/evenements/${event.id}\n`,
+        text: `Bonjour ${user.prenom},\n\nVotre présence à « ${event.titre} » est notée. Présentez le QR code joint (pièce jointe) à l’agent d’accueil le jour de l’événement.\nVous pouvez aussi l’afficher ici : ${config.appUrl}/evenements/${event.id}\n`,
         html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
           <p>Votre présence à <strong>${escapeHtml(event.titre)}</strong> est notée.</p>
           ${whenText ? `<p><strong>Quand :</strong> ${escapeHtml(whenText)}</p>` : ''}
           ${event.lieu ? `<p><strong>Où :</strong> ${escapeHtml(event.lieu)}</p>` : ''}
-          <p>Présentez ce QR code à l’agent d’accueil, il sera scanné pour confirmer votre venue :</p>
-          <p style="text-align:center"><img src="cid:qrcode" alt="QR code" width="240" height="240"></p>`),
-        attachments: [{ filename: 'qrcode.png', content: qrPng, cid: 'qrcode' }],
+          <p>Votre QR code est <strong>en pièce jointe</strong>. Présentez-le à l’agent d’accueil, il sera scanné pour confirmer votre venue.</p>
+          <p><a href="${config.appUrl}/evenements/${event.id}" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Afficher mon QR code sur le site</a></p>`),
+        attachments: [{ filename: 'qrcode.png', content: qrPng }],
       });
     },
   };

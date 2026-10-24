@@ -1,6 +1,6 @@
 # Événements SNEDAI
 
-Plateforme interne des événements SNEDAI, en **Node.js (Express) + SQLite**, sans PHP.
+Plateforme interne des événements SNEDAI, en **Node.js (Express) + PostgreSQL**, sans PHP. Elle s'héberge gratuitement.
 
 ## Ce que fait le site
 
@@ -9,7 +9,7 @@ Plateforme interne des événements SNEDAI, en **Node.js (Express) + SQLite**, s
    - **Se connecter** : adresse e-mail et mot de passe, ou bouton Google.
 2. **« La maison »**. Sans compte, on ne voit rien : toutes les pages renvoient vers le formulaire. Une fois connecté, on voit les événements en cours (sujet, description, photo, horaires, lieu).
 3. **Annonce par e-mail**. Quand l'administrateur publie un événement, chaque inscrit reçoit un e-mail avec un lien pour répondre.
-4. **« Je serai présent(e) »**. Ce bouton génère un **QR code personnel**, affiché sur la page et envoyé par e-mail. La personne peut aussi annuler.
+4. **« Je serai présent(e) »**. Ce bouton génère un **QR code personnel**, affiché sur la page et envoyé par e-mail en pièce jointe. La personne peut aussi annuler.
 5. **Scan à l'entrée**. Un agent d'accueil scanne le QR code sur la page `/scan` :
    - avec une **douchette** (lecteur de QR code USB ou Bluetooth qui « tape » le code) ;
    - ou avec la **caméra** d'un téléphone ou d'une tablette.
@@ -33,9 +33,76 @@ Plateforme interne des événements SNEDAI, en **Node.js (Express) + SQLite**, s
 
 Les droits d'administration sont lus dans la configuration du serveur, pas dans la base de données. Personne ne peut donc se les donner depuis le site.
 
-## Installation en local
+## Mise en ligne 100 % gratuite (faisable depuis un téléphone)
 
-Prérequis : [Node.js](https://nodejs.org) version 20.12 ou plus récente.
+Quatre services gratuits, sans carte bancaire :
+
+| Service | Rôle | Offre gratuite |
+|---|---|---|
+| **Render** | Fait tourner le site | Gratuit ; le site « s'endort » après 15 min sans visite et met environ 1 minute à se réveiller |
+| **Neon** | Base de données (comptes, événements, photos) | Gratuit, les données sont conservées |
+| **Brevo** | Envoi des e-mails | Gratuit jusqu'à 300 e-mails par jour |
+| **Google Cloud** | Bouton « Créer mon compte avec Google » | Gratuit |
+
+L'offre gratuite de Render bloque l'envoi d'e-mails par SMTP (Gmail), c'est pourquoi le site passe par l'API de Brevo.
+
+Conseil : sur téléphone, ouvrez ces sites dans Chrome avec l'option **« Version pour ordinateur »**.
+
+### Étape 1 : la base de données (Neon)
+
+1. Allez sur <https://neon.com>, appuyez sur **Sign up**, puis connectez-vous avec Google ou GitHub.
+2. Créez un projet nommé `snedai`. Choisissez la région la plus proche, par exemple **Europe (Frankfurt)**.
+3. Appuyez sur **Connect** et copiez la **connection string**, qui commence par `postgresql://…`. C'est votre `DATABASE_URL`.
+
+### Étape 2 : les e-mails (Brevo)
+
+1. Créez un compte sur <https://www.brevo.com>. Choisissez le plan **Free**.
+2. Dans **Expéditeurs, domaines et IP dédiées → Expéditeurs**, ajoutez votre adresse e-mail et validez-la avec le lien reçu.
+3. Dans **SMTP & API → Clés API**, créez une clé et copiez-la. C'est votre `BREVO_API_KEY`.
+
+Avec une adresse Gmail comme expéditeur, les premiers e-mails peuvent arriver dans les « Spams ». Demandez aux collègues de les marquer « Non spam ». Avec une adresse de l'entreprise (@snedai…), la livraison est meilleure.
+
+### Étape 3 : l'hébergement (Render)
+
+1. Allez sur <https://render.com> et connectez-vous avec **GitHub**.
+2. Appuyez sur **New → Web Service**, puis choisissez le dépôt **ChezMaty**.
+3. Remplissez les réglages :
+   - **Branch** : `main`, une fois la pull request fusionnée
+   - **Root Directory** : `snedai-evenements`
+   - **Runtime** : Node
+   - **Build Command** : `npm install`
+   - **Start Command** : `npm start`
+   - **Instance Type** : **Free**
+4. Dans **Environment Variables**, ajoutez :
+   - `NODE_ENV` = `production`
+   - `SESSION_SECRET` = une longue phrase au hasard, par exemple 40 lettres et chiffres mélangés
+   - `ADMIN_EMAILS` = votre adresse Gmail
+   - `FILIALES` = `SNEDAI Groupe;SNEDAI Technologies;OSIA;Autre`, à adapter
+   - `DATABASE_URL` = l'adresse copiée chez Neon
+   - `BREVO_API_KEY` = la clé Brevo
+   - `MAIL_FROM` = `Événements SNEDAI <votre.adresse@gmail.com>`
+5. Appuyez sur **Deploy**. Render affiche l'adresse du site, du type `https://snedai-evenements.onrender.com`.
+6. Ajoutez ensuite la variable `APP_URL` avec cette adresse, sans `/` à la fin.
+
+### Étape 4 : le bouton Google
+
+1. Allez sur <https://console.cloud.google.com/>. Créez un projet, puis ouvrez **API et services → Écran de consentement OAuth** :
+   - choisissez le type **Externe** ;
+   - indiquez le nom de l'application et votre e-mail ;
+   - **publiez l'application** (« Publier l'application »), sinon seuls les comptes de test pourront s'inscrire.
+2. Ouvrez **Identifiants → Créer des identifiants → ID client OAuth**, de type **Application Web**.
+3. Dans **URI de redirection autorisés**, ajoutez `https://<votre-adresse-render>/auth/google/callback`.
+4. Copiez l'ID client et le code secret dans les variables Render `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET`. Render redémarre le site tout seul.
+
+### Étape 5 : vous déclarer administrateur
+
+Ouvrez le site et créez votre compte avec la même adresse Google que celle mise dans `ADMIN_EMAILS`. Les menus « Publier », « Tableau de bord » et « Agents » apparaissent alors.
+
+Le site doit être en **HTTPS** pour que la caméra fonctionne sur la page de scan. C'est automatique avec Render. Les douchettes fonctionnent partout.
+
+## Installation sur un ordinateur (pour développer)
+
+Prérequis : [Node.js](https://nodejs.org) 20.12 ou plus récent, et une base PostgreSQL (celle de Neon convient).
 
 ```bash
 cd snedai-evenements
@@ -44,50 +111,18 @@ cp .env.example .env      # puis remplir le fichier .env
 npm start                 # http://localhost:3000
 ```
 
-Pour lancer les tests automatiques : `npm test`.
-
-### 1. Créer le client Google (obligatoire pour l'inscription)
-
-1. Allez sur <https://console.cloud.google.com/>, créez un projet, puis ouvrez **API et services → Écran de consentement OAuth**. Choisissez le type « Externe », remplissez le nom de l'application et votre e-mail.
-2. Ouvrez **Identifiants → Créer des identifiants → ID client OAuth**, de type **Application Web**.
-3. Dans **URI de redirection autorisés**, ajoutez `http://localhost:3000/auth/google/callback`, puis plus tard l'adresse publique, par exemple `https://votre-site.onrender.com/auth/google/callback`.
-4. Copiez l'ID client et le code secret dans `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` du fichier `.env`.
-
-### 2. Configurer l'envoi des e-mails (Gmail)
-
-1. Activez la validation en deux étapes sur le compte Gmail qui enverra les messages.
-2. Créez un **mot de passe d'application** : <https://myaccount.google.com/apppasswords>.
-3. Dans `.env`, renseignez :
-   - `SMTP_HOST=smtp.gmail.com`
-   - `SMTP_PORT=587`
-   - `SMTP_USER=` votre adresse Gmail
-   - `SMTP_PASSWORD=` le mot de passe d'application
-   - `MAIL_FROM=` votre adresse Gmail
-
-Gmail limite l'envoi à environ 500 e-mails par jour. Au-delà, utilisez le SMTP de l'entreprise ou un service comme Brevo. Sans SMTP, le site fonctionne mais les e-mails sont seulement notés dans le journal du serveur.
-
-### 3. Vous déclarer administrateur
-
-Mettez votre adresse dans `ADMIN_EMAILS`, puis créez votre compte sur le site avec cette même adresse Google. Le menu « Publier / Tableau de bord / Agents » apparaît alors.
-
-## Mise en ligne
-
-N'importe quel hébergeur Node.js convient : Render, Railway, un VPS, ou un serveur interne SNEDAI. Points importants :
-
-- **Données persistantes** : la base (`DATABASE_PATH`) et les photos (`UPLOAD_DIR`) doivent être sur un disque qui n'est pas effacé à chaque redéploiement, par exemple un « Persistent Disk » sur Render.
-- Définissez `NODE_ENV=production`, `APP_URL` (adresse publique en https) et un `SESSION_SECRET` long et aléatoire.
-- **HTTPS obligatoire** pour que la caméra fonctionne sur la page de scan. Les douchettes, elles, fonctionnent partout.
+Pour lancer les tests (`npm test`), il faut une base PostgreSQL **de test**, indiquée dans `TEST_DATABASE_URL`. Elle est vidée à chaque lancement : n'y mettez jamais la base réelle.
 
 ## Organisation du code
 
 ```
 src/
   server.js          démarrage (lecture du .env)
-  app.js             assemblage d'Express, sécurité (Helmet, CSRF, sessions)
+  app.js             assemblage d'Express, sécurité (Helmet, CSRF, sessions en base)
   config.js          lecture des variables d'environnement
-  db.js              schéma SQLite et requêtes
+  db.js              schéma PostgreSQL et requêtes (photos comprises)
   auth.js            Google OAuth, rôles (admin / agent / employé)
-  mailer.js          e-mails d'annonce et d'envoi du QR code
+  mailer.js          e-mails (API Brevo ou SMTP) : annonces et QR codes
   qr.js              génération et lecture des QR codes
   excel.js           export .xlsx du tableau de bord
   routes/            pages : auth, événements, admin, scan

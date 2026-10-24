@@ -6,7 +6,7 @@ const { ROOT } = require('./config');
 const { configurePassport, createAccess } = require('./auth');
 const { csrfToken, verifyCsrfUnlessMultipart } = require('./csrf');
 const { createFormatters } = require('./format');
-const { SqliteSessionStore } = require('./session-store');
+const { PgSessionStore } = require('./session-store');
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const adminRoutes = require('./routes/admin');
@@ -44,7 +44,7 @@ function createApp({ config, repo, mailer, logger = console }) {
     session({
       name: 'snedai.sid',
       secret: config.sessionSecret,
-      store: new SqliteSessionStore(repo.raw),
+      store: new PgSessionStore(repo.pool),
       resave: false,
       saveUninitialized: false,
       cookie: { httpOnly: true, sameSite: 'lax', secure: config.production, maxAge: 7 * 24 * 60 * 60 * 1000 },
@@ -64,9 +64,6 @@ function createApp({ config, repo, mailer, logger = console }) {
     next();
   });
   app.use(verifyCsrfUnlessMultipart);
-
-  // Les photos ne sont visibles qu'une fois connecté (« dans la maison »).
-  app.use('/uploads', access.requireAuth, express.static(config.uploadDir, { maxAge: '7d' }));
 
   app.use(authRoutes(deps));
   app.use('/admin', adminRoutes(deps));

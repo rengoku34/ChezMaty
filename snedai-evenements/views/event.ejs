@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <p><a href="/">← Tous les événements</a></p>
 <article class="card event-detail">
-  <% if (event.photo) { %><img src="/uploads/<%= event.photo %>" alt="Photo de l’événement" class="detail-photo"><% } %>
+  <% if (event.has_photo) { %><img src="/evenements/<%= event.id %>/photo" alt="Photo de l’événement" class="detail-photo"><% } %>
   <div class="detail-body">
     <h1><%= event.titre %></h1>
     <% if (event.debut) { %><p class="meta">🗓 <%= format.eventRange(event.debut, event.fin) %></p><% } %>

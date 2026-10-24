@@ -42,7 +42,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
   router.post('/connexion', loginLimiter, async (req, res, next) => {
     const email = clean(req.body.email, 200).toLowerCase();
     const password = String(req.body.password ?? '');
-    const user = email ? repo.findUserByEmail(email) : null;
+    const user = email ? await repo.findUserByEmail(email) : null;
     const valid = user ? await bcrypt.compare(password, user.password_hash) : false;
     if (!valid) {
       return renderForm(res, { status: 401, error: 'Adresse e-mail ou mot de passe incorrect.', values: { email } });

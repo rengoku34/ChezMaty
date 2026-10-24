@@ -1,8 +1,5 @@
-const { test, before } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const ExcelJS = require('exceljs');
 const request = require('supertest');
@@ -10,8 +7,11 @@ const { loadConfig } = require('../src/config');
 const { openDatabase } = require('../src/db');
 const { createApp } = require('../src/app');
 const { handleGoogleProfile } = require('../src/auth');
+const { createMailer } = require('../src/mailer');
 const { qrContent } = require('../src/qr');
 
+// Base PostgreSQL de test, vidée au début : ne jamais pointer vers la base de production.
+const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://snedai:snedai@localhost:5432/snedai_test';
 const silent = { info() {}, error() {} };
 let app;
 let repo;
@@ -44,21 +44,23 @@ async function loginAs(email) {
   return { agent, csrf: csrfFrom(home.text) };
 }
 
-before(() => {
+before(async () => {
   const config = loadConfig({
     SESSION_SECRET: 'secret-de-test',
     ADMIN_EMAILS: 'stagiaire@snedai.com',
     FILIALES: 'SNEDAI Groupe;OSIA',
-    UPLOAD_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'snedai-uploads-')),
   });
-  repo = openDatabase(':memory:');
+  repo = await openDatabase(TEST_DATABASE_URL);
+  await repo.pool.query('TRUNCATE users, events, participations, sessions RESTART IDENTITY CASCADE');
   const passwordHash = bcrypt.hashSync('motdepasse1', 4);
-  repo.createUser({ nom: 'Admin', prenom: 'Stagiaire', filiale: 'SNEDAI Groupe', email: 'stagiaire@snedai.com', passwordHash });
-  repo.createUser({ nom: 'Kouassi', prenom: 'Awa', filiale: 'OSIA', email: 'awa@example.com', passwordHash });
-  const agentUser = repo.createUser({ nom: 'Traoré', prenom: 'Moussa', filiale: 'SNEDAI Groupe', email: 'agent@example.com', passwordHash });
-  repo.setAgent(agentUser.id, true);
+  await repo.createUser({ nom: 'Admin', prenom: 'Stagiaire', filiale: 'SNEDAI Groupe', email: 'stagiaire@snedai.com', passwordHash });
+  await repo.createUser({ nom: 'Kouassi', prenom: 'Awa', filiale: 'OSIA', email: 'awa@example.com', passwordHash });
+  const agentUser = await repo.createUser({ nom: 'Traoré', prenom: 'Moussa', filiale: 'SNEDAI Groupe', email: 'agent@example.com', passwordHash });
+  await repo.setAgent(agentUser.id, true);
   app = createApp({ config, repo, mailer: fakeMailer(), logger: silent });
 });
+
+after(() => repo.close());
 
 test('sans compte, on ne voit pas les événements', async () => {
   const res = await request(app).get('/');
@@ -87,7 +89,7 @@ test('seul l’administrateur accède au tableau de bord, à la publication et �
     const post = await agent.post('/admin/evenements').field('_csrf', csrf).field('titre', 'Pirate').field('description', 'x');
     assert.equal(post.status, 403);
   }
-  assert.equal(repo.listAllEvents().length, 0);
+  assert.equal((await repo.listAllEvents()).length, 0);
 });
 
 test('parcours complet : publication, présence, QR, scan, tableau de bord, Excel, terminé', async () => {
@@ -102,9 +104,9 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
     .field('lieu', 'Siège SNEDAI')
     .attach('photo', Buffer.from('89504e470d0a1a0a', 'hex'), { filename: 'photo.png', contentType: 'image/png' });
   assert.equal(publish.status, 302);
-  const event = repo.listActiveEvents()[0];
+  const [event] = await repo.listActiveEvents();
   assert.equal(event.titre, 'Journée bien-être');
-  assert.ok(event.photo.endsWith('.png'));
+  assert.equal(event.has_photo, true);
   assert.equal(mails.announced[0].users.length, 3, 'tous les inscrits sont prévenus');
 
   // Un employé confirme sa présence et reçoit son QR code.
@@ -113,8 +115,10 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   await awa.agent.post(`/evenements/${event.id}/participer`).type('form').send({ _csrf: awa.csrf }).expect(302);
   const page = await awa.agent.get(`/evenements/${event.id}`);
   assert.match(page.text, /Votre QR code d’entrée/);
+  const photo = await awa.agent.get(`/evenements/${event.id}/photo`);
+  assert.equal(photo.headers['content-type'], 'image/png');
   assert.equal(mails.qr.length, 1);
-  const participation = repo.findParticipation(event.id, mails.qr[0].user.id);
+  const participation = await repo.findParticipation(event.id, mails.qr[0].user.id);
 
   // L'agent scanne : présence confirmée, puis un second scan est signalé.
   const agent = await loginAs('agent@example.com');
@@ -145,29 +149,52 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   // Fin de l'événement : il passe dans l'historique, plus de scan ni d'inscription.
   await admin.agent.post(`/admin/evenements/${event.id}/terminer`).type('form').send({ _csrf: admin.csrf }).expect(302);
   assert.match((await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`)).text, /✔ Terminé/);
-  assert.equal(repo.listActiveEvents().length, 0);
-  assert.equal(repo.listFinishedEvents().length, 1);
+  assert.equal((await repo.listActiveEvents()).length, 0);
+  assert.equal((await repo.listFinishedEvents()).length, 1);
   assert.equal((await scan(qrContent(participation.qr_token))).body.status, 'termine');
-  const moussa = repo.findUserByEmail('agent@example.com');
+  const moussa = await repo.findUserByEmail('agent@example.com');
   await agent.agent.post(`/evenements/${event.id}/participer`).type('form').send({ _csrf: agent.csrf }).expect(302);
-  assert.equal(repo.findParticipation(event.id, moussa.id), undefined);
+  assert.equal(await repo.findParticipation(event.id, moussa.id), undefined);
 });
 
 test('photos accessibles seulement une fois connecté', async () => {
-  const event = repo.listAllEvents()[0];
-  assert.equal((await request(app).get(`/uploads/${event.photo}`)).status, 302);
+  const [event] = await repo.listAllEvents();
+  assert.equal((await request(app).get(`/evenements/${event.id}/photo`)).status, 302);
 });
 
-test('création et connexion avec Google', () => {
+test('création et connexion avec Google', async () => {
   const profile = (id, email) => ({ id, emails: [{ value: email, verified: true }] });
   const pending = { nom: 'Yao', prenom: 'Koffi', filiale: 'OSIA', passwordHash: 'x' };
 
-  const created = handleGoogleProfile(repo, pending, profile('g-1', 'Koffi@Gmail.com'));
+  const created = await handleGoogleProfile(repo, pending, profile('g-1', 'Koffi@Gmail.com'));
   assert.equal(created.created, true);
   assert.equal(created.user.email, 'koffi@gmail.com');
 
-  assert.match(handleGoogleProfile(repo, pending, profile('g-1', 'koffi@gmail.com')).error, /existe déjà/);
-  assert.equal(handleGoogleProfile(repo, null, profile('g-1', 'koffi@gmail.com')).user.id, created.user.id);
-  assert.match(handleGoogleProfile(repo, null, profile('g-2', 'inconnu@gmail.com')).error, /Créez/);
-  assert.match(handleGoogleProfile(repo, pending, { id: 'g-3', emails: [{ value: 'a@b.c', verified: false }] }).error, /vérifiée/);
+  assert.match((await handleGoogleProfile(repo, pending, profile('g-1', 'koffi@gmail.com'))).error, /existe déjà/);
+  assert.equal((await handleGoogleProfile(repo, null, profile('g-1', 'koffi@gmail.com'))).user.id, created.user.id);
+  assert.match((await handleGoogleProfile(repo, null, profile('g-2', 'inconnu@gmail.com'))).error, /Créez/);
+  const unverified = { id: 'g-3', emails: [{ value: 'a@b.c', verified: false }] };
+  assert.match((await handleGoogleProfile(repo, pending, unverified)).error, /vérifiée/);
+});
+
+test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', async () => {
+  const calls = [];
+  const fetchStub = async (url, options) => {
+    calls.push({ url, headers: options.headers, body: JSON.parse(options.body) });
+    return { ok: true };
+  };
+  const config = loadConfig({ BREVO_API_KEY: 'cle-test', MAIL_FROM: 'Événements SNEDAI <rh@example.com>', APP_URL: 'https://site.test' });
+  const mailer = createMailer(config, silent, fetchStub);
+  assert.equal(mailer.configured, true);
+
+  const event = { id: 7, titre: 'Séminaire', lieu: 'Abidjan' };
+  await mailer.sendQrCode(event, { email: 'awa@example.com', prenom: 'Awa' }, Buffer.from('png'), '');
+  const sent = calls[0];
+  assert.equal(sent.url, 'https://api.brevo.com/v3/smtp/email');
+  assert.equal(sent.headers['api-key'], 'cle-test');
+  assert.deepEqual(sent.body.sender, { name: 'Événements SNEDAI', email: 'rh@example.com' });
+  assert.deepEqual(sent.body.to, [{ email: 'awa@example.com' }]);
+  assert.equal(sent.body.attachment[0].content, Buffer.from('png').toString('base64'));
+
+  assert.equal(await mailer.announceEvent(event, [{ email: 'a@x.ci', prenom: 'A' }, { email: 'b@x.ci', prenom: 'B' }], ''), 2);
 });

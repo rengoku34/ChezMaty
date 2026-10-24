@@ -1,7 +1,7 @@
 <article class="event-card <%= ev.termine_at ? 'is-finished' : '' %>">
   <a href="/evenements/<%= ev.id %>" class="event-link">
-    <% if (ev.photo) { %>
-      <img src="/uploads/<%= ev.photo %>" alt="" class="event-photo" loading="lazy">
+    <% if (ev.has_photo) { %>
+      <img src="/evenements/<%= ev.id %>/photo" alt="" class="event-photo" loading="lazy">
     <% } else { %>
       <div class="event-photo placeholder"><%= ev.titre.charAt(0) %></div>
     <% } %>
