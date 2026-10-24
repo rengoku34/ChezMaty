@@ -1,0 +1,19 @@
+<%- include('../partials/header') %>
+<section class="card narrow">
+  <h1>Publier un événement</h1>
+  <p class="hint">Dès la publication, tous les inscrits reçoivent un e-mail avec le lien pour confirmer leur présence.</p>
+  <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+  <form method="post" action="/admin/evenements" enctype="multipart/form-data" class="form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Sujet<input name="titre" required maxlength="150" value="<%= values.titre || '' %>"></label>
+    <label>Description<textarea name="description" required rows="7" maxlength="5000"><%= values.description || '' %></textarea></label>
+    <label>Photo (JPG, PNG, WEBP – 5 Mo max)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+    <div class="row">
+      <label>Début<input type="datetime-local" name="debut" value="<%= values.debut || '' %>"></label>
+      <label>Fin<input type="datetime-local" name="fin" value="<%= values.fin || '' %>"></label>
+    </div>
+    <label>Lieu<input name="lieu" maxlength="200" value="<%= values.lieu || '' %>" placeholder="Ex. : Siège SNEDAI, salle de conférence"></label>
+    <button type="submit" class="btn">Publier et prévenir les inscrits</button>
+  </form>
+</section>
+<%- include('../partials/footer') %>

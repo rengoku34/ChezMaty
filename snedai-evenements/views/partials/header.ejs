@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Événements SNEDAI</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="brand-mark">S</span> Événements SNEDAI</a>
+  <% if (user) { %>
+  <nav class="nav">
+    <a href="/" class="<%= path === '/' ? 'active' : '' %>">Événements</a>
+    <% if (isAgent) { %><a href="/scan" class="<%= path.startsWith('/scan') ? 'active' : '' %>">Scanner</a><% } %>
+    <% if (isAdmin) { %>
+      <a href="/admin/evenements/nouveau" class="<%= path === '/admin/evenements/nouveau' ? 'active' : '' %>">Publier</a>
+      <a href="/admin/tableau-de-bord" class="<%= path === '/admin/tableau-de-bord' ? 'active' : '' %>">Tableau de bord</a>
+      <a href="/admin/agents" class="<%= path === '/admin/agents' ? 'active' : '' %>">Agents</a>
+    <% } %>
+    <form method="post" action="/deconnexion" class="inline">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="link">Déconnexion (<%= user.prenom %>)</button>
+    </form>
+  </nav>
+  <% } %>
+</header>
+<main class="container">
+<% if (flash) { %><div class="alert alert-<%= flash.type %>"><%= flash.message %></div><% } %>

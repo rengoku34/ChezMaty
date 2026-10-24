@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<section class="scan" data-csrf="<%= csrfToken %>">
+  <h1>Scanner les QR codes</h1>
+  <p class="hint">Avec une douchette (scanner portable) : laissez le curseur dans le champ ci-dessous et scannez, la validation est automatique. Sans douchette, utilisez la caméra.</p>
+
+  <form id="scan-form" class="scan-form" autocomplete="off">
+    <input id="scan-input" name="code" placeholder="Scannez un QR code…" autofocus>
+    <button class="btn" type="submit">Valider</button>
+  </form>
+
+  <div id="scan-result" class="scan-result" aria-live="assertive" hidden></div>
+
+  <div class="card">
+    <button id="camera-toggle" class="btn btn-secondary" type="button">📷 Utiliser la caméra</button>
+    <div id="camera" class="camera"></div>
+  </div>
+
+  <h2>Derniers scans</h2>
+  <ul id="scan-history" class="scan-history"></ul>
+</section>
+<script src="/static/vendor/html5-qrcode.min.js" defer></script>
+<script src="/static/js/scan.js" defer></script>
+<%- include('partials/footer') %>

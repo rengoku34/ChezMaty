@@ -1,0 +1,55 @@
+<%- include('partials/header') %>
+<section class="auth">
+  <div class="auth-intro">
+    <h1>Bienvenue sur les événements SNEDAI</h1>
+    <p>Créez votre compte pour accéder aux événements, confirmer votre présence et recevoir votre QR code d’entrée.</p>
+  </div>
+
+  <div class="card auth-card">
+    <div class="tabs" role="tablist">
+      <a role="tab" href="/connexion" class="tab <%= onglet === 'connexion' ? 'active' : '' %>">Se connecter</a>
+      <a role="tab" href="/connexion?onglet=inscription" class="tab <%= onglet === 'inscription' ? 'active' : '' %>">Créer mon compte</a>
+    </div>
+
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+    <% if (onglet === 'inscription') { %>
+      <form method="post" action="/inscription" class="form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="row">
+          <label>Nom<input name="nom" required maxlength="100" autocomplete="family-name" value="<%= values.nom || '' %>"></label>
+          <label>Prénom<input name="prenom" required maxlength="100" autocomplete="given-name" value="<%= values.prenom || '' %>"></label>
+        </div>
+        <label>Filiale
+          <% if (filiales.length) { %>
+            <select name="filiale" required>
+              <option value="">— Choisir votre filiale —</option>
+              <% filiales.forEach((f) => { %><option <%= values.filiale === f ? 'selected' : '' %>><%= f %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input name="filiale" required maxlength="100" value="<%= values.filiale || '' %>">
+          <% } %>
+        </label>
+        <label>Mot de passe (8 caractères minimum)<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+        <label>Confirmer le mot de passe<input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password"></label>
+        <p class="hint">Votre adresse e-mail est celle de votre compte Google : vous la choisirez à l’étape suivante. C’est elle qui recevra les invitations et vos QR codes.</p>
+        <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>
+          <span class="g">G</span> Créer mon compte avec Google
+        </button>
+      </form>
+    <% } else { %>
+      <form method="post" action="/connexion" class="form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label>Adresse e-mail<input type="email" name="email" required autocomplete="email" value="<%= values.email || '' %>"></label>
+        <label>Mot de passe<input type="password" name="password" required autocomplete="current-password"></label>
+        <button type="submit" class="btn">Se connecter</button>
+      </form>
+      <% if (googleEnabled) { %>
+        <div class="separator"><span>ou</span></div>
+        <a class="btn btn-google" href="/auth/google"><span class="g">G</span> Se connecter avec Google</a>
+      <% } %>
+      <p class="hint center">Pas encore de compte ? <a href="/connexion?onglet=inscription">Créez-le ici</a>.</p>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

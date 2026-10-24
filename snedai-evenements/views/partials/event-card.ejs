@@ -1,0 +1,22 @@
+<article class="event-card <%= ev.termine_at ? 'is-finished' : '' %>">
+  <a href="/evenements/<%= ev.id %>" class="event-link">
+    <% if (ev.photo) { %>
+      <img src="/uploads/<%= ev.photo %>" alt="" class="event-photo" loading="lazy">
+    <% } else { %>
+      <div class="event-photo placeholder"><%= ev.titre.charAt(0) %></div>
+    <% } %>
+    <div class="event-body">
+      <h3><%= ev.titre %></h3>
+      <% if (ev.debut) { %><p class="meta">🗓 <%= format.eventRange(ev.debut, ev.fin) %></p><% } %>
+      <% if (ev.lieu) { %><p class="meta">📍 <%= ev.lieu %></p><% } %>
+      <% const p = participations.get(ev.id); %>
+      <% if (ev.termine_at) { %>
+        <span class="badge badge-done">Terminé</span>
+      <% } else if (p) { %>
+        <span class="badge badge-ok">Présence confirmée</span>
+      <% } else { %>
+        <span class="badge">Répondre</span>
+      <% } %>
+    </div>
+  </a>
+</article>

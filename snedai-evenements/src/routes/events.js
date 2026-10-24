@@ -1,0 +1,72 @@
+const express = require('express');
+const { qrDataUrl, qrPng } = require('../qr');
+
+module.exports = function eventRoutes({ repo, mailer, format, access, logger }) {
+  const router = express.Router();
+  router.use(access.requireAuth);
+
+  function loadEvent(req, res, next) {
+    const event = repo.findEvent(Number(req.params.id));
+    if (!event) return res.status(404).render('error', { title: 'Introuvable', message: 'Cet événement n’existe pas.' });
+    req.event = event;
+    next();
+  }
+
+  // « La maison » : les événements en cours, et les événements terminés mis de côté.
+  router.get('/', (req, res) => {
+    res.render('home', {
+      title: 'Accueil',
+      actifs: repo.listActiveEvents(),
+      termines: repo.listFinishedEvents(),
+      participations: repo.participationIdsForUser(req.user.id),
+    });
+  });
+
+  router.get('/evenements/:id', loadEvent, async (req, res) => {
+    const participation = repo.findParticipation(req.event.id, req.user.id);
+    res.render('event', {
+      title: req.event.titre,
+      event: req.event,
+      participation,
+      qr: participation && !participation.scanne_at && !req.event.termine_at ? await qrDataUrl(participation.qr_token) : null,
+    });
+  });
+
+  router.post('/evenements/:id/participer', loadEvent, async (req, res) => {
+    const { event, user } = req;
+    if (event.termine_at) {
+      req.session.flash = { type: 'error', message: 'Cet événement est terminé.' };
+      return res.redirect(`/evenements/${event.id}`);
+    }
+    const alreadyConfirmed = Boolean(repo.findParticipation(event.id, user.id));
+    const participation = repo.confirmParticipation(event.id, user.id);
+    let message = 'Votre présence est notée. Voici votre QR code à présenter à l’entrée.';
+    if (!alreadyConfirmed) {
+      try {
+        const sent = await mailer.sendQrCode(event, user, await qrPng(participation.qr_token), format.eventRange(event.debut, event.fin));
+        if (sent) message += ' Il vous a aussi été envoyé par e-mail.';
+      } catch (error) {
+        logger.error(`QR code non envoyé à ${user.email} : ${error.message}`);
+      }
+    }
+    req.session.flash = { type: 'success', message };
+    res.redirect(`/evenements/${event.id}`);
+  });
+
+  router.post('/evenements/:id/annuler', loadEvent, (req, res) => {
+    if (!req.event.termine_at) repo.cancelParticipation(req.event.id, req.user.id);
+    req.session.flash = { type: 'info', message: 'Votre participation a été annulée.' };
+    res.redirect(`/evenements/${req.event.id}`);
+  });
+
+  router.get('/evenements/:id/qr.png', loadEvent, async (req, res) => {
+    const participation = repo.findParticipation(req.event.id, req.user.id);
+    if (!participation) return res.status(404).end();
+    res
+      .type('png')
+      .set('Content-Disposition', `attachment; filename="qrcode-evenement-${req.event.id}.png"`)
+      .send(await qrPng(participation.qr_token));
+  });
+
+  return router;
+};

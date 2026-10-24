@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+<section>
+  <h1>Bonjour <%= user.prenom %> 👋</h1>
+  <p class="lead">Voici les événements à venir. Confirmez votre présence pour recevoir votre QR code d’entrée.</p>
+
+  <% if (!actifs.length) { %>
+    <div class="card empty">Aucun événement en cours pour le moment. Vous serez prévenu(e) par e-mail dès qu’un nouvel événement sera publié.</div>
+  <% } else { %>
+    <div class="event-grid">
+      <% actifs.forEach((ev) => { %><%- include('partials/event-card', { ev }) %><% }) %>
+    </div>
+  <% } %>
+</section>
+
+<% if (termines.length) { %>
+<section class="history">
+  <details>
+    <summary>Événements passés (<%= termines.length %>)</summary>
+    <div class="event-grid">
+      <% termines.forEach((ev) => { %><%- include('partials/event-card', { ev }) %><% }) %>
+    </div>
+  </details>
+</section>
+<% } %>
+<%- include('partials/footer') %>

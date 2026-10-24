@@ -1,0 +1,38 @@
+<%- include('partials/header') %>
+<p><a href="/">← Tous les événements</a></p>
+<article class="card event-detail">
+  <% if (event.photo) { %><img src="/uploads/<%= event.photo %>" alt="Photo de l’événement" class="detail-photo"><% } %>
+  <div class="detail-body">
+    <h1><%= event.titre %></h1>
+    <% if (event.debut) { %><p class="meta">🗓 <%= format.eventRange(event.debut, event.fin) %></p><% } %>
+    <% if (event.lieu) { %><p class="meta">📍 <%= event.lieu %></p><% } %>
+    <div class="description"><%= event.description %></div>
+
+    <div class="participation">
+      <% if (event.termine_at) { %>
+        <p class="status-line"><span class="badge badge-done">Terminé</span>
+          <% if (participation && participation.scanne_at) { %> Vous étiez présent(e). Merci !<% } %>
+        </p>
+      <% } else if (participation && participation.scanne_at) { %>
+        <div class="alert alert-success">Votre venue a été confirmée à l’entrée le <%= format.timestamp(participation.scanne_at) %>. Bon événement !</div>
+      <% } else if (participation) { %>
+        <h2>Votre QR code d’entrée</h2>
+        <p>Présentez-le à l’agent d’accueil le jour de l’événement (sur votre téléphone ou imprimé).</p>
+        <div class="qr-box">
+          <img src="<%= qr %>" alt="Votre QR code personnel" width="260" height="260">
+          <a class="btn btn-secondary" href="/evenements/<%= event.id %>/qr.png">Télécharger le QR code</a>
+        </div>
+        <form method="post" action="/evenements/<%= event.id %>/annuler" data-confirm="Annuler votre participation ? Votre QR code ne sera plus valable.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="link danger" type="submit">Je ne pourrai finalement pas venir</button>
+        </form>
+      <% } else { %>
+        <form method="post" action="/evenements/<%= event.id %>/participer">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-big" type="submit">✅ Je serai présent(e)</button>
+        </form>
+      <% } %>
+    </div>
+  </div>
+</article>
+<%- include('partials/footer') %>
