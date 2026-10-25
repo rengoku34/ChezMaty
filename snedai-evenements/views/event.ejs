@@ -1,5 +1,8 @@
 <%- include('partials/header') %>
-<p><a href="/">← Tous les événements</a></p>
+<p class="back-line">
+  <a href="/">← Tous les événements</a>
+  <% if (isAdmin) { %><a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/modifier">✏️ Modifier</a><% } %>
+</p>
 <article class="card event-detail">
   <% if (event.has_photo) { %><img src="/evenements/<%= event.id %>/photo" alt="Photo de l’événement" class="detail-photo"><% } %>
   <div class="detail-body">

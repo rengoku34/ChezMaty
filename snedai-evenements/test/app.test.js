@@ -134,6 +134,31 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   assert.equal((await scan(qrContent(participation.qr_token))).body.status, 'deja');
   assert.equal((await scan('SNEDAI-EVT:inconnuinconnuinconnu123')).status, 404);
 
+  // Seul l'administrateur modifie, exporte et termine ; la photo est gardée si on n'en envoie pas.
+  for (const other of [awa, agent]) {
+    assert.equal((await other.agent.get(`/admin/evenements/${event.id}/modifier`)).status, 403);
+    assert.equal((await other.agent.get(`/admin/evenements/${event.id}/export.xlsx`)).status, 403);
+    const edit = await other.agent.post(`/admin/evenements/${event.id}/modifier`).field('_csrf', other.csrf).field('titre', 'Piraté').field('description', 'x');
+    assert.equal(edit.status, 403);
+    const finish = await other.agent.post(`/admin/evenements/${event.id}/terminer`).type('form').send({ _csrf: other.csrf });
+    assert.equal(finish.status, 403);
+  }
+  assert.match((await admin.agent.get(`/admin/evenements/${event.id}/modifier`)).text, /Modifier l’événement/);
+  await admin.agent
+    .post(`/admin/evenements/${event.id}/modifier`)
+    .field('_csrf', admin.csrf)
+    .field('titre', 'Journée bien-être 2026')
+    .field('description', 'Programme mis à jour.')
+    .field('debut', '2026-11-14T10:00')
+    .field('lieu', 'Siège SNEDAI')
+    .expect(302);
+  const edited = await repo.findEvent(event.id);
+  assert.equal(edited.titre, 'Journée bien-être 2026');
+  assert.equal(edited.debut, '2026-11-14T10:00');
+  assert.equal(edited.fin, null);
+  assert.equal(edited.has_photo, true);
+  assert.equal(mails.announced.length, 1, 'une modification ne renvoie pas d’annonce');
+
   // Tableau de bord et export Excel.
   const dashboard = await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`);
   assert.match(dashboard.text, /<strong>3<\/strong><span>Inscrits sur le site/);

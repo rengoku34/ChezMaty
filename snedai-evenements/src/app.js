@@ -1,3 +1,4 @@
+const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 const session = require('express-session');
@@ -20,6 +21,10 @@ function createApp({ config, repo, mailer, logger = console }) {
   const access = createAccess(config);
   const { passport, googleEnabled } = configurePassport(config, repo);
   const deps = { repo, config, mailer, format, access, logger, passport, googleEnabled };
+  // Logo de l'entreprise : il suffit de déposer public/img/logo.(svg|png|jpg|webp).
+  const logoFile = ['svg', 'png', 'jpg', 'webp'].map((ext) => `logo.${ext}`)
+    .find((name) => fs.existsSync(path.join(ROOT, 'public/img', name)));
+  const logoUrl = logoFile ? `/static/img/${logoFile}` : null;
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(ROOT, 'views'));
@@ -58,6 +63,7 @@ function createApp({ config, repo, mailer, logger = console }) {
     res.locals.isAdmin = access.isAdmin(req.user);
     res.locals.isAgent = access.isAgent(req.user);
     res.locals.format = format;
+    res.locals.logoUrl = logoUrl;
     res.locals.path = req.path;
     res.locals.flash = req.session.flash || null;
     delete req.session.flash;

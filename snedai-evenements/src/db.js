@@ -106,6 +106,15 @@ function createRepository(pool) {
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ${EVENT_COLUMNS}`,
         [titre, description, photoData || null, photoType || null, debut || null, fin || null, lieu || null]
       ),
+    // Une nouvelle photo remplace l'ancienne ; sans nouvelle photo, l'ancienne est gardée sauf si removePhoto.
+    updateEvent: (id, { titre, description, debut, fin, lieu, photoData, photoType, removePhoto }) =>
+      pool.query(
+        `UPDATE events SET titre = $2, description = $3, debut = $4, fin = $5, lieu = $6,
+           photo_data = CASE WHEN $7::bytea IS NOT NULL THEN $7 WHEN $9 THEN NULL ELSE photo_data END,
+           photo_type = CASE WHEN $7::bytea IS NOT NULL THEN $8 WHEN $9 THEN NULL ELSE photo_type END
+         WHERE id = $1`,
+        [id, titre, description, debut || null, fin || null, lieu || null, photoData || null, photoType || null, Boolean(removePhoto)]
+      ),
     findEvent: (id) => one(`SELECT ${EVENT_COLUMNS} FROM events WHERE id = $1`, [id]),
     findEventPhoto: (id) => one('SELECT photo_data, photo_type FROM events WHERE id = $1 AND photo_data IS NOT NULL', [id]),
     listActiveEvents: () =>

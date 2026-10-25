@@ -31,34 +31,42 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
     next();
   }
 
+  const photoUpload = (req, res, next) =>
+    upload.single('photo')(req, res, (err) => {
+      if (!err) return next();
+      req.uploadError = err.code === 'LIMIT_FILE_SIZE' ? `La photo ne doit pas dépasser ${MAX_PHOTO_MB} Mo.` : 'Photo invalide.';
+      next();
+    });
+
+  // Lit et vérifie les champs du formulaire d'événement (création ou modification).
+  function readEventForm(req) {
+    const values = {
+      titre: clean(req.body.titre, 150),
+      description: clean(req.body.description, 5000),
+      lieu: clean(req.body.lieu, 200),
+      debut: clean(req.body.debut, 16),
+      fin: clean(req.body.fin, 16),
+    };
+    let error = req.uploadError || null;
+    if (!error && (!values.titre || !values.description)) error = 'Le sujet et la description sont obligatoires.';
+    if (!error && ((values.debut && !DATETIME.test(values.debut)) || (values.fin && !DATETIME.test(values.fin)))) error = 'Horaires invalides.';
+    if (!error && values.fin && !values.debut) error = 'Indiquez l’heure de début avant l’heure de fin.';
+    if (!error && values.debut && values.fin && values.fin < values.debut) error = 'La fin doit être après le début.';
+    return { values, error };
+  }
+
   router.get('/evenements/nouveau', (req, res) => {
-    res.render('admin/new-event', { title: 'Publier un événement', error: null, values: {} });
+    res.render('admin/new-event', { title: 'Publier un événement', error: null, values: {}, event: null });
   });
 
   router.post(
     '/evenements',
-    (req, res, next) =>
-      upload.single('photo')(req, res, (err) => {
-        if (!err) return next();
-        req.uploadError = err.code === 'LIMIT_FILE_SIZE' ? `La photo ne doit pas dépasser ${MAX_PHOTO_MB} Mo.` : 'Photo invalide.';
-        next();
-      }),
+    photoUpload,
     verifyCsrf,
     async (req, res) => {
-      const values = {
-        titre: clean(req.body.titre, 150),
-        description: clean(req.body.description, 5000),
-        lieu: clean(req.body.lieu, 200),
-        debut: clean(req.body.debut, 16),
-        fin: clean(req.body.fin, 16),
-      };
-      let error = req.uploadError || null;
-      if (!error && (!values.titre || !values.description)) error = 'Le sujet et la description sont obligatoires.';
-      if (!error && ((values.debut && !DATETIME.test(values.debut)) || (values.fin && !DATETIME.test(values.fin)))) error = 'Horaires invalides.';
-      if (!error && values.fin && !values.debut) error = 'Indiquez l’heure de début avant l’heure de fin.';
-      if (!error && values.debut && values.fin && values.fin < values.debut) error = 'La fin doit être après le début.';
+      const { values, error } = readEventForm(req);
       if (error) {
-        return res.status(400).render('admin/new-event', { title: 'Publier un événement', error, values });
+        return res.status(400).render('admin/new-event', { title: 'Publier un événement', error, values, event: null });
       }
 
       const event = await repo.createEvent({ ...values, photoData: req.file?.buffer, photoType: req.file?.mimetype });
@@ -78,6 +86,26 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
       res.redirect(`/admin/tableau-de-bord?evenement=${event.id}`);
     }
   );
+
+  router.get('/evenements/:id/modifier', loadEvent, (req, res) => {
+    res.render('admin/new-event', { title: 'Modifier l’événement', error: null, values: req.event, event: req.event });
+  });
+
+  // Modification : les inscrits ne sont pas prévenus à nouveau et leurs QR codes restent valables.
+  router.post('/evenements/:id/modifier', photoUpload, verifyCsrf, loadEvent, async (req, res) => {
+    const { values, error } = readEventForm(req);
+    if (error) {
+      return res.status(400).render('admin/new-event', { title: 'Modifier l’événement', error, values, event: req.event });
+    }
+    await repo.updateEvent(req.event.id, {
+      ...values,
+      photoData: req.file?.buffer,
+      photoType: req.file?.mimetype,
+      removePhoto: !req.file && req.body.supprimer_photo === '1',
+    });
+    req.session.flash = { type: 'success', message: 'Événement modifié.' };
+    res.redirect(`/admin/tableau-de-bord?evenement=${req.event.id}`);
+  });
 
   // Tableau de bord d'un événement, choisi dans la liste déroulante (historique).
   router.get('/tableau-de-bord', async (req, res) => {
