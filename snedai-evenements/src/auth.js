@@ -45,6 +45,13 @@ async function handleGoogleProfile(repo, pendingSignup, profile) {
   }
 
   if (pendingSignup) {
+    // Google confirme que l'adresse saisie dans le formulaire appartient bien à la personne.
+    if (pendingSignup.email && pendingSignup.email !== email) {
+      return {
+        error: `Le compte Google choisi (${email}) ne correspond pas à l’adresse saisie (${pendingSignup.email}). Recommencez en choisissant le bon compte Google.`,
+        signup: true,
+      };
+    }
     if ((await repo.findUserByEmail(email)) || (await repo.findUserByGoogleId(profile.id))) {
       return { error: 'Un compte existe déjà avec cette adresse Google. Connectez-vous.' };
     }

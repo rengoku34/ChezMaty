@@ -37,4 +37,13 @@
   </div>
   <% } %>
 </section>
+
+<section class="card">
+  <h2>Vérifier les e-mails</h2>
+  <p class="hint">Envoie un e-mail de test à votre adresse et affiche l’erreur exacte si l’envoi échoue.</p>
+  <form method="post" action="/admin/test-email" class="inline">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn" type="submit">✉️ Envoyer un e-mail de test</button>
+  </form>
+</section>
 <%- include('../partials/footer') %>

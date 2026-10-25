@@ -59,6 +59,23 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
 
   return {
     configured,
+    sender: config.mailFrom.email,
+
+    // E-mail de test envoyé à l'administrateur : renvoie l'erreur exacte du service d'envoi s'il y en a une.
+    async sendTest(to) {
+      if (!deliver) return { ok: false, error: 'Aucun service d’envoi configuré (variable BREVO_API_KEY absente sur Render).' };
+      try {
+        await send({
+          to,
+          subject: 'Test d’envoi – Événements SNEDAI',
+          text: 'Si vous lisez ce message, les e-mails du site fonctionnent.',
+          html: layout('<p>Si vous lisez ce message, les e-mails du site <strong>fonctionnent</strong> ✅</p>'),
+        });
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error.message };
+      }
+    },
 
     // Prévient chaque inscrit d'un nouvel événement. Les envois se font un par un, en arrière-plan.
     async announceEvent(event, users, whenText) {

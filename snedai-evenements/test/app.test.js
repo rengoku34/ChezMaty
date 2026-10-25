@@ -28,6 +28,10 @@ function fakeMailer() {
       mails.qr.push({ event, user, png });
       return true;
     },
+    sender: 'rh@example.com',
+    async sendTest(to) {
+      return to === 'stagiaire@snedai.com' ? { ok: true } : { ok: false, error: 'Brevo 401 : Key not found' };
+    },
   };
 }
 
@@ -82,6 +86,14 @@ test('après la déconnexion, plus rien n’est visible ni gardé en cache', asy
   assert.equal(logout.headers['clear-site-data'], '"cache"');
   assert.equal((await agent.get('/')).headers.location, '/connexion');
   assert.doesNotMatch((await agent.get('/connexion')).text, /awa@example\.com/);
+});
+
+test('le formulaire d’inscription demande une adresse e-mail valide et nouvelle', async () => {
+  const agent = request.agent(app);
+  const csrf = csrfFrom((await agent.get('/connexion?onglet=inscription')).text);
+  const base = { _csrf: csrf, nom: 'Yao', prenom: 'Ama', filiale: 'OSIA', password: 'motdepasse1', password_confirmation: 'motdepasse1' };
+  assert.match((await agent.post('/inscription').type('form').send({ ...base, email: 'pas-une-adresse' }).expect(400)).text, /Adresse e-mail invalide/);
+  assert.match((await agent.post('/inscription').type('form').send({ ...base, email: 'AWA@example.com' }).expect(400)).text, /existe déjà/);
 });
 
 test('mauvais mot de passe refusé', async () => {
@@ -205,7 +217,13 @@ test('photos accessibles seulement une fois connecté', async () => {
 
 test('création et connexion avec Google', async () => {
   const profile = (id, email) => ({ id, emails: [{ value: email, verified: true }] });
-  const pending = { nom: 'Yao', prenom: 'Koffi', filiale: 'OSIA', passwordHash: 'x' };
+  const pending = { nom: 'Yao', prenom: 'Koffi', filiale: 'OSIA', email: 'koffi@gmail.com', passwordHash: 'x' };
+
+  // Le compte Google choisi doit correspondre à l'adresse saisie dans le formulaire.
+  const mismatch = await handleGoogleProfile(repo, pending, profile('g-9', 'autre@gmail.com'));
+  assert.match(mismatch.error, /ne correspond pas/);
+  assert.equal(mismatch.signup, true);
+  assert.equal(await repo.findUserByEmail('autre@gmail.com'), undefined);
 
   const created = await handleGoogleProfile(repo, pending, profile('g-1', 'Koffi@Gmail.com'));
   assert.equal(created.created, true);
@@ -247,6 +265,14 @@ test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', a
   assert.equal(sent.body.attachment[0].content, Buffer.from('png').toString('base64'));
 
   assert.equal(await mailer.announceEvent(event, [{ email: 'a@x.ci', prenom: 'A' }, { email: 'b@x.ci', prenom: 'B' }], ''), 2);
+});
+
+test('l’administrateur peut tester l’envoi d’e-mail et voit le résultat', async () => {
+  const admin = await loginAs('stagiaire@snedai.com');
+  await admin.agent.post('/admin/test-email').type('form').send({ _csrf: admin.csrf }).expect(302);
+  assert.match((await admin.agent.get('/admin/agents')).text, /E-mail de test envoyé à stagiaire@snedai.com/);
+  const awa = await loginAs('awa@example.com');
+  assert.equal((await awa.agent.post('/admin/test-email').type('form').send({ _csrf: awa.csrf })).status, 403);
 });
 
 test('seul l’administrateur supprime des comptes, et jamais le sien', async () => {

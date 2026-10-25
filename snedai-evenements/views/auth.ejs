@@ -7,7 +7,7 @@
     <div class="auth-form-container sign-up-container">
       <form method="post" action="/inscription" class="auth-form" autocomplete="off">
         <h1>Inscription<span>.</span></h1>
-        <p class="hint">Votre adresse e-mail sera celle de votre compte Google, choisie à l’étape suivante.</p>
+        <p class="hint">Utilisez l’adresse de votre compte Google : Google la confirmera à l’étape suivante.</p>
         <% if (error && onglet === 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="row">
@@ -22,6 +22,7 @@
         <% } else { %>
           <input name="filiale" required maxlength="100" placeholder="Filiale" aria-label="Filiale" value="<%= values.filiale || '' %>">
         <% } %>
+        <input type="email" name="email" required maxlength="200" autocomplete="off" autocapitalize="none" readonly data-no-autofill placeholder="Adresse e-mail (Gmail)" aria-label="Adresse e-mail" value="<%= values.email || '' %>">
         <input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Mot de passe (8 caractères min.)" aria-label="Mot de passe">
         <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Confirmer le mot de passe" aria-label="Confirmer le mot de passe">
         <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>

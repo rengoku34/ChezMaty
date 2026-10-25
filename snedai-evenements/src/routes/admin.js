@@ -146,6 +146,14 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
     res.render('admin/agents', { title: 'Comptes', users: await repo.listUsers() });
   });
 
+  router.post('/test-email', async (req, res) => {
+    const result = await mailer.sendTest(req.user.email);
+    req.session.flash = result.ok
+      ? { type: 'success', message: `E-mail de test envoyé à ${req.user.email} depuis ${mailer.sender}. Regardez aussi dans les « Spams ».` }
+      : { type: 'error', message: `L’e-mail n’est pas parti. Erreur : ${result.error}` };
+    res.redirect('/admin/agents');
+  });
+
   // Suppression d'un compte (utile après des tests). Le compte administrateur ne peut pas être supprimé.
   router.post('/comptes/:id/supprimer', async (req, res) => {
     const user = await repo.findUserById(Number(req.params.id) || 0);

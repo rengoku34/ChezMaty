@@ -57,18 +57,21 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
     finishLogin(req, res, next, user);
   });
 
-  // Inscription : on garde nom, prénom, filiale et mot de passe, puis Google confirme l'adresse e-mail.
+  // Inscription : on garde nom, prénom, filiale, e-mail et mot de passe, puis Google confirme l'adresse e-mail.
   router.post('/inscription', loginLimiter, async (req, res) => {
     const values = {
       nom: clean(req.body.nom),
       prenom: clean(req.body.prenom),
       filiale: clean(req.body.filiale),
+      email: clean(req.body.email, 200).toLowerCase(),
     };
     const password = String(req.body.password ?? '');
     const confirmation = String(req.body.password_confirmation ?? '');
     let error = null;
     if (!values.nom || !values.prenom || !values.filiale) error = 'Merci de remplir le nom, le prénom et la filiale.';
     else if (config.filiales.length && !config.filiales.includes(values.filiale)) error = 'Choisissez une filiale dans la liste.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) error = 'Adresse e-mail invalide.';
+    else if (await repo.findUserByEmail(values.email)) error = 'Un compte existe déjà avec cette adresse. Connectez-vous.';
     else if (password.length < 8) error = 'Le mot de passe doit contenir au moins 8 caractères.';
     else if (password !== confirmation) error = 'Les deux mots de passe ne sont pas identiques.';
     else if (!googleEnabled) error = 'La connexion Google n’est pas encore configurée sur le serveur.';
@@ -80,7 +83,9 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
 
   router.get('/auth/google', (req, res, next) => {
     if (!googleEnabled) return renderForm(res, { status: 503, error: 'La connexion Google n’est pas encore configurée.' });
-    passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next);
+    // Pendant une inscription, Google propose directement le compte de l'adresse saisie.
+    const loginHint = req.session.pendingSignup?.email;
+    passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account', ...(loginHint && { loginHint }) })(req, res, next);
   });
 
   router.get('/auth/google/callback', (req, res, next) => {
@@ -88,7 +93,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
     passport.authenticate('google', (err, user, info) => {
       if (err) return next(err);
       if (!user) {
-        const onglet = info?.error?.includes('Créez') ? 'inscription' : 'connexion';
+        const onglet = info?.signup || info?.error?.includes('Créez') ? 'inscription' : 'connexion';
         return renderForm(res, { onglet, status: 400, error: info?.error || 'Connexion Google annulée.' });
       }
       if (info?.created) req.session.flash = { type: 'success', message: `Bienvenue ${user.prenom}, votre compte est créé !` };
