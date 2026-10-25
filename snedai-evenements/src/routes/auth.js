@@ -38,6 +38,13 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
     renderForm(res, { onglet: req.query.onglet === 'inscription' ? 'inscription' : 'connexion' });
   });
 
+  // Pages publiques demandées par Google pour publier l'écran de connexion.
+  const adminContact = config.mailFrom.email;
+  router.get('/confidentialite', (req, res) =>
+    res.render('legal/confidentialite', { title: 'Politique de confidentialité', adminContact })
+  );
+  router.get('/conditions', (req, res) => res.render('legal/conditions', { title: 'Conditions d’utilisation', adminContact }));
+
   // Reconnexion rapide avec l'adresse e-mail et le mot de passe choisis à l'inscription.
   router.post('/connexion', loginLimiter, async (req, res, next) => {
     const email = clean(req.body.email, 200).toLowerCase();

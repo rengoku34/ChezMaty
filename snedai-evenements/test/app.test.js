@@ -68,6 +68,11 @@ test('sans compte, on ne voit pas les événements', async () => {
   assert.equal(res.headers.location, '/connexion');
 });
 
+test('les pages de confidentialité et de conditions sont publiques', async () => {
+  assert.match((await request(app).get('/confidentialite').expect(200)).text, /Politique de confidentialité/);
+  assert.match((await request(app).get('/conditions').expect(200)).text, /Conditions d’utilisation/);
+});
+
 test('mauvais mot de passe refusé', async () => {
   const agent = request.agent(app);
   const page = await agent.get('/connexion');
