@@ -5,14 +5,14 @@
   <div id="auth-container" class="auth-container <%= onglet === 'inscription' ? 'right-panel-active' : '' %>">
 
     <div class="auth-form-container sign-up-container">
-      <form method="post" action="/inscription" class="auth-form">
+      <form method="post" action="/inscription" class="auth-form" autocomplete="off">
         <h1>Inscription<span>.</span></h1>
         <p class="hint">Votre adresse e-mail sera celle de votre compte Google, choisie à l’étape suivante.</p>
         <% if (error && onglet === 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="row">
-          <input name="nom" required maxlength="100" autocomplete="family-name" placeholder="Nom" aria-label="Nom" value="<%= values.nom || '' %>">
-          <input name="prenom" required maxlength="100" autocomplete="given-name" placeholder="Prénom" aria-label="Prénom" value="<%= values.prenom || '' %>">
+          <input name="nom" required maxlength="100" autocomplete="off" placeholder="Nom" aria-label="Nom" value="<%= values.nom || '' %>">
+          <input name="prenom" required maxlength="100" autocomplete="off" placeholder="Prénom" aria-label="Prénom" value="<%= values.prenom || '' %>">
         </div>
         <% if (filiales.length) { %>
           <select name="filiale" required aria-label="Filiale">
@@ -31,13 +31,13 @@
     </div>
 
     <div class="auth-form-container sign-in-container">
-      <form method="post" action="/connexion" class="auth-form">
+      <form method="post" action="/connexion" class="auth-form" autocomplete="off">
         <h1>Connexion<span>.</span></h1>
         <p class="hint">Bon retour parmi nous !</p>
         <% if (error && onglet !== 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="email" name="email" required autocomplete="email" placeholder="Adresse e-mail" aria-label="Adresse e-mail" value="<%= values.email || '' %>">
-        <input type="password" name="password" required autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
+        <input type="email" name="email" required autocomplete="off" autocapitalize="none" placeholder="Adresse e-mail" aria-label="Adresse e-mail">
+        <input type="password" name="password" required autocomplete="off" placeholder="Mot de passe" aria-label="Mot de passe">
         <% if (googleEnabled) { %>
           <p class="forgot">Mot de passe oublié ? <a href="/auth/google">Connectez-vous avec Google</a></p>
         <% } %>

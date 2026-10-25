@@ -59,6 +59,9 @@ function createApp({ config, repo, mailer, logger = console }) {
   app.use(passport.session());
   app.use(csrfToken);
   app.use((req, res, next) => {
+    // Aucune page n'est gardée en mémoire par le navigateur : après une déconnexion,
+    // « Retour » ne peut plus afficher les listes ni les informations personnelles.
+    res.set('Cache-Control', 'no-store');
     res.locals.user = req.user || null;
     res.locals.isAdmin = access.isAdmin(req.user);
     res.locals.isAgent = access.isAgent(req.user);

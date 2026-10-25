@@ -73,6 +73,17 @@ test('les pages de confidentialité et de conditions sont publiques', async () =
   assert.match((await request(app).get('/conditions').expect(200)).text, /Conditions d’utilisation/);
 });
 
+test('après la déconnexion, plus rien n’est visible ni gardé en cache', async () => {
+  const { agent, csrf } = await loginAs('awa@example.com');
+  const home = await agent.get('/');
+  assert.equal(home.headers['cache-control'], 'no-store');
+  const logout = await agent.post('/deconnexion').type('form').send({ _csrf: csrf });
+  assert.equal(logout.headers.location, '/connexion');
+  assert.equal(logout.headers['clear-site-data'], '"cache"');
+  assert.equal((await agent.get('/')).headers.location, '/connexion');
+  assert.doesNotMatch((await agent.get('/connexion')).text, /awa@example\.com/);
+});
+
 test('mauvais mot de passe refusé', async () => {
   const agent = request.agent(app);
   const page = await agent.get('/connexion');

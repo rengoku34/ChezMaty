@@ -52,7 +52,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
     const user = email ? await repo.findUserByEmail(email) : null;
     const valid = user ? await bcrypt.compare(password, user.password_hash) : false;
     if (!valid) {
-      return renderForm(res, { status: 401, error: 'Adresse e-mail ou mot de passe incorrect.', values: { email } });
+      return renderForm(res, { status: 401, error: 'Adresse e-mail ou mot de passe incorrect.' });
     }
     finishLogin(req, res, next, user);
   });
@@ -101,6 +101,8 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
       if (err) return next(err);
       req.session.destroy(() => {
         res.clearCookie('snedai.sid');
+        // Vide le cache du navigateur : le bouton « Retour » ne réaffiche plus les pages privées.
+        res.set('Clear-Site-Data', '"cache"');
         res.redirect('/connexion');
       });
     });

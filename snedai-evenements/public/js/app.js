@@ -1,4 +1,10 @@
 // Comportements communs (le CSP interdit les scripts dans les attributs HTML).
+
+// Page ressortie de la mémoire du navigateur (bouton « Retour ») : on la redemande au serveur,
+// qui renvoie vers la connexion si l'on s'est déconnecté.
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) window.location.reload();
+});
 document.addEventListener('submit', (event) => {
   const message = event.target.dataset?.confirm;
   if (message && !window.confirm(message)) event.preventDefault();
