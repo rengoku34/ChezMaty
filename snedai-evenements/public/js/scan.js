@@ -37,6 +37,10 @@
     result.className = `scan-result scan-${STYLES[data.status] || 'error'}`;
     void result.offsetWidth; // relance l'animation à chaque scan
     result.classList.add('flash');
+    const flash = document.getElementById('scan-flash');
+    flash.className = `scan-flash scan-flash-${STYLES[data.status] || 'error'}`;
+    void flash.offsetWidth;
+    flash.classList.add('on');
     result.replaceChildren();
     const title = document.createElement('strong');
     title.textContent = data.message;
@@ -87,10 +91,26 @@
   // on valide après une courte pause.
   const FULL_CODE = /^SNEDAI-EVT:[A-Za-z0-9_-]{32}$/;
   let autoTimer = null;
-  input.addEventListener('input', () => {
+  const checkComplete = () => {
     clearTimeout(autoTimer);
     if (FULL_CODE.test(input.value.trim())) autoTimer = setTimeout(() => submit(input.value), 120);
+  };
+  input.addEventListener('input', checkComplete);
+  // Lecteur réglé pour envoyer « Tab » après le code : on valide au lieu de quitter le champ.
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      submit(input.value);
+    }
   });
+  // Certains lecteurs Android remplissent le champ sans déclencher d'événement : vérification régulière.
+  let lastSeen = '';
+  setInterval(() => {
+    if (input.value !== lastSeen) {
+      lastSeen = input.value;
+      checkComplete();
+    }
+  }, 250);
 
   // Le curseur reste toujours dans le champ : la machine peut scanner à tout moment,
   // même si quelqu'un a touché ailleurs sur l'écran.
@@ -103,16 +123,34 @@
     }, 150);
   });
 
-  // Mode « machine de scan » : sur un terminal Android (Zebra, Honeywell…), empêche le clavier
-  // de l'écran de s'ouvrir et de cacher le résultat. Choix mémorisé sur l'appareil.
+  // Mode « machine de scan » : sur le terminal Android à lecteur intégré, empêche le clavier
+  // de l'écran de s'ouvrir et de cacher le résultat. Activé par défaut sur Android ; choix mémorisé.
   const machineMode = document.getElementById('machine-mode');
   const applyMachineMode = () => input.setAttribute('inputmode', machineMode.checked ? 'none' : 'text');
-  try { machineMode.checked = localStorage.getItem('scan-machine-mode') === '1'; } catch {}
+  let saved = null;
+  try { saved = localStorage.getItem('scan-machine-mode'); } catch {}
+  machineMode.checked = saved === null ? /android/i.test(navigator.userAgent) : saved === '1';
   applyMachineMode();
   machineMode.addEventListener('change', () => {
     applyMachineMode();
     try { localStorage.setItem('scan-machine-mode', machineMode.checked ? '1' : '0'); } catch {}
     input.focus();
+  });
+
+  // L'écran du terminal reste allumé tant que la page Scanner est ouverte.
+  let wakeLock = null;
+  const keepAwake = async () => {
+    try {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible' && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch {}
+  };
+  keepAwake();
+  document.addEventListener('visibilitychange', () => {
+    keepAwake();
+    if (document.visibilityState === 'visible') input.focus({ preventScroll: true });
   });
 
   let scanner = null;

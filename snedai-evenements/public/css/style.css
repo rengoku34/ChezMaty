@@ -291,3 +291,20 @@ tbody tr:hover { background: #f7f7fb; }
 }
 .agenda { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .9rem 0 0; font-size: .88rem; color: var(--muted); }
 .agenda > span { display: inline-flex; align-items: center; gap: .35rem; margin-right: .25rem; }
+
+/* Scan sur le terminal Android : flash plein écran (vert ou rouge) visible de loin. */
+.scan-flash { position: fixed; inset: 0; pointer-events: none; z-index: 1000; opacity: 0; }
+.scan-flash.on { animation: flash .7s ease-out; }
+.scan-flash-ok { box-shadow: inset 0 0 0 14px #1f9d55; background: rgba(31,157,85,.18); }
+.scan-flash-warn { box-shadow: inset 0 0 0 14px #e08a1e; background: rgba(224,138,30,.18); }
+.scan-flash-error { box-shadow: inset 0 0 0 14px #d64545; background: rgba(214,69,69,.18); }
+@keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+.camera-box summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.camera-box[open] summary { margin-bottom: .8rem; }
+@media (max-width: 760px) {
+  .scan h1 { font-size: 1.3rem; }
+  .scan-result strong { font-size: 1.6rem; }
+  .scan-result { font-size: 1.15rem; }
+}
+.scan-flash:not(.on) { animation: none; }
+.scan-form input { min-width: 0; }

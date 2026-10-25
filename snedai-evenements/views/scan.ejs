@@ -1,7 +1,8 @@
 <%- include('partials/header') %>
+<div id="scan-flash" class="scan-flash" aria-hidden="true"></div>
 <section class="scan" data-csrf="<%= csrfToken %>">
   <h1>Scanner les QR codes</h1>
-  <p class="hint">Avec la machine de scan : laissez cette page ouverte et scannez, la présence est enregistrée tout de suite (le curseur reste toujours dans le champ). Sans machine, utilisez la caméra.</p>
+  <p class="hint">Laissez cette page ouverte sur le terminal et appuyez sur un bouton de scan orange : la présence est enregistrée tout de suite, avec un bip et un écran vert.</p>
 
   <form id="scan-form" class="scan-form" autocomplete="off">
     <input id="scan-input" name="code" placeholder="Scannez un QR code…" autofocus autocomplete="off" autocapitalize="none" spellcheck="false">
@@ -11,10 +12,11 @@
 
   <div id="scan-result" class="scan-result" aria-live="assertive" hidden></div>
 
-  <div class="card">
+  <details class="card camera-box">
+    <summary>Pas de terminal sous la main ? Scanner avec la caméra</summary>
     <button id="camera-toggle" class="btn btn-secondary" type="button"><%- include('partials/icon', { name: 'camera' }) %> Utiliser la caméra</button>
     <div id="camera" class="camera"></div>
-  </div>
+  </details>
 
   <h2>Derniers scans</h2>
   <ul id="scan-history" class="scan-history"></ul>

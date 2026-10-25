@@ -45,6 +45,22 @@ Plateforme interne des événements SNEDAI, en **Node.js (Express) + PostgreSQL*
 
 Les droits d'administration sont lus dans la configuration du serveur, pas dans la base de données. Personne ne peut donc se les donner depuis le site.
 
+## Régler le terminal de scan Android (lecteur intégré)
+
+Le terminal (Android 12, lecteur de QR code intégré et boutons de scan orange) s'utilise avec la page **Scanner** du site. Ces réglages sont à faire une seule fois.
+
+1. **Réglage du lecteur.** Ouvrez l'application de réglage du lecteur. Selon la marque, elle s'appelle « Scanner », « Scan Settings », « ScanWedge », « Keyboard Emulator », ou se trouve dans **Paramètres → Scanner**. Réglez :
+   - **Mode de sortie** : « Clavier », « Keyboard emulation », « Simuler la frappe » ou « Remplir la zone de saisie » ;
+   - **Suffixe** : **Entrée** (« Enter », « CR » ou « Retour chariot »). Si ce réglage n'existe pas, ce n'est pas grave : le site valide aussi le code tout seul ;
+   - **QR Code** : activé dans la liste des symbologies ;
+   - **Son et vibration** : au choix, le site émet déjà son propre bip.
+2. **Navigateur.** Dans Chrome, ouvrez le site, connectez-vous avec un compte **agent de scan**, puis ouvrez **Scanner**. Pour aller plus vite, ajoutez la page à l'écran d'accueil : ⋮ → « Installer l'application » ou « Ajouter à l'écran d'accueil ».
+3. **Utilisation.** Laissez la page ouverte et appuyez sur un bouton orange face au QR code :
+   - **bip aigu et écran vert** : présence confirmée, avec le nom et la filiale de la personne ;
+   - **deux bips graves et écran orange ou rouge** : QR code déjà scanné, inconnu, ou événement terminé.
+
+La page garde l'écran allumé et le curseur dans le champ. Le clavier de l'écran ne s'ouvre pas : c'est la case « Mode machine de scan », cochée automatiquement sur Android.
+
 ## Mise en ligne 100 % gratuite (faisable depuis un téléphone)
 
 Quatre services gratuits, sans carte bancaire :
