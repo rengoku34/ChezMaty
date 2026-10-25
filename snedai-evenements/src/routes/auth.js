@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
@@ -22,6 +23,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
       values,
       filiales: config.filiales,
       googleEnabled,
+      emailSignupEnabled: mailer.configured,
     });
   }
 
@@ -57,7 +59,8 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     finishLogin(req, res, next, user);
   });
 
-  // Inscription : on garde nom, prénom, filiale, e-mail et mot de passe, puis Google confirme l'adresse e-mail.
+  // Inscription : nom, prénom, filiale, e-mail et mot de passe du site. L'adresse e-mail est ensuite confirmée
+  // soit par un code à 6 chiffres envoyé par e-mail, soit par Google (au choix de la personne).
   router.post('/inscription', loginLimiter, async (req, res) => {
     const values = {
       nom: clean(req.body.nom),
@@ -65,6 +68,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
       filiale: clean(req.body.filiale),
       email: clean(req.body.email, 200).toLowerCase(),
     };
+    const methode = req.body.methode === 'google' ? 'google' : 'email';
     const password = String(req.body.password ?? '');
     const confirmation = String(req.body.password_confirmation ?? '');
     let error = null;
@@ -72,13 +76,90 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     else if (config.filiales.length && !config.filiales.includes(values.filiale)) error = 'Choisissez une filiale dans la liste.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) error = 'Adresse e-mail invalide.';
     else if (await repo.findUserByEmail(values.email)) error = 'Un compte existe déjà avec cette adresse. Connectez-vous.';
-    else if (password.length < 8) error = 'Le mot de passe doit contenir au moins 8 caractères.';
-    else if (password !== confirmation) error = 'Les deux mots de passe ne sont pas identiques.';
-    else if (!googleEnabled) error = 'La connexion Google n’est pas encore configurée sur le serveur.';
+    else if (password.length < 8 || !/[A-Za-zÀ-ÿ]/.test(password) || !/\d/.test(password)) {
+      error = 'Le mot de passe doit contenir au moins 8 caractères, dont au moins une lettre et un chiffre.';
+    } else if (password !== confirmation) error = 'Les deux mots de passe ne sont pas identiques.';
+    else if (methode === 'google' && !googleEnabled) error = 'La connexion Google n’est pas encore configurée sur le serveur.';
+    else if (methode === 'email' && !mailer.configured) {
+      error = 'La confirmation par e-mail n’est pas encore disponible. Utilisez « Continuer avec Google ».';
+    }
     if (error) return renderForm(res, { onglet: 'inscription', status: 400, error, values });
 
-    req.session.pendingSignup = { ...values, passwordHash: await bcrypt.hash(password, 12) };
-    res.redirect('/auth/google');
+    const passwordHash = await bcrypt.hash(password, 12);
+    if (methode === 'google') {
+      req.session.pendingSignup = { ...values, passwordHash };
+      return res.redirect('/auth/google');
+    }
+    req.session.emailSignup = { ...values, passwordHash };
+    try {
+      await sendCode(req.session.emailSignup);
+    } catch (err) {
+      logger.error(`Code non envoyé à ${values.email} : ${err.message}`);
+      delete req.session.emailSignup;
+      return renderForm(res, { onglet: 'inscription', status: 502, error: 'Le code n’a pas pu être envoyé. Vérifiez l’adresse e-mail ou réessayez plus tard.', values });
+    }
+    res.redirect('/inscription/code');
+  });
+
+  // Code de confirmation : 6 chiffres, valable 15 minutes, 5 essais au maximum ; seul son empreinte est gardée.
+  const CODE_TTL_MS = 15 * 60 * 1000;
+  const RESEND_DELAY_MS = 60 * 1000;
+  const MAX_ATTEMPTS = 5;
+  const hashCode = (code) => crypto.createHash('sha256').update(`${config.sessionSecret}:${code}`).digest('hex');
+
+  async function sendCode(pending) {
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    Object.assign(pending, { codeHash: hashCode(code), expires: Date.now() + CODE_TTL_MS, sentAt: Date.now(), attempts: 0 });
+    await mailer.sendVerificationCode(pending.email, pending.prenom, code);
+  }
+
+  function renderCode(res, pending, { status = 200, error = null, info = null } = {}) {
+    res.status(status).render('verify-code', { title: 'Confirmer mon adresse e-mail', email: pending.email, error, info });
+  }
+
+  router.get('/inscription/code', (req, res) => {
+    const pending = req.session.emailSignup;
+    if (!pending) return res.redirect('/connexion?onglet=inscription');
+    renderCode(res, pending);
+  });
+
+  router.post('/inscription/code', loginLimiter, async (req, res, next) => {
+    const pending = req.session.emailSignup;
+    if (!pending) return res.redirect('/connexion?onglet=inscription');
+    if (Date.now() > pending.expires) return renderCode(res, pending, { status: 400, error: 'Ce code a expiré. Demandez-en un nouveau.' });
+    if (pending.attempts >= MAX_ATTEMPTS) return renderCode(res, pending, { status: 429, error: 'Trop d’essais. Demandez un nouveau code.' });
+
+    const code = String(req.body.code ?? '').replace(/\D/g, '');
+    const valid = code.length === 6 && crypto.timingSafeEqual(Buffer.from(hashCode(code)), Buffer.from(pending.codeHash));
+    if (!valid) {
+      pending.attempts += 1;
+      const left = MAX_ATTEMPTS - pending.attempts;
+      return renderCode(res, pending, { status: 400, error: left > 0 ? `Code incorrect. Il vous reste ${left} essai(s).` : 'Trop d’essais. Demandez un nouveau code.' });
+    }
+    if (await repo.findUserByEmail(pending.email)) {
+      delete req.session.emailSignup;
+      return renderForm(res, { status: 400, error: 'Un compte existe déjà avec cette adresse. Connectez-vous.' });
+    }
+    const { nom, prenom, filiale, email, passwordHash } = pending;
+    const user = await repo.createUser({ nom, prenom, filiale, email, passwordHash });
+    delete req.session.emailSignup;
+    req.session.flash = { type: 'success', message: `Bienvenue ${user.prenom}, votre adresse est confirmée et votre compte est créé !` };
+    mailer.sendWelcome(user).catch((error) => logger.error(`Bienvenue non envoyé à ${user.email} : ${error.message}`));
+    finishLogin(req, res, next, user);
+  });
+
+  router.post('/inscription/code/renvoyer', loginLimiter, async (req, res) => {
+    const pending = req.session.emailSignup;
+    if (!pending) return res.redirect('/connexion?onglet=inscription');
+    const wait = Math.ceil((pending.sentAt + RESEND_DELAY_MS - Date.now()) / 1000);
+    if (wait > 0) return renderCode(res, pending, { status: 429, error: `Patientez encore ${wait} s avant de demander un nouveau code.` });
+    try {
+      await sendCode(pending);
+    } catch (err) {
+      logger.error(`Code non renvoyé à ${pending.email} : ${err.message}`);
+      return renderCode(res, pending, { status: 502, error: 'Le code n’a pas pu être envoyé. Réessayez plus tard.' });
+    }
+    renderCode(res, pending, { info: 'Un nouveau code vient de vous être envoyé.' });
   });
 
   router.get('/auth/google', (req, res, next) => {

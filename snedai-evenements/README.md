@@ -5,7 +5,7 @@ Plateforme interne des événements SNEDAI, en **Node.js (Express) + PostgreSQL*
 ## Ce que fait le site
 
 1. **Compte**. Le formulaire a deux onglets :
-   - **Créer mon compte** : nom, prénom, filiale et mot de passe, puis validation par **Google**. L'adresse e-mail est celle du compte Google, donc elle est forcément réelle.
+   - **Créer un compte** : nom, prénom, filiale, adresse e-mail et mot de passe du site. L'adresse est ensuite **confirmée par un code à 6 chiffres** envoyé par e-mail, sans compte Google. Ceux qui le préfèrent peuvent la faire confirmer par **Google**.
    - **Se connecter** : adresse e-mail et mot de passe, ou bouton Google.
 2. **« La maison »**. Sans compte, on ne voit rien : toutes les pages renvoient vers le formulaire. Une fois connecté, on voit les événements en cours (sujet, description, photo, horaires, lieu).
 3. **Annonce par e-mail**. Quand l'administrateur publie un événement, chaque inscrit reçoit un e-mail avec un lien pour répondre.
@@ -82,7 +82,22 @@ Conseil : sur téléphone, ouvrez ces sites dans Chrome avec l'option **« Versi
 2. Créez un projet nommé `snedai`. Choisissez la région la plus proche, par exemple **Europe (Frankfurt)**.
 3. Appuyez sur **Connect** et copiez la **connection string**, qui commence par `postgresql://…`. C'est votre `DATABASE_URL`.
 
-### Étape 2 : les e-mails (Brevo)
+### Étape 2 : les e-mails (AgentMail, recommandé)
+
+Les e-mails servent au **code de confirmation** à l'inscription, au message de bienvenue, aux annonces d'événements et aux QR codes.
+
+1. Créez un compte gratuit sur <https://agentmail.to>, puis ouvrez la **console**.
+2. Créez une **boîte** (« Inbox »), par exemple `snedai-evenements`. Son adresse sera `snedai-evenements@agentmail.to`, et c'est elle qui enverra les e-mails.
+3. Dans **API Keys**, créez une clé et copiez-la.
+4. Dans Render, ajoutez deux variables :
+   - `AGENTMAIL_API_KEY` = la clé ;
+   - `AGENTMAIL_INBOX` = l'adresse de la boîte.
+
+Ensuite, faites le test dans **Comptes → « Envoyer un e-mail de test »**.
+
+Si AgentMail est configuré, il est utilisé en priorité. Sinon, le site essaie Brevo, puis un serveur SMTP.
+
+### Étape 2 bis : les e-mails avec Brevo (autre possibilité)
 
 1. Créez un compte sur <https://www.brevo.com>. Choisissez le plan **Free**.
 2. Dans **Expéditeurs, domaines et IP dédiées → Expéditeurs**, ajoutez votre adresse e-mail et validez-la avec le lien reçu.

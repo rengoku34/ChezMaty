@@ -15,7 +15,7 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://snedai:
 const silent = { info() {}, error() {} };
 let app;
 let repo;
-const mails = { announced: [], qr: [] };
+const mails = { announced: [], qr: [], codes: [] };
 
 function fakeMailer() {
   return {
@@ -29,6 +29,13 @@ function fakeMailer() {
       return true;
     },
     sender: 'rh@example.com',
+    async sendVerificationCode(email, prenom, code) {
+      mails.codes.push({ email, prenom, code });
+      return true;
+    },
+    async sendWelcome() {
+      return true;
+    },
     async sendTest(to) {
       return to === 'stagiaire@snedai.com' ? { ok: true } : { ok: false, error: 'Brevo 401 : Key not found' };
     },
@@ -303,6 +310,24 @@ test('réglages par défaut : secret de session créé une fois, expéditeur = a
   assert.equal(config.production, true);
 });
 
+test('les e-mails peuvent partir par AgentMail', async () => {
+  const calls = [];
+  const fetchStub = async (url, options) => {
+    calls.push({ url, headers: options.headers, body: JSON.parse(options.body) });
+    return { ok: true };
+  };
+  const config = loadConfig({ AGENTMAIL_API_KEY: ' am_cle ', AGENTMAIL_INBOX: 'Snedai-Evenements@agentmail.to', BREVO_API_KEY: 'ignoree' });
+  const mailer = createMailer(config, silent, fetchStub);
+  assert.equal(mailer.sender, 'snedai-evenements@agentmail.to');
+  await mailer.sendVerificationCode('ama@example.com', 'Ama', '123456');
+  assert.equal(calls[0].url, 'https://api.agentmail.to/v0/inboxes/snedai-evenements%40agentmail.to/messages/send');
+  assert.equal(calls[0].headers.authorization, 'Bearer am_cle');
+  assert.deepEqual(calls[0].body.to, ['ama@example.com']);
+  assert.match(calls[0].body.subject, /123456/);
+  await mailer.sendQrCode({ id: 1, titre: 'T' }, { email: 'ama@example.com', prenom: 'Ama' }, Buffer.from('png'), '');
+  assert.equal(calls[1].body.attachments[0].content, Buffer.from('png').toString('base64'));
+});
+
 test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', async () => {
   const calls = [];
   const fetchStub = async (url, options) => {
@@ -360,4 +385,42 @@ test('seul l’administrateur supprime des comptes, et jamais le sien', async ()
   // La session de la personne supprimée ne fonctionne plus.
   await admin.agent.post(`/admin/comptes/${(await repo.findUserByEmail('awa@example.com')).id}/supprimer`).type('form').send({ _csrf: admin.csrf });
   assert.equal((await awa.agent.get('/')).headers.location, '/connexion');
+});
+
+test('inscription sans Google : code à 6 chiffres envoyé par e-mail', async () => {
+  const agent = request.agent(app);
+  let csrf = csrfFrom((await agent.get('/connexion?onglet=inscription')).text);
+  const form = { _csrf: csrf, methode: 'email', nom: 'Bamba', prenom: 'Fatou', filiale: 'OSIA', email: 'Fatou@Exemple.ci', password: 'Secret2026', password_confirmation: 'Secret2026' };
+
+  // Mot de passe trop faible refusé.
+  const weak = await agent.post('/inscription').type('form').send({ ...form, password: 'motdepasse', password_confirmation: 'motdepasse' });
+  assert.match(weak.text, /au moins une lettre et un chiffre/);
+
+  const sent = await agent.post('/inscription').type('form').send(form);
+  assert.equal(sent.headers.location, '/inscription/code');
+  const { code, email } = mails.codes.at(-1);
+  assert.equal(email, 'fatou@exemple.ci');
+  assert.match(code, /^\d{6}$/);
+  assert.equal(await repo.findUserByEmail('fatou@exemple.ci'), undefined, 'pas de compte avant la confirmation');
+
+  const page = await agent.get('/inscription/code');
+  assert.match(page.text, /fatou@exemple\.ci/);
+  csrf = csrfFrom(page.text);
+  const wrong = String((Number(code) + 1) % 1000000).padStart(6, '0');
+  assert.match((await agent.post('/inscription/code').type('form').send({ _csrf: csrf, code: wrong }).expect(400)).text, /Il vous reste 4 essai/);
+
+  // Renvoi trop rapide refusé.
+  assert.match((await agent.post('/inscription/code/renvoyer').type('form').send({ _csrf: csrf })).text, /Patientez/);
+
+  const ok = await agent.post('/inscription/code').type('form').send({ _csrf: csrf, code });
+  assert.equal(ok.status, 302);
+  const user = await repo.findUserByEmail('fatou@exemple.ci');
+  assert.equal(user.nom, 'Bamba');
+  assert.equal(user.google_id, null);
+  assert.match((await agent.get('/').expect(200)).text, /Bonjour Fatou/);
+
+  // Reconnexion avec le mot de passe du site.
+  const again = request.agent(app);
+  const c2 = csrfFrom((await again.get('/connexion')).text);
+  assert.equal((await again.post('/connexion').type('form').send({ _csrf: c2, email: 'fatou@exemple.ci', password: 'Secret2026' })).status, 302);
 });

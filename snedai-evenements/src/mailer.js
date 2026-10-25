@@ -25,6 +25,26 @@ function brevoTransport(apiKey, sender, fetchImpl) {
   };
 }
 
+// Envoi par l'API HTTPS d'AgentMail (gratuit, sans carte bancaire), depuis une boîte du type nom@agentmail.to.
+function agentmailTransport(apiKey, inbox, fetchImpl) {
+  return async ({ to, subject, text, html, attachments = [] }) => {
+    const response = await fetchImpl(`https://api.agentmail.to/v0/inboxes/${encodeURIComponent(inbox)}/messages/send`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        to: [to],
+        subject,
+        text,
+        html,
+        ...(attachments.length && {
+          attachments: attachments.map((a) => ({ filename: a.filename, content_type: 'image/png', content: a.content.toString('base64') })),
+        }),
+      }),
+    });
+    if (!response.ok) throw new Error(`AgentMail ${response.status} : ${await response.text()}`);
+  };
+}
+
 function smtpTransport(smtp, sender) {
   const transport = nodemailer.createTransport({
     host: smtp.host,
@@ -37,7 +57,11 @@ function smtpTransport(smtp, sender) {
 
 function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
   let deliver = null;
-  if (config.brevoApiKey && config.mailFrom.email) deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
+  let sender = config.mailFrom.email;
+  if (config.agentmail.apiKey && config.agentmail.inbox) {
+    deliver = agentmailTransport(config.agentmail.apiKey, config.agentmail.inbox, fetchImpl);
+    sender = config.agentmail.inbox;
+  } else if (config.brevoApiKey && config.mailFrom.email) deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
   else if (config.smtp.host && config.mailFrom.email) deliver = smtpTransport(config.smtp, config.mailFrom);
   const configured = Boolean(deliver);
 
@@ -59,7 +83,20 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
 
   return {
     configured,
-    sender: config.mailFrom.email,
+    sender,
+
+    // Code à 6 chiffres qui confirme l'adresse e-mail lors d'une inscription sans Google.
+    sendVerificationCode(email, prenom, code) {
+      return send({
+        to: email,
+        subject: `${code} est votre code de confirmation – Événements SNEDAI`,
+        text: `Bonjour ${prenom},\n\nVotre code de confirmation est : ${code}\nIl est valable 15 minutes.\n\nSi vous n’avez pas demandé à créer un compte, ignorez ce message.\n`,
+        html: layout(`<p>Bonjour ${escapeHtml(prenom)},</p>
+          <p>Voici votre code pour confirmer votre adresse e-mail :</p>
+          <p style="font-size:30px;font-weight:bold;letter-spacing:8px;color:#26246a;margin:16px 0">${escapeHtml(code)}</p>
+          <p style="color:#62647a">Il est valable 15 minutes. Si vous n’avez pas demandé à créer un compte, ignorez ce message.</p>`),
+      });
+    },
 
     // Message de bienvenue envoyé juste après la création du compte.
     sendWelcome(user) {

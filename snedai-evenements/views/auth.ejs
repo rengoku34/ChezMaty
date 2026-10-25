@@ -7,7 +7,7 @@
     <div class="auth-form-container sign-up-container">
       <form method="post" action="/inscription" class="auth-form" autocomplete="off">
         <h1>Créer un compte</h1>
-        <p class="hint">L’adresse e-mail doit être celle de votre compte Google, qui la confirmera à l’étape suivante.</p>
+        <p class="hint">Votre adresse e-mail sera confirmée par un code envoyé par e-mail<%= googleEnabled ? ', ou par Google si vous préférez' : '' %>.</p>
         <% if (error && onglet === 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="row">
@@ -26,12 +26,17 @@
         </label>
         <label class="field">Adresse e-mail<input type="email" name="email" required maxlength="200" autocomplete="off" autocapitalize="none" readonly data-no-autofill value="<%= values.email || '' %>"></label>
         <div class="row">
-          <label class="field">Mot de passe<input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="8 caractères min."></label>
+          <label class="field">Mot de passe du site<input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="8 caractères min."></label>
           <label class="field">Confirmation<input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" readonly data-no-autofill></label>
         </div>
-        <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>
-          <%- include('partials/google-icon') %> Continuer avec Google
-        </button>
+        <p class="hint small">Choisissez un mot de passe propre à ce site : ce n’est pas celui de votre messagerie.</p>
+        <% if (emailSignupEnabled) { %>
+          <button type="submit" class="btn" name="methode" value="email">Créer mon compte</button>
+        <% } %>
+        <% if (googleEnabled) { %>
+          <% if (emailSignupEnabled) { %><div class="separator">ou</div><% } %>
+          <button type="submit" class="btn btn-google" name="methode" value="google"><%- include('partials/google-icon') %> Continuer avec Google</button>
+        <% } %>
       </form>
     </div>
 

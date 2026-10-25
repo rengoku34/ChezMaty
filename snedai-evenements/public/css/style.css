@@ -88,9 +88,10 @@ h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 .75rem; }
 
 /* Connexion / inscription : deux formulaires et un volet uni qui glisse de l'un à l'autre. */
 .auth-wrap { display: flex; justify-content: center; align-items: center; min-height: 70vh; }
-.auth-container { position: relative; width: 100%; max-width: 880px; min-height: 580px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.auth-container { position: relative; width: 100%; max-width: 900px; min-height: 660px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .auth-form-container { position: absolute; top: 0; height: 100%; width: 50%; background: var(--card); transition: transform .6s ease-in-out; }
-.auth-form { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: .8rem; padding: 2rem 2.75rem; }
+.auth-form { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: .7rem; padding: 1.5rem 2.75rem; }
+.auth-form > * { flex-shrink: 0; }
 .auth-form h1 { margin: 0 0 .25rem; font-size: 1.5rem; color: var(--primary); }
 .auth-form .hint { margin: -.4rem 0 .25rem; }
 .auth-form .alert { margin: 0; }
@@ -308,3 +309,9 @@ tbody tr:hover { background: #f7f7fb; }
 }
 .scan-flash:not(.on) { animation: none; }
 .scan-form input { min-width: 0; }
+
+/* Confirmation de l'adresse e-mail par code */
+.verify { max-width: 480px; }
+.code-input { font-size: 1.8rem !important; letter-spacing: .5em; text-align: center; font-variant-numeric: tabular-nums; }
+.resend { margin-top: 1rem; font-size: .9rem; }
+.hint.small { font-size: .8rem; margin: 0; }

@@ -40,6 +40,11 @@ function loadConfig(env = process.env) {
       password: env.SMTP_PASSWORD || '',
     },
     // Espaces ou guillemets collés par erreur autour de la clé : retirés.
+    // AgentMail (agentmail.to) : clé API et adresse de la boîte d'envoi (ex. snedai-evenements@agentmail.to).
+    agentmail: {
+      apiKey: (env.AGENTMAIL_API_KEY || '').trim().replace(/^["']|["']$/g, ''),
+      inbox: (env.AGENTMAIL_INBOX || '').trim().toLowerCase(),
+    },
     brevoApiKey: (env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, ''),
     // Par défaut, les e-mails partent de la première adresse administrateur.
     mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || list(env.ADMIN_EMAILS, ',')[0] || ''),
