@@ -9,6 +9,14 @@
     <h1><%= event.titre %></h1>
     <% if (event.debut) { %><p class="meta"><%- include('partials/icon', { name: 'calendar' }) %> <%= format.eventRange(event.debut, event.fin) %></p><% } %>
     <% if (event.lieu) { %><p class="meta"><%- include('partials/icon', { name: 'pin' }) %> <%= event.lieu %></p><% } %>
+    <% if (agenda) { %>
+      <div class="agenda">
+        <span><%- include('partials/icon', { name: 'calendar' }) %> Ajouter à mon agenda :</span>
+        <a class="btn btn-small btn-secondary" href="<%= agenda.google %>" target="_blank" rel="noopener">Google Agenda</a>
+        <a class="btn btn-small btn-secondary" href="<%= agenda.outlook %>" target="_blank" rel="noopener">Outlook</a>
+        <a class="btn btn-small btn-secondary" href="<%= agenda.ics %>">iPhone / autre</a>
+      </div>
+    <% } %>
     <div class="description"><%= event.description %></div>
 
     <div class="participation">

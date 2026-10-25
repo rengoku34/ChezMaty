@@ -3,6 +3,33 @@
   <h1>Bonjour <%= user.prenom %></h1>
   <p class="lead">Voici les événements à venir. Confirmez votre présence pour recevoir votre QR code d’entrée.</p>
 
+  <div id="install-banner" class="install-banner" hidden>
+    <span>Installez le site sur votre téléphone pour retrouver votre QR code en un geste.</span>
+    <button type="button" class="btn btn-small" id="install-button">Installer l’application</button>
+  </div>
+
+  <% if (prochain) { const p = prochain; const part = participations.get(p.event.id); %>
+    <div class="hero">
+      <div class="hero-text">
+        <span class="hero-kicker"><%= p.enCours ? 'En ce moment' : 'Prochain événement' %></span>
+        <h2><%= p.event.titre %></h2>
+        <p class="meta"><%- include('partials/icon', { name: 'calendar' }) %> <%= format.eventRange(p.event.debut, p.event.fin) %></p>
+        <% if (p.event.lieu) { %><p class="meta"><%- include('partials/icon', { name: 'pin' }) %> <%= p.event.lieu %></p><% } %>
+        <a class="btn" href="/evenements/<%= p.event.id %>"><%= part ? 'Voir mon QR code' : 'Je confirme ma présence' %></a>
+      </div>
+      <% if (p.enCours) { %>
+        <div class="countdown live"><strong>En cours</strong><span>Présentez votre QR code à l’entrée</span></div>
+      <% } else { %>
+        <div class="countdown" data-countdown="<%= p.start %>" aria-label="Temps restant avant l’événement">
+          <div><strong data-unit="j">–</strong><span>jours</span></div>
+          <div><strong data-unit="h">–</strong><span>heures</span></div>
+          <div><strong data-unit="m">–</strong><span>min</span></div>
+          <div><strong data-unit="s">–</strong><span>s</span></div>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+
   <% if (!actifs.length) { %>
     <div class="card empty">Aucun événement en cours pour le moment. Vous serez prévenu(e) par e-mail dès qu’un nouvel événement sera publié.</div>
   <% } else { %>

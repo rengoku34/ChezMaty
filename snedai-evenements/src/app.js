@@ -46,6 +46,28 @@ function createApp({ config, repo, mailer, logger = console }) {
     })
   );
   app.use('/static', express.static(path.join(ROOT, 'public'), { maxAge: '1d' }));
+  // Application installable (téléphone, ordinateur) : manifeste et service worker à la racine du site.
+  app.get('/manifest.webmanifest', (req, res) => {
+    res.type('application/manifest+json').json({
+      name: 'Événements SNEDAI',
+      short_name: 'SNEDAI',
+      description: 'Événements internes SNEDAI : confirmez votre présence et retrouvez votre QR code d’entrée.',
+      lang: 'fr',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#eef0f5',
+      theme_color: '#26246a',
+      icons: [
+        { src: '/static/img/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/static/img/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { src: '/static/img/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    });
+  });
+  app.get('/sw.js', (req, res) => {
+    res.set('Cache-Control', 'no-cache').sendFile(path.join(ROOT, 'public/sw.js'));
+  });
   app.use('/static/vendor', express.static(path.join(ROOT, 'node_modules/html5-qrcode'), { maxAge: '7d' }));
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(express.json({ limit: '10kb' }));

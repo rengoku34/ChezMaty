@@ -172,6 +172,14 @@ function createRepository(pool) {
          WHERE p.event_id = $1 ORDER BY u.nom, u.prenom`,
         [eventId]
       ),
+    // Par filiale : nombre d'inscrits sur le site, de présences annoncées et de présences confirmées (QR).
+    statsByFiliale: (eventId) =>
+      all(
+        `SELECT u.filiale, count(*)::int AS inscrits, count(p.id)::int AS confirmes, count(p.scanne_at)::int AS presents
+         FROM users u LEFT JOIN participations p ON p.user_id = u.id AND p.event_id = $1
+         GROUP BY u.filiale ORDER BY confirmes DESC, inscrits DESC, u.filiale`,
+        [eventId]
+      ),
     listPresent: (eventId) =>
       all(
         `SELECT ${PARTICIPANT_COLUMNS} FROM participations p JOIN users u ON u.id = p.user_id

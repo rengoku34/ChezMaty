@@ -1,7 +1,14 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const express = require('express');
 const multer = require('multer');
 const { verifyCsrf } = require('../csrf');
 const { buildEventWorkbook, LIST_NAMES } = require('../excel');
+const { eventRates, filialeRows } = require('../stats');
+const { buildEventReport } = require('../report');
+const { ROOT } = require('../config');
+
+const LOGO_PATH = ['png', 'jpg'].map((ext) => path.join(ROOT, `public/img/logo.${ext}`)).find((file) => fs.existsSync(file)) || null;
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_PHOTO_MB = 3;
@@ -111,14 +118,40 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
   router.get('/tableau-de-bord', async (req, res) => {
     const events = await repo.listAllEvents();
     const selected = events.find((e) => e.id === Number(req.query.evenement)) || events[0] || null;
+    const inscrits = await repo.listUsers();
+    const confirmes = selected ? await repo.listConfirmed(selected.id) : [];
+    const presents = selected ? await repo.listPresent(selected.id) : [];
     res.render('admin/dashboard', {
       title: 'Tableau de bord',
       events,
       event: selected,
-      inscrits: await repo.listUsers(),
-      confirmes: selected ? await repo.listConfirmed(selected.id) : [],
-      presents: selected ? await repo.listPresent(selected.id) : [],
+      inscrits,
+      confirmes,
+      presents,
+      rates: eventRates({ inscrits: inscrits.length, confirmes: confirmes.length, presents: presents.length }),
+      filiales: selected ? filialeRows(await repo.statsByFiliale(selected.id)) : [],
     });
+  });
+
+  // Rapport PDF de l'événement (chiffres, taux, filiales, présents et absents).
+  router.get('/evenements/:id/rapport.pdf', loadEvent, async (req, res) => {
+    const inscrits = await repo.listUsers();
+    const confirmes = await repo.listConfirmed(req.event.id);
+    const presents = await repo.listPresent(req.event.id);
+    const pdf = await buildEventReport({
+      event: req.event,
+      inscrits,
+      confirmes,
+      presents,
+      filiales: filialeRows(await repo.statsByFiliale(req.event.id)),
+      rates: eventRates({ inscrits: inscrits.length, confirmes: confirmes.length, presents: presents.length }),
+      format,
+      logoPath: LOGO_PATH,
+    });
+    res
+      .type('application/pdf')
+      .set('Content-Disposition', `attachment; filename="rapport-snedai-${req.event.id}.pdf"`)
+      .send(pdf);
   });
 
   // ?liste=inscrits|confirmes|presents : une seule liste ; sinon le classeur complet.

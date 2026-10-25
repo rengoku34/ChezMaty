@@ -72,6 +72,50 @@ if (!autoReloaded && !window.matchMedia('(prefers-reduced-motion: reduce)').matc
   });
 }
 
+// Compte à rebours jusqu'au prochain événement (mis à jour chaque seconde).
+document.querySelectorAll('[data-countdown]').forEach((box) => {
+  const target = new Date(box.dataset.countdown).getTime();
+  const units = Object.fromEntries([...box.querySelectorAll('[data-unit]')].map((el) => [el.dataset.unit, el]));
+  const pad = (n) => String(n).padStart(2, '0');
+  const tick = () => {
+    const left = Math.max(0, target - Date.now());
+    if (left === 0) return window.location.reload();
+    const s = Math.floor(left / 1000);
+    units.j.textContent = Math.floor(s / 86400);
+    units.h.textContent = pad(Math.floor((s % 86400) / 3600));
+    units.m.textContent = pad(Math.floor((s % 3600) / 60));
+    units.s.textContent = pad(s % 60);
+  };
+  tick();
+  setInterval(tick, 1000);
+});
+
+// Application installable : service worker, et bouton « Installer l'application » quand c'est possible.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+const installBanner = document.getElementById('install-banner');
+const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+if (installBanner && !standalone) {
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    installBanner.hidden = false;
+  });
+  document.getElementById('install-button').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBanner.hidden = true;
+  });
+  // iPhone / iPad : pas de bouton automatique, on explique le geste.
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    installBanner.querySelector('span').textContent = 'Sur iPhone : touchez « Partager » puis « Sur l’écran d’accueil » pour installer le site comme une application.';
+    installBanner.querySelector('button').hidden = true;
+    installBanner.hidden = false;
+  }
+}
+
 document.addEventListener('change', (event) => {
   if (event.target.matches('[data-autosubmit]')) event.target.form.submit();
 });

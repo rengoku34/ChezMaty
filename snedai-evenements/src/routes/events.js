@@ -1,7 +1,9 @@
 const express = require('express');
 const { qrDataUrl, qrPng } = require('../qr');
+const { calendarLinks, buildIcs, eventTimes } = require('../calendar');
 
-module.exports = function eventRoutes({ repo, mailer, format, access, logger }) {
+module.exports = function eventRoutes({ repo, config, mailer, format, access, logger }) {
+  const calendarOptions = { timeZone: config.timezone, appUrl: config.appUrl };
   const router = express.Router();
   router.use(access.requireAuth);
 
@@ -13,11 +15,24 @@ module.exports = function eventRoutes({ repo, mailer, format, access, logger }) 
     next();
   }
 
+  // Événement à mettre en avant : celui qui a lieu en ce moment, sinon le prochain à venir.
+  function nextEvent(events, now = Date.now()) {
+    const timed = events
+      .map((event) => ({ event, times: eventTimes(event, config.timezone) }))
+      .filter(({ times }) => times && times.end.getTime() > now)
+      .sort((a, b) => a.times.start - b.times.start);
+    if (!timed.length) return null;
+    const { event, times } = timed[0];
+    return { event, start: times.start.toISOString(), enCours: times.start.getTime() <= now };
+  }
+
   // « La maison » : les événements en cours, et les événements terminés mis de côté.
   router.get('/', async (req, res) => {
+    const actifs = await repo.listActiveEvents();
     res.render('home', {
       title: 'Accueil',
-      actifs: await repo.listActiveEvents(),
+      actifs,
+      prochain: nextEvent(actifs),
       termines: await repo.listFinishedEvents(),
       participations: await repo.participationsForUser(req.user.id),
     });
@@ -36,6 +51,7 @@ module.exports = function eventRoutes({ repo, mailer, format, access, logger }) 
       title: req.event.titre,
       event: req.event,
       participation,
+      agenda: req.event.termine_at ? null : calendarLinks(req.event, calendarOptions),
       qr: participation && !participation.scanne_at && !req.event.termine_at ? await qrDataUrl(participation.qr_token) : null,
     });
   });
@@ -65,6 +81,15 @@ module.exports = function eventRoutes({ repo, mailer, format, access, logger }) 
     if (!req.event.termine_at) await repo.cancelParticipation(req.event.id, req.user.id);
     req.session.flash = { type: 'info', message: 'Votre participation a été annulée.' };
     res.redirect(`/evenements/${req.event.id}`);
+  });
+
+  router.get('/evenements/:id/agenda.ics', loadEvent, (req, res) => {
+    const ics = buildIcs(req.event, calendarOptions);
+    if (!ics) return res.status(404).end();
+    res
+      .type('text/calendar; charset=utf-8')
+      .set('Content-Disposition', `attachment; filename="evenement-${req.event.id}.ics"`)
+      .send(ics);
   });
 
   router.get('/evenements/:id/qr.png', loadEvent, async (req, res) => {

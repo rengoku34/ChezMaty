@@ -23,6 +23,18 @@ Plateforme interne des événements SNEDAI, en **Node.js (Express) + PostgreSQL*
    Pour chaque liste : nom, prénom, e-mail, filiale, plus un bouton **Exporter en Excel** (un fichier .xlsx avec un onglet par liste).
 7. **Terminer**. Seul l'administrateur marque un événement comme terminé. « Terminé » s'affiche alors en bas du tableau de bord, les QR codes ne sont plus acceptés et l'événement passe dans « Événements passés ».
 
+### En plus
+
+- **Accueil** : le prochain événement est mis en avant, avec un **compte à rebours**.
+- **« Ajouter à mon agenda »** sur chaque événement : Google Agenda, Outlook, ou fichier `.ics` pour iPhone et les autres agendas.
+- **Application installable** : le site s'installe sur le téléphone ou l'ordinateur, avec l'icône SNEDAI.
+- **Tableau de bord** :
+  - **taux de réponse** et **taux de présence** ;
+  - graphique de **participation par filiale** ;
+  - mise à jour automatique pendant l'événement.
+- **Rapport PDF** en un clic, prêt pour la direction. Il contient les chiffres clés, les taux, la répartition par filiale, la liste des présents et celle des personnes annoncées mais non venues.
+- **Comptes** : nommer les agents de scan, supprimer des comptes, tester l'envoi d'e-mails.
+
 ### Qui a le droit de faire quoi
 
 | Rôle | Comment | Droits |

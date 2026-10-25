@@ -182,6 +182,31 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   assert.equal(edited.has_photo, true);
   assert.equal(mails.announced.length, 1, 'une modification ne renvoie pas d’annonce');
 
+  // Agenda : fichier .ics et liens Google / Outlook (heure d'Abidjan = UTC).
+  const ics = await awa.agent.get(`/evenements/${event.id}/agenda.ics`).expect(200);
+  assert.match(ics.headers['content-type'], /text\/calendar/);
+  assert.match(ics.text, /DTSTART:20261114T100000Z\r\nDTEND:20261114T120000Z/);
+  assert.match(ics.text, /SUMMARY:Journée bien-être 2026/);
+  assert.match((await awa.agent.get(`/evenements/${event.id}`)).text, /calendar\.google\.com\/calendar\/render\?action=TEMPLATE/);
+
+  // Statistiques par filiale et taux dans le tableau de bord.
+  const stats = await repo.statsByFiliale(event.id);
+  assert.deepEqual(stats.find((f) => f.filiale === 'OSIA'), { filiale: 'OSIA', inscrits: 1, confirmes: 1, presents: 1 });
+  const dash = (await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`)).text;
+  assert.match(dash, /Participation par filiale/);
+  assert.match(dash, /Taux de présence[\s\S]*100 %/);
+
+  // Rapport PDF réservé à l'administrateur.
+  const pdf = await admin.agent.get(`/admin/evenements/${event.id}/rapport.pdf`).buffer(true).parse((res, cb) => {
+    const chunks = [];
+    res.on('data', (c) => chunks.push(c));
+    res.on('end', () => cb(null, Buffer.concat(chunks)));
+  });
+  assert.equal(pdf.status, 200);
+  assert.equal(pdf.body.subarray(0, 5).toString(), '%PDF-');
+  assert.ok(pdf.body.length > 2000);
+  assert.equal((await awa.agent.get(`/admin/evenements/${event.id}/rapport.pdf`)).status, 403);
+
   // Tableau de bord et export Excel.
   const dashboard = await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`);
   assert.match(dashboard.text, /<strong>3<\/strong><span>Inscrits sur le site/);
@@ -222,6 +247,25 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   const moussa = await repo.findUserByEmail('agent@example.com');
   await agent.agent.post(`/evenements/${event.id}/participer`).type('form').send({ _csrf: agent.csrf }).expect(302);
   assert.equal(await repo.findParticipation(event.id, moussa.id), undefined);
+});
+
+test('application installable : manifeste et service worker', async () => {
+  const manifest = await request(app).get('/manifest.webmanifest').expect(200);
+  assert.equal(manifest.body.short_name, 'SNEDAI');
+  assert.equal(manifest.body.display, 'standalone');
+  assert.match((await request(app).get('/sw.js').expect(200)).text, /addEventListener\('fetch'/);
+});
+
+test('compte à rebours vers le prochain événement sur l’accueil', async () => {
+  const pad = (n) => String(n).padStart(2, '0');
+  const d = new Date(Date.now() + 3 * 86400000);
+  const debut = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T09:00`;
+  const ev = await repo.createEvent({ titre: 'Prochain séminaire', description: 'x', debut });
+  const admin = await loginAs('stagiaire@snedai.com');
+  const home = (await admin.agent.get('/')).text;
+  assert.match(home, /Prochain événement/);
+  assert.match(home, new RegExp(`data-countdown="${debut}:00.000Z"`));
+  await repo.finishEvent(ev.id);
 });
 
 test('photos accessibles seulement une fois connecté', async () => {
