@@ -39,7 +39,8 @@ function loadConfig(env = process.env) {
       user: env.SMTP_USER || '',
       password: env.SMTP_PASSWORD || '',
     },
-    brevoApiKey: env.BREVO_API_KEY || '',
+    // Espaces ou guillemets collés par erreur autour de la clé : retirés.
+    brevoApiKey: (env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, ''),
     // Par défaut, les e-mails partent de la première adresse administrateur.
     mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || list(env.ADMIN_EMAILS, ',')[0] || ''),
     databaseUrl: env.DATABASE_URL || '',
