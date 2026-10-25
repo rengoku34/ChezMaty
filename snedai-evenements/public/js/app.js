@@ -36,6 +36,19 @@ if (authContainer) {
   });
 }
 
+// Tableau de bord d'un événement en cours : rechargé toutes les 20 s pour voir arriver les présents
+// scannés à l'entrée. Le choix (activé / désactivé) est mémorisé sur l'appareil.
+const autoRefresh = document.getElementById('auto-refresh');
+if (autoRefresh) {
+  try { autoRefresh.checked = localStorage.getItem('dashboard-auto-refresh') !== '0'; } catch {}
+  autoRefresh.addEventListener('change', () => {
+    try { localStorage.setItem('dashboard-auto-refresh', autoRefresh.checked ? '1' : '0'); } catch {}
+  });
+  setInterval(() => {
+    if (autoRefresh.checked && document.visibilityState === 'visible') window.location.reload();
+  }, 20000);
+}
+
 document.addEventListener('change', (event) => {
   if (event.target.matches('[data-autosubmit]')) event.target.form.submit();
 });

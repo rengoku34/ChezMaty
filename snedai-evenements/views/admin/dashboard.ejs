@@ -11,6 +11,9 @@
         <% }) %>
       </select>
       <noscript><button class="btn btn-secondary">Afficher</button></noscript>
+      <% if (event && !event.termine_at) { %>
+        <label class="dash-refresh"><input type="checkbox" id="auto-refresh" checked> Mise à jour automatique (toutes les 20 s)</label>
+      <% } %>
     </form>
     <% } %>
   </div>

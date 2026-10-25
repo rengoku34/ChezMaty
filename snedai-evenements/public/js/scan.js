@@ -11,7 +11,27 @@
   let lastCode = '';
   let lastCodeAt = 0;
 
+  // Bip court et aigu si la présence est confirmée, deux bips graves sinon (et vibration si possible).
+  let audio = null;
+  function beep(ok) {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const tones = ok ? [[880, 0]] : [[220, 0], [220, 0.22]];
+      for (const [freq, delay] of tones) {
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.frequency.value = freq;
+        gain.gain.value = 0.15;
+        osc.connect(gain).connect(audio.destination);
+        osc.start(audio.currentTime + delay);
+        osc.stop(audio.currentTime + delay + 0.15);
+      }
+      navigator.vibrate?.(ok ? 80 : [120, 80, 120]);
+    } catch {}
+  }
+
   function show(data) {
+    beep(data.status === 'present');
     const person = data.person ? `${data.person.prenom} ${data.person.nom}` : '';
     result.hidden = false;
     result.className = `scan-result scan-${STYLES[data.status] || 'error'}`;
@@ -57,7 +77,40 @@
   // Une douchette « tape » le contenu du QR code puis la touche Entrée : le formulaire est envoyé.
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    clearTimeout(autoTimer);
     submit(input.value);
+  });
+
+  // Certaines machines n'envoient pas « Entrée » après le code : dès qu'un QR code complet est saisi,
+  // on valide après une courte pause.
+  const FULL_CODE = /^SNEDAI-EVT:[A-Za-z0-9_-]{32}$/;
+  let autoTimer = null;
+  input.addEventListener('input', () => {
+    clearTimeout(autoTimer);
+    if (FULL_CODE.test(input.value.trim())) autoTimer = setTimeout(() => submit(input.value), 120);
+  });
+
+  // Le curseur reste toujours dans le champ : la machine peut scanner à tout moment,
+  // même si quelqu'un a touché ailleurs sur l'écran.
+  document.addEventListener('keydown', (event) => {
+    if (document.activeElement !== input && event.key.length === 1 && !event.ctrlKey && !event.metaKey) input.focus();
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement === document.body || document.activeElement === null) input.focus({ preventScroll: true });
+    }, 150);
+  });
+
+  // Mode « machine de scan » : sur un terminal Android (Zebra, Honeywell…), empêche le clavier
+  // de l'écran de s'ouvrir et de cacher le résultat. Choix mémorisé sur l'appareil.
+  const machineMode = document.getElementById('machine-mode');
+  const applyMachineMode = () => input.setAttribute('inputmode', machineMode.checked ? 'none' : 'text');
+  try { machineMode.checked = localStorage.getItem('scan-machine-mode') === '1'; } catch {}
+  applyMachineMode();
+  machineMode.addEventListener('change', () => {
+    applyMachineMode();
+    try { localStorage.setItem('scan-machine-mode', machineMode.checked ? '1' : '0'); } catch {}
+    input.focus();
   });
 
   let scanner = null;

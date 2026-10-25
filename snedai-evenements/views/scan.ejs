@@ -1,12 +1,13 @@
 <%- include('partials/header') %>
 <section class="scan" data-csrf="<%= csrfToken %>">
   <h1>Scanner les QR codes</h1>
-  <p class="hint">Avec une douchette (scanner portable) : laissez le curseur dans le champ ci-dessous et scannez, la validation est automatique. Sans douchette, utilisez la caméra.</p>
+  <p class="hint">Avec la machine de scan : laissez cette page ouverte et scannez, la présence est enregistrée tout de suite (le curseur reste toujours dans le champ). Sans machine, utilisez la caméra.</p>
 
   <form id="scan-form" class="scan-form" autocomplete="off">
-    <input id="scan-input" name="code" placeholder="Scannez un QR code…" autofocus>
+    <input id="scan-input" name="code" placeholder="Scannez un QR code…" autofocus autocomplete="off" autocapitalize="none" spellcheck="false">
     <button class="btn" type="submit">Valider</button>
   </form>
+  <label class="checkbox scan-option"><input type="checkbox" id="machine-mode"> Mode machine de scan (ne pas ouvrir le clavier de l’écran)</label>
 
   <div id="scan-result" class="scan-result" aria-live="assertive" hidden></div>
 

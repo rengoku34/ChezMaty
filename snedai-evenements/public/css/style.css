@@ -216,3 +216,5 @@ th { background: #f8fafc; color: var(--muted); font-size: .8rem; text-transform:
 .list-head h2 { margin: 0; }
 .btn-excel { background: #1d6f42; }
 .btn-excel:hover { background: #155a35; }
+.scan-option { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: var(--muted); margin: -.5rem 0 1rem; }
+.dash-refresh { display: flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); font-weight: 400; }
