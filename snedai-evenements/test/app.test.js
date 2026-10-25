@@ -199,6 +199,20 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   assert.equal(workbook.getWorksheet('Inscrits sur le site').rowCount, 4);
   assert.equal(workbook.getWorksheet('Présents confirmés (QR)').getRow(2).getCell(3).value, 'awa@example.com');
 
+  // Export d'une seule liste : un seul onglet.
+  for (const [liste, onglet] of [['confirmes', 'Présents annoncés'], ['presents', 'Présents confirmés (QR)']]) {
+    const one = await admin.agent.get(`/admin/evenements/${event.id}/export.xlsx?liste=${liste}`).buffer(true).parse((res, cb) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    assert.match(one.headers['content-disposition'], new RegExp(`-${liste}\\.xlsx`));
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(one.body);
+    assert.deepEqual(wb.worksheets.map((s) => s.name), [onglet]);
+    assert.equal(wb.worksheets[0].getRow(2).getCell(3).value, 'awa@example.com');
+  }
+
   // Fin de l'événement : il passe dans l'historique, plus de scan ni d'inscription.
   await admin.agent.post(`/admin/evenements/${event.id}/terminer`).type('form').send({ _csrf: admin.csrf }).expect(302);
   assert.match((await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`)).text, /✔ Terminé/);

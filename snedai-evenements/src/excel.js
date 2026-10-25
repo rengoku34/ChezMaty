@@ -18,11 +18,37 @@ function addSheet(workbook, name, columns, rows) {
   return sheet;
 }
 
-// Classeur d'un événement : résumé + les trois listes du tableau de bord.
-async function buildEventWorkbook({ event, inscrits, confirmes, presents, format }) {
+// Les trois listes du tableau de bord, exportables ensemble ou une par une.
+const LISTS = {
+  inscrits: {
+    sheet: 'Inscrits sur le site',
+    columns: [...PERSON_COLUMNS, { header: 'Inscrit le', key: 'date', width: 20 }],
+    row: (u, format) => ({ ...u, date: format.timestamp(u.created_at) }),
+  },
+  confirmes: {
+    sheet: 'Présents annoncés',
+    columns: [...PERSON_COLUMNS, { header: 'Confirmé le', key: 'date', width: 20 }, { header: 'Était là (QR scanné)', key: 'scan', width: 20 }],
+    row: (p, format) => ({ ...p, date: format.timestamp(p.confirme_at), scan: p.scanne_at ? 'Oui' : 'Non' }),
+  },
+  presents: {
+    sheet: 'Présents confirmés (QR)',
+    columns: [...PERSON_COLUMNS, { header: 'Scanné le', key: 'date', width: 20 }],
+    row: (p, format) => ({ ...p, date: format.timestamp(p.scanne_at) }),
+  },
+};
+
+// Classeur d'un événement : résumé + les trois listes, ou une seule liste si « only » est donné.
+async function buildEventWorkbook({ event, inscrits, confirmes, presents, format, only }) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Événements SNEDAI';
   workbook.created = new Date();
+  const rows = { inscrits, confirmes, presents };
+
+  if (only) {
+    const list = LISTS[only];
+    addSheet(workbook, list.sheet, list.columns, rows[only].map((r) => list.row(r, format)));
+    return workbook.xlsx.writeBuffer();
+  }
 
   const summary = addSheet(
     workbook,
@@ -43,14 +69,11 @@ async function buildEventWorkbook({ event, inscrits, confirmes, presents, format
   );
   summary.autoFilter = undefined;
 
-  addSheet(workbook, 'Inscrits sur le site', [...PERSON_COLUMNS, { header: 'Inscrit le', key: 'date', width: 20 }],
-    inscrits.map((u) => ({ ...u, date: format.timestamp(u.created_at) })));
-  addSheet(workbook, 'Présents annoncés', [...PERSON_COLUMNS, { header: 'Confirmé le', key: 'date', width: 20 }, { header: 'QR scanné', key: 'scan', width: 12 }],
-    confirmes.map((p) => ({ ...p, date: format.timestamp(p.confirme_at), scan: p.scanne_at ? 'Oui' : 'Non' })));
-  addSheet(workbook, 'Présents confirmés (QR)', [...PERSON_COLUMNS, { header: 'Scanné le', key: 'date', width: 20 }],
-    presents.map((p) => ({ ...p, date: format.timestamp(p.scanne_at) })));
+  for (const [key, list] of Object.entries(LISTS)) {
+    addSheet(workbook, list.sheet, list.columns, rows[key].map((r) => list.row(r, format)));
+  }
 
   return workbook.xlsx.writeBuffer();
 }
 
-module.exports = { buildEventWorkbook };
+module.exports = { buildEventWorkbook, LIST_NAMES: Object.keys(LISTS) };

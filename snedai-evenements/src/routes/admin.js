@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const { verifyCsrf } = require('../csrf');
-const { buildEventWorkbook } = require('../excel');
+const { buildEventWorkbook, LIST_NAMES } = require('../excel');
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_PHOTO_MB = 3;
@@ -121,18 +121,21 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
     });
   });
 
+  // ?liste=inscrits|confirmes|presents : une seule liste ; sinon le classeur complet.
   router.get('/evenements/:id/export.xlsx', loadEvent, async (req, res) => {
+    const only = LIST_NAMES.includes(req.query.liste) ? req.query.liste : null;
     const buffer = await buildEventWorkbook({
       event: req.event,
       inscrits: await repo.listUsers(),
       confirmes: await repo.listConfirmed(req.event.id),
       presents: await repo.listPresent(req.event.id),
       format,
+      only,
     });
     const slug = req.event.titre.normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'evenement';
     res
       .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .set('Content-Disposition', `attachment; filename="snedai-${req.event.id}-${slug}.xlsx"`)
+      .set('Content-Disposition', `attachment; filename="snedai-${req.event.id}-${slug}${only ? `-${only}` : ''}.xlsx"`)
       .send(Buffer.from(buffer));
   });
 

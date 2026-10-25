@@ -211,3 +211,8 @@ th { background: #f8fafc; color: var(--muted); font-size: .8rem; text-transform:
   }
   .event-picker select { min-width: 0; width: 100%; }
 }
+
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: .75rem; }
+.list-head h2 { margin: 0; }
+.btn-excel { background: #1d6f42; }
+.btn-excel:hover { background: #155a35; }

@@ -30,22 +30,31 @@
       </div>
 
       <div class="actions">
-        <a class="btn" href="/admin/evenements/<%= event.id %>/export.xlsx">⬇ Exporter en Excel</a>
+        <a class="btn" href="/admin/evenements/<%= event.id %>/export.xlsx">⬇ Tout exporter en Excel (3 listes)</a>
         <a class="btn btn-secondary" href="/admin/evenements/<%= event.id %>/modifier">✏️ Modifier</a>
         <a class="btn btn-secondary" href="/evenements/<%= event.id %>">Voir la page de l’événement</a>
       </div>
     </div>
 
     <div class="card" id="inscrits">
-      <h2>Inscrits sur le site (<%= inscrits.length %>)</h2>
+      <div class="list-head">
+        <h2>Inscrits sur le site (<%= inscrits.length %>)</h2>
+        <a class="btn btn-small btn-excel" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=inscrits">⬇ Excel</a>
+      </div>
       <%- include('people-table', { rows: inscrits, dateLabel: 'Inscrit le', dateKey: 'created_at' }) %>
     </div>
     <div class="card" id="confirmes">
-      <h2>Ont dit qu’ils seront présents (<%= confirmes.length %>)</h2>
+      <div class="list-head">
+        <h2>Ont dit qu’ils seront présents (<%= confirmes.length %>)</h2>
+        <a class="btn btn-small btn-excel" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=confirmes">⬇ Excel</a>
+      </div>
       <%- include('people-table', { rows: confirmes, dateLabel: 'Confirmé le', dateKey: 'confirme_at' }) %>
     </div>
     <div class="card" id="presents">
-      <h2>Étaient là – QR code scanné (<%= presents.length %>)</h2>
+      <div class="list-head">
+        <h2>Ont dit qu’ils seront présents et étaient là – QR scanné (<%= presents.length %>)</h2>
+        <a class="btn btn-small btn-excel" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=presents">⬇ Excel</a>
+      </div>
       <%- include('people-table', { rows: presents, dateLabel: 'Scanné le', dateKey: 'scanne_at' }) %>
     </div>
 
