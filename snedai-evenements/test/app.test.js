@@ -215,7 +215,7 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
 
   // Fin de l'événement : il passe dans l'historique, plus de scan ni d'inscription.
   await admin.agent.post(`/admin/evenements/${event.id}/terminer`).type('form').send({ _csrf: admin.csrf }).expect(302);
-  assert.match((await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`)).text, /✔ Terminé/);
+  assert.match((await admin.agent.get(`/admin/tableau-de-bord?evenement=${event.id}`)).text, /class="finished-banner">[\s\S]*Terminé/);
   assert.equal((await repo.listActiveEvents()).length, 0);
   assert.equal((await repo.listFinishedEvents()).length, 1);
   assert.equal((await scan(qrContent(participation.qr_token))).body.status, 'termine');
