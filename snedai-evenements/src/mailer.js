@@ -52,7 +52,7 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
 
   function layout(content) {
     return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937">
-      <div style="background:#0b3d91;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0;font-size:18px;font-weight:bold">Événements SNEDAI</div>
+      <div style="background:#26246a;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0;border-bottom:4px solid #f08a46;font-size:18px;font-weight:bold">Événements SNEDAI</div>
       <div style="border:1px solid #e5e7eb;border-top:0;padding:20px;border-radius:0 0 8px 8px">${content}</div>
     </div>`;
   }
@@ -75,7 +75,7 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
               <h2 style="margin:8px 0">${escapeHtml(event.titre)}</h2>
               ${whenText ? `<p><strong>Quand :</strong> ${escapeHtml(whenText)}</p>` : ''}
               ${event.lieu ? `<p><strong>Où :</strong> ${escapeHtml(event.lieu)}</p>` : ''}
-              <p><a href="${link}" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir l’événement et confirmer ma présence</a></p>`),
+              <p><a href="${link}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir l’événement et confirmer ma présence</a></p>`),
           });
           if (ok) sent += 1;
         } catch (error) {
@@ -96,7 +96,7 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
           ${whenText ? `<p><strong>Quand :</strong> ${escapeHtml(whenText)}</p>` : ''}
           ${event.lieu ? `<p><strong>Où :</strong> ${escapeHtml(event.lieu)}</p>` : ''}
           <p>Votre QR code est <strong>en pièce jointe</strong>. Présentez-le à l’agent d’accueil, il sera scanné pour confirmer votre venue.</p>
-          <p><a href="${config.appUrl}/evenements/${event.id}" style="display:inline-block;background:#0b3d91;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Afficher mon QR code sur le site</a></p>`),
+          <p><a href="${config.appUrl}/evenements/${event.id}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Afficher mon QR code sur le site</a></p>`),
         attachments: [{ filename: 'qrcode.png', content: qrPng }],
       });
     },

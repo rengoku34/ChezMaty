@@ -9,7 +9,7 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="brand" href="/"><%- include('logo') %> Événements SNEDAI</a>
+  <a class="brand" href="/"><%- include('logo') %> <span class="brand-text"><%= logoUrl ? 'Événements' : 'Événements SNEDAI' %></span></a>
   <% if (user) { %>
   <nav class="nav">
     <a href="/" class="<%= path === '/' ? 'active' : '' %>">Événements</a>
