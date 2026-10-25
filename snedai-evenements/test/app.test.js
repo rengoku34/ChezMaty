@@ -248,3 +248,26 @@ test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', a
 
   assert.equal(await mailer.announceEvent(event, [{ email: 'a@x.ci', prenom: 'A' }, { email: 'b@x.ci', prenom: 'B' }], ''), 2);
 });
+
+test('seul l’administrateur supprime des comptes, et jamais le sien', async () => {
+  const cible = await repo.createUser({ nom: 'Test', prenom: 'Compte', filiale: 'OSIA', email: 'test-suppr@example.com', passwordHash: 'x' });
+  const awa = await loginAs('awa@example.com');
+  assert.equal((await awa.agent.post(`/admin/comptes/${cible.id}/supprimer`).type('form').send({ _csrf: awa.csrf })).status, 403);
+  assert.ok(await repo.findUserById(cible.id));
+
+  const admin = await loginAs('stagiaire@snedai.com');
+  const moi = await repo.findUserByEmail('stagiaire@snedai.com');
+  await admin.agent.post(`/admin/comptes/${moi.id}/supprimer`).type('form').send({ _csrf: admin.csrf }).expect(302);
+  assert.ok(await repo.findUserById(moi.id), 'le compte administrateur reste');
+
+  // Un agent qui a scanné des QR codes peut être supprimé : les scans restent.
+  const agentUser = await repo.findUserByEmail('agent@example.com');
+  const presentsAvant = (await repo.listPresent((await repo.listAllEvents())[0].id)).length;
+  await admin.agent.post(`/admin/comptes/${agentUser.id}/supprimer`).type('form').send({ _csrf: admin.csrf }).expect(302);
+  assert.equal(await repo.findUserById(agentUser.id), undefined);
+  assert.equal((await repo.listPresent((await repo.listAllEvents())[0].id)).length, presentsAvant);
+
+  // La session de la personne supprimée ne fonctionne plus.
+  await admin.agent.post(`/admin/comptes/${(await repo.findUserByEmail('awa@example.com')).id}/supprimer`).type('form').send({ _csrf: admin.csrf });
+  assert.equal((await awa.agent.get('/')).headers.location, '/connexion');
+});

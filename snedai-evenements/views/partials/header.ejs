@@ -17,7 +17,7 @@
     <% if (isAdmin) { %>
       <a href="/admin/evenements/nouveau" class="<%= path === '/admin/evenements/nouveau' ? 'active' : '' %>">Publier</a>
       <a href="/admin/tableau-de-bord" class="<%= path === '/admin/tableau-de-bord' ? 'active' : '' %>">Tableau de bord</a>
-      <a href="/admin/agents" class="<%= path === '/admin/agents' ? 'active' : '' %>">Agents</a>
+      <a href="/admin/agents" class="<%= path === '/admin/agents' ? 'active' : '' %>">Comptes</a>
     <% } %>
     <form method="post" action="/deconnexion" class="inline">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">

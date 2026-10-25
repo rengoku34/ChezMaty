@@ -143,7 +143,20 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
   });
 
   router.get('/agents', async (req, res) => {
-    res.render('admin/agents', { title: 'Agents de scan', users: await repo.listUsers() });
+    res.render('admin/agents', { title: 'Comptes', users: await repo.listUsers() });
+  });
+
+  // Suppression d'un compte (utile après des tests). Le compte administrateur ne peut pas être supprimé.
+  router.post('/comptes/:id/supprimer', async (req, res) => {
+    const user = await repo.findUserById(Number(req.params.id) || 0);
+    if (!user) return res.redirect('/admin/agents');
+    if (access.isAdmin(user)) {
+      req.session.flash = { type: 'error', message: 'Le compte administrateur ne peut pas être supprimé.' };
+      return res.redirect('/admin/agents');
+    }
+    await repo.deleteUser(user.id);
+    req.session.flash = { type: 'success', message: `Le compte de ${user.prenom} ${user.nom} a été supprimé.` };
+    res.redirect('/admin/agents');
   });
 
   router.post('/agents/:id', async (req, res) => {

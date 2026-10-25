@@ -1,24 +1,35 @@
 <%- include('../partials/header') %>
 <section class="card">
-  <h1>Agents de scan</h1>
-  <p class="hint">Les agents d’accueil peuvent seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée. Ils ne voient ni le tableau de bord, ni les listes, ni l’export Excel.</p>
+  <h1>Comptes</h1>
+  <p class="hint">Tous les comptes inscrits sur le site. Les <strong>agents de scan</strong> peuvent seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée : ils ne voient ni le tableau de bord, ni les listes, ni l’export Excel.</p>
+  <p class="hint">Supprimer un compte efface aussi ses réponses aux événements, et la personne est déconnectée. Elle pourra recréer un compte plus tard.</p>
   <% if (!users.length) { %>
     <p class="empty">Aucun inscrit pour le moment.</p>
   <% } else { %>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Nom</th><th>Prénom</th><th>E-mail</th><th>Filiale</th><th>Agent de scan</th></tr></thead>
+      <thead><tr><th>Nom</th><th>Prénom</th><th>E-mail</th><th>Filiale</th><th>Agent de scan</th><th>Supprimer</th></tr></thead>
       <tbody>
         <% users.forEach((u) => { %>
           <tr>
             <td><%= u.nom %></td><td><%= u.prenom %></td><td><%= u.email %></td><td><%= u.filiale %></td>
-            <td>
-              <form method="post" action="/admin/agents/<%= u.id %>" class="inline">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <input type="hidden" name="agent" value="<%= u.is_agent ? '0' : '1' %>">
-                <button class="btn btn-small <%= u.is_agent ? 'btn-secondary' : '' %>" type="submit"><%= u.is_agent ? 'Retirer' : 'Nommer agent' %></button>
-              </form>
-            </td>
+            <% if (u.email.toLowerCase() === user.email.toLowerCase()) { %>
+              <td colspan="2"><span class="badge badge-ok">Administrateur (vous)</span></td>
+            <% } else { %>
+              <td>
+                <form method="post" action="/admin/agents/<%= u.id %>" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="agent" value="<%= u.is_agent ? '0' : '1' %>">
+                  <button class="btn btn-small <%= u.is_agent ? 'btn-secondary' : '' %>" type="submit"><%= u.is_agent ? 'Retirer' : 'Nommer agent' %></button>
+                </form>
+              </td>
+              <td>
+                <form method="post" action="/admin/comptes/<%= u.id %>/supprimer" class="inline" data-confirm="Supprimer le compte de <%= u.prenom %> <%= u.nom %> ? Cette action est définitive.">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-small btn-danger" type="submit">Supprimer</button>
+                </form>
+              </td>
+            <% } %>
           </tr>
         <% }) %>
       </tbody>

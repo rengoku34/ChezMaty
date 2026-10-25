@@ -10,6 +10,14 @@ document.addEventListener('submit', (event) => {
   if (message && !window.confirm(message)) event.preventDefault();
 });
 
+// Champs de connexion : verrouillés au chargement pour que le navigateur ne les remplisse pas
+// tout seul avec un identifiant enregistré ; ils se déverrouillent dès qu'on clique ou tape dedans.
+document.querySelectorAll('[data-no-autofill]').forEach((input) => {
+  const unlock = () => input.removeAttribute('readonly');
+  input.addEventListener('pointerdown', unlock);
+  input.addEventListener('focus', unlock);
+});
+
 // Formulaire de connexion / inscription : le volet glisse sans recharger la page.
 const authContainer = document.getElementById('auth-container');
 if (authContainer) {

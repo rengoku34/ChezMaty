@@ -35,9 +35,15 @@ CREATE TABLE IF NOT EXISTS participations (
   qr_token TEXT NOT NULL UNIQUE,
   confirme_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   scanne_at TIMESTAMPTZ,
-  scanne_par INTEGER REFERENCES users(id),
+  scanne_par INTEGER REFERENCES users(id) ON DELETE SET NULL,
   UNIQUE (event_id, user_id)
 );
+
+-- Bases créées avant la suppression des comptes : supprimer un agent ne doit pas bloquer
+-- sur les scans qu'il a faits (ils restent, sans nom d'agent).
+ALTER TABLE participations DROP CONSTRAINT IF EXISTS participations_scanne_par_fkey;
+ALTER TABLE participations ADD CONSTRAINT participations_scanne_par_fkey
+  FOREIGN KEY (scanne_par) REFERENCES users(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
@@ -98,6 +104,11 @@ function createRepository(pool) {
     listUsers: () =>
       all('SELECT id, nom, prenom, email, filiale, is_agent, created_at FROM users ORDER BY nom, prenom'),
     setAgent: (userId, isAgent) => pool.query('UPDATE users SET is_agent = $1 WHERE id = $2', [isAgent, userId]),
+    // Supprime aussi ses réponses aux événements et ses sessions ouvertes (il est déconnecté).
+    async deleteUser(userId) {
+      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+      await pool.query("DELETE FROM sessions WHERE data->'passport'->>'user' = $1", [String(userId)]);
+    },
 
     // Événements
     createEvent: ({ titre, description, photoData, photoType, debut, fin, lieu }) =>

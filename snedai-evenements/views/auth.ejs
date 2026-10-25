@@ -22,8 +22,8 @@
         <% } else { %>
           <input name="filiale" required maxlength="100" placeholder="Filiale" aria-label="Filiale" value="<%= values.filiale || '' %>">
         <% } %>
-        <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="Mot de passe (8 caractères min.)" aria-label="Mot de passe">
-        <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" placeholder="Confirmer le mot de passe" aria-label="Confirmer le mot de passe">
+        <input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Mot de passe (8 caractères min.)" aria-label="Mot de passe">
+        <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Confirmer le mot de passe" aria-label="Confirmer le mot de passe">
         <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>
           <%- include('partials/google-icon') %> Créer mon compte avec Google
         </button>
@@ -36,8 +36,8 @@
         <p class="hint">Bon retour parmi nous !</p>
         <% if (error && onglet !== 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="email" name="email" required autocomplete="off" autocapitalize="none" placeholder="Adresse e-mail" aria-label="Adresse e-mail">
-        <input type="password" name="password" required autocomplete="off" placeholder="Mot de passe" aria-label="Mot de passe">
+        <input type="email" name="email" required autocomplete="off" autocapitalize="none" readonly data-no-autofill placeholder="Adresse e-mail" aria-label="Adresse e-mail">
+        <input type="password" name="password" required autocomplete="off" readonly data-no-autofill placeholder="Mot de passe" aria-label="Mot de passe">
         <% if (googleEnabled) { %>
           <p class="forgot">Mot de passe oublié ? <a href="/auth/google">Connectez-vous avec Google</a></p>
         <% } %>
