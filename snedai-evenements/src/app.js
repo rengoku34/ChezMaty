@@ -13,6 +13,10 @@ const eventRoutes = require('./routes/events');
 const adminRoutes = require('./routes/admin');
 const agentRoutes = require('./routes/agent');
 
+// Ajouté aux adresses du CSS et du JavaScript : à chaque mise en ligne, le navigateur charge
+// la nouvelle version au lieu de celle gardée en mémoire. Render fournit le commit déployé.
+const ASSET_VERSION = (process.env.RENDER_GIT_COMMIT || String(Date.now())).slice(0, 12);
+
 function createApp({ config, repo, mailer, logger = console }) {
   if (!config.sessionSecret) throw new Error('SESSION_SECRET doit être défini.');
 
@@ -24,7 +28,7 @@ function createApp({ config, repo, mailer, logger = console }) {
   // Logo de l'entreprise : il suffit de déposer public/img/logo.(svg|png|jpg|webp).
   const logoFile = ['svg', 'png', 'jpg', 'webp'].map((ext) => `logo.${ext}`)
     .find((name) => fs.existsSync(path.join(ROOT, 'public/img', name)));
-  const logoUrl = logoFile ? `/static/img/${logoFile}` : null;
+  const logoUrl = logoFile ? `/static/img/${logoFile}?v=${ASSET_VERSION}` : null;
 
   app.set('view engine', 'ejs');
   app.set('views', path.join(ROOT, 'views'));
@@ -67,6 +71,7 @@ function createApp({ config, repo, mailer, logger = console }) {
     res.locals.isAgent = access.isAgent(req.user);
     res.locals.format = format;
     res.locals.logoUrl = logoUrl;
+    res.locals.assetVersion = ASSET_VERSION;
     res.locals.path = req.path;
     res.locals.flash = req.session.flash || null;
     delete req.session.flash;
