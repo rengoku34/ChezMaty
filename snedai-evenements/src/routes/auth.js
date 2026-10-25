@@ -4,7 +4,7 @@ const { rateLimit } = require('express-rate-limit');
 
 const clean = (value, max = 100) => String(value ?? '').trim().slice(0, max);
 
-module.exports = function authRoutes({ repo, config, passport, googleEnabled }) {
+module.exports = function authRoutes({ repo, config, passport, googleEnabled, mailer, logger }) {
   const router = express.Router();
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -96,7 +96,11 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled }) 
         const onglet = info?.signup || info?.error?.includes('Créez') ? 'inscription' : 'connexion';
         return renderForm(res, { onglet, status: 400, error: info?.error || 'Connexion Google annulée.' });
       }
-      if (info?.created) req.session.flash = { type: 'success', message: `Bienvenue ${user.prenom}, votre compte est créé !` };
+      if (info?.created) {
+        req.session.flash = { type: 'success', message: `Bienvenue ${user.prenom}, votre compte est créé ! Un e-mail de bienvenue vous a été envoyé.` };
+        // Envoi en arrière-plan : la connexion n'attend pas l'e-mail.
+        mailer.sendWelcome(user).catch((error) => logger.error(`Bienvenue non envoyé à ${user.email} : ${error.message}`));
+      }
       finishLogin(req, res, next, user);
     })(req, res, next);
   });

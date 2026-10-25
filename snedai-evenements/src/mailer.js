@@ -61,6 +61,24 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
     configured,
     sender: config.mailFrom.email,
 
+    // Message de bienvenue envoyé juste après la création du compte.
+    sendWelcome(user) {
+      const link = `${config.appUrl}/`;
+      return send({
+        to: user.email,
+        subject: 'Bienvenue sur les Événements SNEDAI',
+        text: `Bonjour ${user.prenom},\n\nVotre compte est créé. Vous serez prévenu(e) par e-mail à chaque nouvel événement, et vous pourrez confirmer votre présence pour recevoir votre QR code d’entrée.\n\nAccéder au site : ${link}\n`,
+        html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
+          <p>Bienvenue sur la plateforme des <strong>événements SNEDAI</strong> 🎉 Votre compte est créé.</p>
+          <ul>
+            <li>Vous recevrez un e-mail <strong>à chaque nouvel événement</strong> ;</li>
+            <li>un clic sur « Je serai présent(e) » vous donne votre <strong>QR code d’entrée</strong> ;</li>
+            <li>le jour J, il suffit de le présenter à l’accueil.</li>
+          </ul>
+          <p><a href="${link}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir les événements</a></p>`),
+      });
+    },
+
     // E-mail de test envoyé à l'administrateur : renvoie l'erreur exacte du service d'envoi s'il y en a une.
     async sendTest(to) {
       if (!deliver) return { ok: false, error: 'Aucun service d’envoi configuré (variable BREVO_API_KEY absente sur Render).' };

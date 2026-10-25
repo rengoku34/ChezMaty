@@ -279,6 +279,12 @@ test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', a
   assert.equal(sent.body.attachment[0].content, Buffer.from('png').toString('base64'));
 
   assert.equal(await mailer.announceEvent(event, [{ email: 'a@x.ci', prenom: 'A' }, { email: 'b@x.ci', prenom: 'B' }], ''), 2);
+
+  await mailer.sendWelcome({ email: 'nouveau@example.com', prenom: 'Ama' });
+  const welcome = calls.at(-1).body;
+  assert.deepEqual(welcome.to, [{ email: 'nouveau@example.com' }]);
+  assert.match(welcome.subject, /Bienvenue/);
+  assert.match(welcome.htmlContent, /Bonjour Ama/);
 });
 
 test('l’administrateur peut tester l’envoi d’e-mail et voit le résultat', async () => {
