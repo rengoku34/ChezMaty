@@ -51,8 +51,6 @@ h2 { font-size: 1.25rem; margin: 0 0 .75rem; }
 .btn-small { padding: .35rem .7rem; font-size: .85rem; }
 .btn-big { font-size: 1.15rem; padding: .9rem 1.6rem; }
 .btn-google { background: #fff; color: #1f2937; border: 1px solid var(--border); width: 100%; }
-.btn-google:hover { background: #f9fafb; }
-.btn-google .g { font-weight: 800; color: #4285f4; }
 .link { background: none; border: 0; cursor: pointer; font: inherit; color: var(--primary); padding: 0; text-decoration: underline; }
 .link.danger { color: var(--error); }
 
@@ -86,13 +84,12 @@ h2 { font-size: 1.25rem; margin: 0 0 .75rem; }
 .auth-form input:focus, .auth-form select:focus { outline: 2px solid var(--primary); background: #fff; }
 .auth-form .row { gap: .6rem; }
 .auth-form .btn { border-radius: 999px; padding: .75rem 2.2rem; width: auto; min-width: 60%; align-self: center; letter-spacing: .02em; }
-.auth-form .btn-google { background: #fff; border: 1px solid #dbe1ea; }
+.auth-form .btn-google { background: #fff; border: 1px solid #dadce0; color: #3c4043; font-weight: 600; gap: .7rem; }
+.btn-google:hover { background: #f8faff; box-shadow: 0 2px 8px rgba(60,64,67,.15); }
+.google-icon { flex: none; }
 .auth-form .forgot { font-size: .85rem; color: var(--muted); }
 .auth-form .forgot a { color: var(--primary); }
-.social-label { color: var(--muted); font-size: .9rem; margin: .4rem 0 0; }
-.social { display: flex; justify-content: center; gap: .75rem; }
-.social a { width: 46px; height: 46px; border-radius: 50%; border: 1px solid #dbe1ea; display: grid; place-items: center; text-decoration: none; font-weight: 800; font-size: 1.15rem; color: #4285f4; background: #fff; transition: transform .15s, box-shadow .15s; }
-.social a:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.1); }
+.social-label { color: var(--muted); font-size: .9rem; margin: .2rem 0 0; }
 .sign-in-container { left: 0; z-index: 2; }
 .sign-up-container { left: 0; opacity: 0; z-index: 1; }
 .auth-container.right-panel-active .sign-in-container { transform: translateX(100%); }
