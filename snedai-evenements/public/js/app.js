@@ -45,8 +45,31 @@ if (autoRefresh) {
     try { localStorage.setItem('dashboard-auto-refresh', autoRefresh.checked ? '1' : '0'); } catch {}
   });
   setInterval(() => {
-    if (autoRefresh.checked && document.visibilityState === 'visible') window.location.reload();
+    if (autoRefresh.checked && document.visibilityState === 'visible') {
+      try { sessionStorage.setItem('auto-reloaded', '1'); } catch {}
+      window.location.reload();
+    }
   }, 20000);
+}
+
+// Chiffres du tableau de bord : comptent de 0 jusqu'à leur valeur au chargement
+// (pas lors des actualisations automatiques, pour ne pas distraire).
+let autoReloaded = false;
+try { autoReloaded = sessionStorage.getItem('auto-reloaded') === '1'; sessionStorage.removeItem('auto-reloaded'); } catch {}
+if (autoReloaded) document.documentElement.classList.add('no-intro');
+if (!autoReloaded && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('.stat strong').forEach((el) => {
+    const target = Number(el.textContent);
+    if (!Number.isFinite(target) || target === 0) return;
+    const start = performance.now();
+    const step = (now) => {
+      const progress = Math.min((now - start) / 700, 1);
+      el.textContent = String(Math.round(target * (1 - (1 - progress) ** 3)));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    el.textContent = '0';
+    requestAnimationFrame(step);
+  });
 }
 
 document.addEventListener('change', (event) => {

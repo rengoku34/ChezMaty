@@ -69,7 +69,7 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
         subject: 'Bienvenue sur les Événements SNEDAI',
         text: `Bonjour ${user.prenom},\n\nVotre compte est créé. Vous serez prévenu(e) par e-mail à chaque nouvel événement, et vous pourrez confirmer votre présence pour recevoir votre QR code d’entrée.\n\nAccéder au site : ${link}\n`,
         html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
-          <p>Bienvenue sur la plateforme des <strong>événements SNEDAI</strong> 🎉 Votre compte est créé.</p>
+          <p>Bienvenue sur la plateforme des <strong>événements SNEDAI</strong>. Votre compte est créé.</p>
           <ul>
             <li>Vous recevrez un e-mail <strong>à chaque nouvel événement</strong> ;</li>
             <li>un clic sur « Je serai présent(e) » vous donne votre <strong>QR code d’entrée</strong> ;</li>
@@ -87,7 +87,7 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
           to,
           subject: 'Test d’envoi – Événements SNEDAI',
           text: 'Si vous lisez ce message, les e-mails du site fonctionnent.',
-          html: layout('<p>Si vous lisez ce message, les e-mails du site <strong>fonctionnent</strong> ✅</p>'),
+          html: layout('<p>Si vous lisez ce message, les e-mails du site <strong>fonctionnent</strong>.</p>'),
         });
         return { ok: true };
       } catch (error) {

@@ -1,51 +1,52 @@
 <%- include('partials/header') %>
 <section class="auth-wrap">
-  <%# « Double slider » : deux formulaires et un panneau décoré qui glisse de l'un à l'autre au clic.
-      Sur téléphone, le panneau devient un bandeau au-dessus du formulaire. %>
+  <%# « Double slider » : deux formulaires et un volet qui glisse de l'un à l'autre au clic.
+      Sur téléphone, le volet devient un bandeau au-dessus du formulaire. %>
   <div id="auth-container" class="auth-container <%= onglet === 'inscription' ? 'right-panel-active' : '' %>">
 
     <div class="auth-form-container sign-up-container">
       <form method="post" action="/inscription" class="auth-form" autocomplete="off">
-        <h1>Inscription<span>.</span></h1>
-        <p class="hint">Utilisez l’adresse de votre compte Google : Google la confirmera à l’étape suivante.</p>
+        <h1>Créer un compte</h1>
+        <p class="hint">L’adresse e-mail doit être celle de votre compte Google, qui la confirmera à l’étape suivante.</p>
         <% if (error && onglet === 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="row">
-          <input name="nom" required maxlength="100" autocomplete="off" placeholder="Nom" aria-label="Nom" value="<%= values.nom || '' %>">
-          <input name="prenom" required maxlength="100" autocomplete="off" placeholder="Prénom" aria-label="Prénom" value="<%= values.prenom || '' %>">
+          <label class="field">Nom<input name="nom" required maxlength="100" autocomplete="off" value="<%= values.nom || '' %>"></label>
+          <label class="field">Prénom<input name="prenom" required maxlength="100" autocomplete="off" value="<%= values.prenom || '' %>"></label>
         </div>
-        <% if (filiales.length) { %>
-          <select name="filiale" required aria-label="Filiale">
-            <option value="">Filiale…</option>
-            <% filiales.forEach((f) => { %><option <%= values.filiale === f ? 'selected' : '' %>><%= f %></option><% }) %>
-          </select>
-        <% } else { %>
-          <input name="filiale" required maxlength="100" placeholder="Filiale" aria-label="Filiale" value="<%= values.filiale || '' %>">
-        <% } %>
-        <input type="email" name="email" required maxlength="200" autocomplete="off" autocapitalize="none" readonly data-no-autofill placeholder="Adresse e-mail (Gmail)" aria-label="Adresse e-mail" value="<%= values.email || '' %>">
-        <input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Mot de passe (8 caractères min.)" aria-label="Mot de passe">
-        <input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="Confirmer le mot de passe" aria-label="Confirmer le mot de passe">
+        <label class="field">Filiale
+          <% if (filiales.length) { %>
+            <select name="filiale" required>
+              <option value="">Choisir…</option>
+              <% filiales.forEach((f) => { %><option <%= values.filiale === f ? 'selected' : '' %>><%= f %></option><% }) %>
+            </select>
+          <% } else { %>
+            <input name="filiale" required maxlength="100" value="<%= values.filiale || '' %>">
+          <% } %>
+        </label>
+        <label class="field">Adresse e-mail<input type="email" name="email" required maxlength="200" autocomplete="off" autocapitalize="none" readonly data-no-autofill value="<%= values.email || '' %>"></label>
+        <div class="row">
+          <label class="field">Mot de passe<input type="password" name="password" required minlength="8" autocomplete="new-password" readonly data-no-autofill placeholder="8 caractères min."></label>
+          <label class="field">Confirmation<input type="password" name="password_confirmation" required minlength="8" autocomplete="new-password" readonly data-no-autofill></label>
+        </div>
         <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>
-          <%- include('partials/google-icon') %> Créer mon compte avec Google
+          <%- include('partials/google-icon') %> Continuer avec Google
         </button>
       </form>
     </div>
 
     <div class="auth-form-container sign-in-container">
       <form method="post" action="/connexion" class="auth-form" autocomplete="off">
-        <h1>Connexion<span>.</span></h1>
-        <p class="hint">Bon retour parmi nous !</p>
+        <h1>Connexion</h1>
         <% if (error && onglet !== 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="email" name="email" required autocomplete="off" autocapitalize="none" readonly data-no-autofill placeholder="Adresse e-mail" aria-label="Adresse e-mail">
-        <input type="password" name="password" required autocomplete="off" readonly data-no-autofill placeholder="Mot de passe" aria-label="Mot de passe">
-        <% if (googleEnabled) { %>
-          <p class="forgot">Mot de passe oublié ? <a href="/auth/google">Connectez-vous avec Google</a></p>
-        <% } %>
+        <label class="field">Adresse e-mail<input type="email" name="email" required autocomplete="off" autocapitalize="none" readonly data-no-autofill></label>
+        <label class="field">Mot de passe<input type="password" name="password" required autocomplete="off" readonly data-no-autofill></label>
         <button type="submit" class="btn">Se connecter</button>
         <% if (googleEnabled) { %>
-          <p class="social-label">ou utilisez votre compte</p>
+          <div class="separator">ou</div>
           <a class="btn btn-google" href="/auth/google"><%- include('partials/google-icon') %> Se connecter avec Google</a>
+          <p class="forgot">Mot de passe oublié ? Utilisez la connexion avec Google.</p>
         <% } %>
       </form>
     </div>
@@ -54,15 +55,15 @@
       <div class="overlay">
         <div class="overlay-panel overlay-left">
           <%- include('partials/logo', { size: 'big' }) %>
-          <h2>Bon retour !</h2>
-          <p>Vous avez déjà un compte ? Connectez-vous pour retrouver les événements et votre QR code.</p>
+          <h2>Vous avez déjà un compte ?</h2>
+          <p>Connectez-vous pour consulter les événements et retrouver votre QR code d’entrée.</p>
           <a class="btn btn-ghost" href="/connexion" data-auth="login">Se connecter</a>
         </div>
         <div class="overlay-panel overlay-right">
           <%- include('partials/logo', { size: 'big' }) %>
-          <h2>Bienvenue chez SNEDAI</h2>
+          <h2>Événements SNEDAI</h2>
           <p>Pas encore de compte ? Inscrivez-vous pour être informé des événements et confirmer votre présence.</p>
-          <a class="btn btn-ghost" href="/connexion?onglet=inscription" data-auth="register">Créer mon compte</a>
+          <a class="btn btn-ghost" href="/connexion?onglet=inscription" data-auth="register">Créer un compte</a>
         </div>
       </div>
     </div>

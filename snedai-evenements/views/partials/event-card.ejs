@@ -7,8 +7,8 @@
     <% } %>
     <div class="event-body">
       <h3><%= ev.titre %></h3>
-      <% if (ev.debut) { %><p class="meta">🗓 <%= format.eventRange(ev.debut, ev.fin) %></p><% } %>
-      <% if (ev.lieu) { %><p class="meta">📍 <%= ev.lieu %></p><% } %>
+      <% if (ev.debut) { %><p class="meta"><%- include('icon', { name: 'calendar' }) %> <%= format.eventRange(ev.debut, ev.fin) %></p><% } %>
+      <% if (ev.lieu) { %><p class="meta"><%- include('icon', { name: 'pin' }) %> <%= ev.lieu %></p><% } %>
       <% const p = participations.get(ev.id); %>
       <% if (ev.termine_at) { %>
         <span class="badge badge-done">Terminé</span>

@@ -1,14 +1,14 @@
 <%- include('partials/header') %>
 <p class="back-line">
   <a href="/">← Tous les événements</a>
-  <% if (isAdmin) { %><a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/modifier">✏️ Modifier</a><% } %>
+  <% if (isAdmin) { %><a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/modifier"><%- include('partials/icon', { name: 'edit' }) %> Modifier</a><% } %>
 </p>
 <article class="card event-detail">
   <% if (event.has_photo) { %><img src="/evenements/<%= event.id %>/photo" alt="Photo de l’événement" class="detail-photo"><% } %>
   <div class="detail-body">
     <h1><%= event.titre %></h1>
-    <% if (event.debut) { %><p class="meta">🗓 <%= format.eventRange(event.debut, event.fin) %></p><% } %>
-    <% if (event.lieu) { %><p class="meta">📍 <%= event.lieu %></p><% } %>
+    <% if (event.debut) { %><p class="meta"><%- include('partials/icon', { name: 'calendar' }) %> <%= format.eventRange(event.debut, event.fin) %></p><% } %>
+    <% if (event.lieu) { %><p class="meta"><%- include('partials/icon', { name: 'pin' }) %> <%= event.lieu %></p><% } %>
     <div class="description"><%= event.description %></div>
 
     <div class="participation">
@@ -32,7 +32,7 @@
       <% } else { %>
         <form method="post" action="/evenements/<%= event.id %>/participer">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="btn btn-big" type="submit">✅ Je serai présent(e)</button>
+          <button class="btn btn-big" type="submit"><%- include('partials/icon', { name: 'check' }) %> Je serai présent(e)</button>
         </form>
       <% } %>
     </div>

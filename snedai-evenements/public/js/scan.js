@@ -35,6 +35,8 @@
     const person = data.person ? `${data.person.prenom} ${data.person.nom}` : '';
     result.hidden = false;
     result.className = `scan-result scan-${STYLES[data.status] || 'error'}`;
+    void result.offsetWidth; // relance l'animation à chaque scan
+    result.classList.add('flash');
     result.replaceChildren();
     const title = document.createElement('strong');
     title.textContent = data.message;
@@ -118,14 +120,14 @@
     if (scanner) {
       await scanner.stop().catch(() => {});
       scanner = null;
-      cameraToggle.textContent = '📷 Utiliser la caméra';
+      cameraToggle.textContent = 'Utiliser la caméra';
       return;
     }
     if (!window.Html5Qrcode) return show({ status: 'inconnu', message: 'Lecteur caméra indisponible.' });
     scanner = new window.Html5Qrcode('camera');
     try {
       await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => submit(text));
-      cameraToggle.textContent = '⏹ Arrêter la caméra';
+      cameraToggle.textContent = 'Arrêter la caméra';
     } catch {
       scanner = null;
       show({ status: 'inconnu', message: 'Impossible d’ouvrir la caméra (autorisation refusée ou site non sécurisé en HTTPS).' });
