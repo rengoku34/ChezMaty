@@ -15,7 +15,10 @@ if (authContainer) {
     authContainer.classList.toggle('right-panel-active', register);
     history.replaceState(null, '', link.getAttribute('href'));
     const form = authContainer.querySelector(register ? '.sign-up-container' : '.sign-in-container');
-    setTimeout(() => form.querySelector('input:not([type=hidden]), select')?.focus({ preventScroll: true }), 600);
+    // Sur ordinateur seulement : sur téléphone, le clavier qui s'ouvre cacherait l'animation.
+    if (window.matchMedia('(min-width: 761px)').matches) {
+      setTimeout(() => form.querySelector('input:not([type=hidden]), select')?.focus({ preventScroll: true }), 600);
+    }
   });
 }
 

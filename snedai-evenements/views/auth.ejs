@@ -1,11 +1,12 @@
 <%- include('partials/header') %>
 <section class="auth-wrap">
-  <%# Deux formulaires côte à côte ; un volet coloré glisse de l'un à l'autre (sur mobile, un seul est affiché). %>
+  <%# « Double slider » : deux formulaires et un panneau décoré qui glisse de l'un à l'autre au clic.
+      Sur téléphone, le panneau devient un bandeau au-dessus du formulaire. %>
   <div id="auth-container" class="auth-container <%= onglet === 'inscription' ? 'right-panel-active' : '' %>">
 
     <div class="auth-form-container sign-up-container">
       <form method="post" action="/inscription" class="auth-form">
-        <h1>Créer mon compte</h1>
+        <h1>Inscription<span>.</span></h1>
         <p class="hint">Votre adresse e-mail sera celle de votre compte Google, choisie à l’étape suivante.</p>
         <% if (error && onglet === 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -26,40 +27,41 @@
         <button type="submit" class="btn btn-google" <%= googleEnabled ? '' : 'disabled' %>>
           <span class="g">G</span> Créer mon compte avec Google
         </button>
-        <p class="auth-switch">Déjà un compte ? <a href="/connexion" data-auth="login">Se connecter</a></p>
       </form>
     </div>
 
     <div class="auth-form-container sign-in-container">
       <form method="post" action="/connexion" class="auth-form">
-        <h1>Se connecter</h1>
+        <h1>Connexion<span>.</span></h1>
         <p class="hint">Bon retour parmi nous !</p>
         <% if (error && onglet !== 'inscription') { %><div class="alert alert-error"><%= error %></div><% } %>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="email" name="email" required autocomplete="email" placeholder="Adresse e-mail" aria-label="Adresse e-mail" value="<%= values.email || '' %>">
         <input type="password" name="password" required autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
+        <% if (googleEnabled) { %>
+          <p class="forgot">Mot de passe oublié ? <a href="/auth/google">Connectez-vous avec Google</a></p>
+        <% } %>
         <button type="submit" class="btn">Se connecter</button>
         <% if (googleEnabled) { %>
-          <div class="separator"><span>ou</span></div>
-          <a class="btn btn-google" href="/auth/google"><span class="g">G</span> Se connecter avec Google</a>
+          <p class="social-label">ou utilisez votre compte</p>
+          <div class="social"><a href="/auth/google" title="Se connecter avec Google" aria-label="Se connecter avec Google">G</a></div>
         <% } %>
-        <p class="auth-switch">Pas encore de compte ? <a href="/connexion?onglet=inscription" data-auth="register">Créer mon compte</a></p>
       </form>
     </div>
 
-    <div class="overlay-container" aria-hidden="true">
+    <div class="overlay-container">
       <div class="overlay">
         <div class="overlay-panel overlay-left">
           <%- include('partials/logo', { size: 'big' }) %>
           <h2>Bon retour !</h2>
           <p>Vous avez déjà un compte ? Connectez-vous pour retrouver les événements et votre QR code.</p>
-          <a class="btn btn-ghost" href="/connexion" data-auth="login" tabindex="-1">Se connecter</a>
+          <a class="btn btn-ghost" href="/connexion" data-auth="login">Se connecter</a>
         </div>
         <div class="overlay-panel overlay-right">
           <%- include('partials/logo', { size: 'big' }) %>
           <h2>Bienvenue chez SNEDAI</h2>
-          <p>Créez votre compte pour être informé des événements et confirmer votre présence.</p>
-          <a class="btn btn-ghost" href="/connexion?onglet=inscription" data-auth="register" tabindex="-1">Créer mon compte</a>
+          <p>Pas encore de compte ? Inscrivez-vous pour être informé des événements et confirmer votre présence.</p>
+          <a class="btn btn-ghost" href="/connexion?onglet=inscription" data-auth="register">Créer mon compte</a>
         </div>
       </div>
     </div>
