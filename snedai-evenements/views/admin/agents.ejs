@@ -1,4 +1,7 @@
 <%- include('../partials/header') %>
+<div class="page-head">
+  <%- include('../partials/breadcrumb', { items: [{ label: 'Tableau de bord', href: '/admin/tableau-de-bord' }, { label: 'Comptes' }] }) %>
+</div>
 <section class="card">
   <h1>Comptes</h1>
   <p class="hint">Tous les comptes inscrits sur le site. Les <strong>agents de scan</strong> peuvent seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée : ils ne voient ni le tableau de bord, ni les listes, ni l’export Excel.</p>

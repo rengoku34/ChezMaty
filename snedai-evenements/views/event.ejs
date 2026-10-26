@@ -1,49 +1,89 @@
 <%- include('partials/header') %>
-<p class="back-line">
-  <a href="/">← Tous les événements</a>
+<div class="page-head">
+  <%- include('partials/breadcrumb', { items: [{ label: 'Événements', href: '/' }, { label: event.titre }] }) %>
   <% if (isAdmin) { %><a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/modifier"><%- include('partials/icon', { name: 'edit' }) %> Modifier</a><% } %>
-</p>
-<article class="card event-detail">
-  <% if (event.has_photo) { %><img src="/evenements/<%= event.id %>/photo" alt="Photo de l’événement" class="detail-photo"><% } %>
-  <div class="detail-body">
-    <h1><%= event.titre %></h1>
-    <% if (event.debut) { %><p class="meta"><%- include('partials/icon', { name: 'calendar' }) %> <%= format.eventRange(event.debut, event.fin) %></p><% } %>
-    <% if (event.lieu) { %><p class="meta"><%- include('partials/icon', { name: 'pin' }) %> <%= event.lieu %></p><% } %>
-    <% if (agenda) { %>
-      <div class="agenda">
-        <span><%- include('partials/icon', { name: 'calendar' }) %> Ajouter à mon agenda :</span>
-        <a class="btn btn-small btn-secondary" href="<%= agenda.google %>" target="_blank" rel="noopener">Google Agenda</a>
-        <a class="btn btn-small btn-secondary" href="<%= agenda.outlook %>" target="_blank" rel="noopener">Outlook</a>
-        <a class="btn btn-small btn-secondary" href="<%= agenda.ics %>">iPhone / autre</a>
-      </div>
-    <% } %>
-    <div class="description"><%= event.description %></div>
+</div>
 
-    <div class="participation">
-      <% if (event.termine_at) { %>
-        <p class="status-line"><span class="badge badge-done">Terminé</span>
-          <% if (participation && participation.scanne_at) { %> Vous étiez présent(e). Merci !<% } %>
-        </p>
-      <% } else if (participation && participation.scanne_at) { %>
-        <div class="alert alert-success">Votre venue a été confirmée à l’entrée le <%= format.timestamp(participation.scanne_at) %>. Bon événement !</div>
-      <% } else if (participation) { %>
-        <h2>Votre QR code d’entrée</h2>
-        <p>Présentez-le à l’agent d’accueil le jour de l’événement (sur votre téléphone ou imprimé).</p>
-        <div class="qr-box">
-          <img src="<%= qr %>" alt="Votre QR code personnel" width="260" height="260">
-          <a class="btn btn-secondary" href="/evenements/<%= event.id %>/qr.png">Télécharger le QR code</a>
+<div class="event-layout">
+  <article class="event-main">
+    <% if (event.has_photo) { %><img src="/evenements/<%= event.id %>/photo" alt="Photo de l’événement" class="detail-photo"><% } %>
+    <div class="detail-body">
+      <h1><%= event.titre %></h1>
+
+      <ul class="infos">
+        <% if (event.debut) { %>
+          <li>
+            <%- include('partials/icon', { name: 'calendar' }) %>
+            <div><strong><%= format.eventDate(event.debut).replace(/ à .*/, '') %></strong><span><%= format.eventHours(event.debut, event.fin) %></span></div>
+          </li>
+        <% } %>
+        <% if (event.lieu) { %>
+          <li><%- include('partials/icon', { name: 'pin' }) %><div><strong><%= event.lieu %></strong><span>Lieu</span></div></li>
+        <% } %>
+      </ul>
+
+      <% if (agenda) { %>
+        <div class="agenda">
+          <span>Ajouter à mon agenda</span>
+          <a class="btn btn-small btn-secondary" href="<%= agenda.google %>" target="_blank" rel="noopener">Google Agenda</a>
+          <a class="btn btn-small btn-secondary" href="<%= agenda.outlook %>" target="_blank" rel="noopener">Outlook</a>
+          <a class="btn btn-small btn-secondary" href="<%= agenda.ics %>">iPhone / autre</a>
         </div>
-        <form method="post" action="/evenements/<%= event.id %>/annuler" data-confirm="Annuler votre participation ? Votre QR code ne sera plus valable.">
+      <% } %>
+
+      <h2 class="section-title">À propos</h2>
+      <div class="description"><%= event.description %></div>
+    </div>
+  </article>
+
+  <aside class="event-side">
+    <% if (event.termine_at) { %>
+      <div class="side-card side-done">
+        <span class="status status-done">Terminé</span>
+        <h2>Cet événement est terminé</h2>
+        <% if (participation && participation.scanne_at) { %>
+          <p>Votre présence a été validée à l’entrée. Merci d’avoir participé.</p>
+        <% } else { %>
+          <p>Retrouvez les prochains événements sur la page d’accueil.</p>
+        <% } %>
+      </div>
+
+    <% } else if (participation && participation.scanne_at) { %>
+      <div class="ticket ticket-ok">
+        <div class="ticket-head"><%- include('partials/icon', { name: 'check' }) %> Présence validée</div>
+        <div class="ticket-body">
+          <p class="ticket-name"><%= user.prenom %> <%= user.nom %></p>
+          <p class="ticket-sub"><%= user.filiale %></p>
+          <p class="ticket-note">Votre venue a été confirmée à l’entrée le <%= format.timestamp(participation.scanne_at) %>. Bon événement !</p>
+        </div>
+      </div>
+
+    <% } else if (participation) { %>
+      <div class="ticket">
+        <div class="ticket-head"><%- include('partials/icon', { name: 'ticket' }) %> Billet d’entrée</div>
+        <div class="ticket-body">
+          <p class="ticket-name"><%= user.prenom %> <%= user.nom %></p>
+          <p class="ticket-sub"><%= user.filiale %></p>
+          <img class="ticket-qr" src="<%= qr %>" alt="Votre QR code personnel" width="240" height="240">
+          <p class="ticket-note">Présentez ce QR code à l’agent d’accueil, sur votre téléphone ou imprimé.</p>
+          <a class="btn btn-secondary btn-block" href="/evenements/<%= event.id %>/qr.png"><%- include('partials/icon', { name: 'download' }) %> Télécharger mon QR code</a>
+        </div>
+        <form class="ticket-foot" method="post" action="/evenements/<%= event.id %>/annuler" data-confirm="Annuler votre participation ? Votre QR code ne sera plus valable.">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button class="link danger" type="submit">Je ne pourrai finalement pas venir</button>
         </form>
-      <% } else { %>
+      </div>
+
+    <% } else { %>
+      <div class="side-card">
+        <h2>Serez-vous présent(e) ?</h2>
+        <p>Confirmez votre venue : vous recevrez aussitôt votre billet avec un QR code personnel, à présenter à l’entrée.</p>
         <form method="post" action="/evenements/<%= event.id %>/participer">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button class="btn btn-big" type="submit"><%- include('partials/icon', { name: 'check' }) %> Je serai présent(e)</button>
+          <button class="btn btn-big btn-block" type="submit"><%- include('partials/icon', { name: 'check' }) %> Je serai présent(e)</button>
         </form>
-      <% } %>
-    </div>
-  </div>
-</article>
+      </div>
+    <% } %>
+  </aside>
+</div>
 <%- include('partials/footer') %>

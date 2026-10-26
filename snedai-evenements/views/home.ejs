@@ -1,7 +1,9 @@
 <%- include('partials/header') %>
 <section>
-  <h1>Bonjour <%= user.prenom %></h1>
-  <p class="lead">Voici les événements à venir. Confirmez votre présence pour recevoir votre QR code d’entrée.</p>
+  <div class="welcome">
+    <h1>Bonjour <%= user.prenom %></h1>
+    <p class="lead">Confirmez votre présence aux événements de SNEDAI pour recevoir votre billet avec QR code.</p>
+  </div>
 
   <div id="install-banner" class="install-banner" hidden>
     <span>Installez le site sur votre téléphone pour retrouver votre QR code en un geste.</span>
@@ -30,8 +32,16 @@
     </div>
   <% } %>
 
+  <div class="section-head">
+    <h2>Événements à venir</h2>
+    <% if (actifs.length) { %><span class="count"><%= actifs.length %></span><% } %>
+  </div>
   <% if (!actifs.length) { %>
-    <div class="card empty">Aucun événement en cours pour le moment. Vous serez prévenu(e) par e-mail dès qu’un nouvel événement sera publié.</div>
+    <div class="empty-state">
+      <%- include('partials/icon', { name: 'calendar' }) %>
+      <strong>Aucun événement pour le moment</strong>
+      <span>Vous serez prévenu(e) par e-mail dès qu’un nouvel événement sera publié.</span>
+    </div>
   <% } else { %>
     <div class="event-grid">
       <% actifs.forEach((ev) => { %><%- include('partials/event-card', { ev }) %><% }) %>

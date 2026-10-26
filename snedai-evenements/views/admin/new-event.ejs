@@ -1,4 +1,9 @@
 <%- include('../partials/header') %>
+<div class="page-head">
+  <%- include('../partials/breadcrumb', { items: event
+    ? [{ label: 'Tableau de bord', href: `/admin/tableau-de-bord?evenement=${event.id}` }, { label: 'Modifier l’événement' }]
+    : [{ label: 'Tableau de bord', href: '/admin/tableau-de-bord' }, { label: 'Publier un événement' }] }) %>
+</div>
 <section class="card narrow">
   <h1><%= event ? 'Modifier l’événement' : 'Publier un événement' %></h1>
   <% if (event) { %>

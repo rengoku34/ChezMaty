@@ -153,7 +153,8 @@ test('parcours complet : publication, présence, QR, scan, tableau de bord, Exce
   assert.match((await awa.agent.get('/')).text, /Journée bien-être/);
   await awa.agent.post(`/evenements/${event.id}/participer`).type('form').send({ _csrf: awa.csrf }).expect(302);
   const page = await awa.agent.get(`/evenements/${event.id}`);
-  assert.match(page.text, /Votre QR code d’entrée/);
+  assert.match(page.text, /Billet d’entrée/);
+  assert.match(page.text, /Kouassi/, 'le billet porte le nom de la personne');
   const photo = await awa.agent.get(`/evenements/${event.id}/photo`);
   assert.equal(photo.headers['content-type'], 'image/png');
   assert.equal(mails.qr.length, 1);
