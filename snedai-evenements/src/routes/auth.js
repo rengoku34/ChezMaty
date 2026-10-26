@@ -96,7 +96,13 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     } catch (err) {
       logger.error(`Code non envoyé à ${values.email} : ${err.message}`);
       delete req.session.emailSignup;
-      return renderForm(res, { onglet: 'inscription', status: 502, error: 'Le code n’a pas pu être envoyé. Vérifiez l’adresse e-mail ou réessayez plus tard.', values });
+      const fallback = googleEnabled ? ' Vous pouvez aussi continuer avec Google.' : '';
+      return renderForm(res, {
+        onglet: 'inscription',
+        status: 502,
+        error: `Le code n’a pas pu être envoyé : le service d’e-mail est momentanément indisponible. Réessayez dans quelques minutes ou prévenez l’administrateur.${fallback}`,
+        values,
+      });
     }
     res.redirect('/inscription/code');
   });

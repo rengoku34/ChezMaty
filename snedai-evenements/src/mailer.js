@@ -57,20 +57,36 @@ function smtpTransport(smtp, sender) {
 
 function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
   let deliver = null;
+  let provider = null;
   let sender = config.mailFrom.email;
   if (config.agentmail.apiKey && config.agentmail.inbox) {
     deliver = agentmailTransport(config.agentmail.apiKey, config.agentmail.inbox, fetchImpl);
     sender = config.agentmail.inbox;
-  } else if (config.brevoApiKey && config.mailFrom.email) deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
-  else if (config.smtp.host && config.mailFrom.email) deliver = smtpTransport(config.smtp, config.mailFrom);
+    provider = 'AgentMail';
+  } else if (config.brevoApiKey && config.mailFrom.email) {
+    deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
+    provider = 'Brevo';
+  } else if (config.smtp.host && config.mailFrom.email) {
+    deliver = smtpTransport(config.smtp, config.mailFrom);
+    provider = 'SMTP';
+  }
   const configured = Boolean(deliver);
+  // Dernier résultat d'envoi, affiché à l'administrateur (page « Comptes ») pour trouver la cause d'une panne.
+  const state = { lastError: null, lastErrorAt: null, lastOkAt: null };
 
   async function send(message) {
     if (!deliver) {
       logger.info(`[e-mail non envoyé : aucun service d’envoi configuré] À ${message.to} — ${message.subject}`);
       return false;
     }
-    await deliver(message);
+    try {
+      await deliver(message);
+    } catch (error) {
+      state.lastError = error.message;
+      state.lastErrorAt = new Date();
+      throw error;
+    }
+    state.lastOkAt = new Date();
     return true;
   }
 
@@ -84,6 +100,8 @@ function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
   return {
     configured,
     sender,
+    provider,
+    state,
 
     // Code à 6 chiffres qui confirme l'adresse e-mail lors d'une inscription sans Google.
     sendVerificationCode(email, prenom, code) {

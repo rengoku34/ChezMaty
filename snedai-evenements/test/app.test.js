@@ -29,6 +29,8 @@ function fakeMailer() {
       return true;
     },
     sender: 'rh@example.com',
+    provider: 'Test',
+    state: { lastError: 'Brevo 401 : Key not found', lastErrorAt: new Date(), lastOkAt: null },
     async sendVerificationCode(email, prenom, code) {
       mails.codes.push({ email, prenom, code });
       return true;
@@ -310,6 +312,15 @@ test('réglages par défaut : secret de session créé une fois, expéditeur = a
   assert.equal(config.production, true);
 });
 
+test('une panne d’envoi est mémorisée pour l’administrateur et l’erreur est relancée', async () => {
+  const failing = async () => ({ ok: false, status: 401, text: async () => '{"message":"Key not found"}' });
+  const mailer = createMailer(loadConfig({ BREVO_API_KEY: 'mauvaise', MAIL_FROM: 'rh@example.com' }), silent, failing);
+  assert.equal(mailer.provider, 'Brevo');
+  await assert.rejects(mailer.sendVerificationCode('a@b.ci', 'Ama', '123456'), /Key not found/);
+  assert.match(mailer.state.lastError, /401/);
+  assert.ok(mailer.state.lastErrorAt instanceof Date);
+});
+
 test('les e-mails peuvent partir par AgentMail', async () => {
   const calls = [];
   const fetchStub = async (url, options) => {
@@ -358,6 +369,9 @@ test('les e-mails partent par l’API Brevo avec le QR code en pièce jointe', a
 
 test('l’administrateur peut tester l’envoi d’e-mail et voit le résultat', async () => {
   const admin = await loginAs('stagiaire@snedai.com');
+  const comptes = (await admin.agent.get('/admin/agents')).text;
+  assert.match(comptes, /Service utilisé : <strong>Test<\/strong>/);
+  assert.match(comptes, /Dernier échec d’envoi[\s\S]*Key not found/);
   await admin.agent.post('/admin/test-email').type('form').send({ _csrf: admin.csrf }).expect(302);
   assert.match((await admin.agent.get('/admin/agents')).text, /E-mail de test envoyé à stagiaire@snedai.com/);
   const awa = await loginAs('awa@example.com');

@@ -179,7 +179,11 @@ module.exports = function adminRoutes({ repo, config, mailer, format, access, lo
   });
 
   router.get('/agents', async (req, res) => {
-    res.render('admin/agents', { title: 'Comptes', users: await repo.listUsers() });
+    res.render('admin/agents', {
+      title: 'Comptes',
+      users: await repo.listUsers(),
+      mail: { provider: mailer.provider, sender: mailer.sender, ...mailer.state },
+    });
   });
 
   router.post('/test-email', async (req, res) => {
