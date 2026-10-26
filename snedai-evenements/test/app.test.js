@@ -68,7 +68,7 @@ before(async () => {
     ANDROID_CERT_SHA256: 'aa:bb:cc:dd',
   });
   repo = await openDatabase(TEST_DATABASE_URL);
-  await repo.pool.query('TRUNCATE users, events, participations, sessions, settings RESTART IDENTITY CASCADE');
+  await repo.pool.query('TRUNCATE users, events, participations, sessions, settings, api_tokens, pending_signups RESTART IDENTITY CASCADE');
   const passwordHash = bcrypt.hashSync('motdepasse1', 4);
   await repo.createUser({ nom: 'Admin', prenom: 'Stagiaire', filiale: 'SNEDAI Groupe', email: 'stagiaire@snedai.com', passwordHash });
   await repo.createUser({ nom: 'Kouassi', prenom: 'Awa', filiale: 'OSIA', email: 'awa@example.com', passwordHash });

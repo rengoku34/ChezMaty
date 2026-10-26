@@ -50,6 +50,31 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+-- Application mobile : jetons de connexion (seule l'empreinte est gardée) et inscriptions en attente du code e-mail.
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  device TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_used_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pending_signups (
+  id TEXT PRIMARY KEY,
+  nom TEXT NOT NULL,
+  prenom TEXT NOT NULL,
+  filiale TEXT NOT NULL,
+  email TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  code_hash TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid TEXT PRIMARY KEY,
   data JSONB NOT NULL,
@@ -109,6 +134,43 @@ function createRepository(pool) {
       await pool.query('DELETE FROM users WHERE id = $1', [userId]);
       await pool.query("DELETE FROM sessions WHERE data->'passport'->>'user' = $1", [String(userId)]);
     },
+
+    // Application mobile : jetons de connexion
+    createApiToken: (userId, tokenHash, device, ttlDays) =>
+      pool.query(
+        `INSERT INTO api_tokens (user_id, token_hash, device, expires_at)
+         VALUES ($1, $2, $3, now() + make_interval(days => $4))`,
+        [userId, tokenHash, device || null, ttlDays]
+      ),
+    // Renvoie l'utilisateur du jeton (et l'identifiant du jeton) s'il n'est pas expiré.
+    findApiToken: (tokenHash) =>
+      one(
+        `SELECT u.*, t.id AS token_id, t.last_used_at AS token_last_used_at
+         FROM api_tokens t JOIN users u ON u.id = t.user_id
+         WHERE t.token_hash = $1 AND t.expires_at > now()`,
+        [tokenHash]
+      ),
+    touchApiToken: (tokenId, ttlDays) =>
+      pool.query('UPDATE api_tokens SET last_used_at = now(), expires_at = now() + make_interval(days => $2) WHERE id = $1', [tokenId, ttlDays]),
+    deleteApiToken: (tokenHash) => pool.query('DELETE FROM api_tokens WHERE token_hash = $1', [tokenHash]),
+    purgeExpiredApiTokens: () => pool.query('DELETE FROM api_tokens WHERE expires_at < now()'),
+
+    // Application mobile : inscription en attente du code reçu par e-mail
+    async savePendingSignup({ id, nom, prenom, filiale, email, passwordHash, codeHash, expiresAt }) {
+      await pool.query('DELETE FROM pending_signups WHERE lower(email) = lower($1) OR expires_at < now()', [email]);
+      await pool.query(
+        `INSERT INTO pending_signups (id, nom, prenom, filiale, email, password_hash, code_hash, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [id, nom, prenom, filiale, email, passwordHash, codeHash, expiresAt]
+      );
+    },
+    findPendingSignup: (id) => one('SELECT * FROM pending_signups WHERE id = $1', [id]),
+    renewPendingCode: (id, codeHash, expiresAt) =>
+      pool.query('UPDATE pending_signups SET code_hash = $2, expires_at = $3, sent_at = now(), attempts = 0 WHERE id = $1', [id, codeHash, expiresAt]),
+    async bumpPendingAttempts(id) {
+      return (await one('UPDATE pending_signups SET attempts = attempts + 1 WHERE id = $1 RETURNING attempts', [id]))?.attempts ?? 0;
+    },
+    deletePendingSignup: (id) => pool.query('DELETE FROM pending_signups WHERE id = $1', [id]),
 
     // Événements
     createEvent: ({ titre, description, photoData, photoType, debut, fin, lieu }) =>

@@ -1,7 +1,8 @@
-const crypto = require('node:crypto');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { rateLimit } = require('express-rate-limit');
+const { signupError } = require('../validation');
+const { CODE_TTL_MS, RESEND_DELAY_MS, MAX_ATTEMPTS, generateCode, hashCode, codeMatches } = require('../verification');
 
 const clean = (value, max = 100) => String(value ?? '').trim().slice(0, max);
 
@@ -71,15 +72,9 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     const methode = req.body.methode === 'google' ? 'google' : 'email';
     const password = String(req.body.password ?? '');
     const confirmation = String(req.body.password_confirmation ?? '');
-    let error = null;
-    if (!values.nom || !values.prenom || !values.filiale) error = 'Merci de remplir le nom, le prénom et la filiale.';
-    else if (config.filiales.length && !config.filiales.includes(values.filiale)) error = 'Choisissez une filiale dans la liste.';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) error = 'Adresse e-mail invalide.';
-    else if (await repo.findUserByEmail(values.email)) error = 'Un compte existe déjà avec cette adresse. Connectez-vous.';
-    else if (password.length < 8 || !/[A-Za-zÀ-ÿ]/.test(password) || !/\d/.test(password)) {
-      error = 'Le mot de passe doit contenir au moins 8 caractères, dont au moins une lettre et un chiffre.';
-    } else if (password !== confirmation) error = 'Les deux mots de passe ne sont pas identiques.';
-    else if (methode === 'google' && !googleEnabled) error = 'La connexion Google n’est pas encore configurée sur le serveur.';
+    let error = signupError(values, password, confirmation, config.filiales);
+    if (!error && (await repo.findUserByEmail(values.email))) error = 'Un compte existe déjà avec cette adresse. Connectez-vous.';
+    else if (!error && methode === 'google' && !googleEnabled) error = 'La connexion Google n’est pas encore configurée sur le serveur.';
     else if (methode === 'email' && !mailer.configured) {
       error = 'La confirmation par e-mail n’est pas encore disponible. Utilisez « Continuer avec Google ».';
     }
@@ -107,15 +102,10 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     res.redirect('/inscription/code');
   });
 
-  // Code de confirmation : 6 chiffres, valable 15 minutes, 5 essais au maximum ; seul son empreinte est gardée.
-  const CODE_TTL_MS = 15 * 60 * 1000;
-  const RESEND_DELAY_MS = 60 * 1000;
-  const MAX_ATTEMPTS = 5;
-  const hashCode = (code) => crypto.createHash('sha256').update(`${config.sessionSecret}:${code}`).digest('hex');
-
+  // Code de confirmation : 6 chiffres, valable 15 minutes, 5 essais au maximum ; seule son empreinte est gardée.
   async function sendCode(pending) {
-    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-    Object.assign(pending, { codeHash: hashCode(code), expires: Date.now() + CODE_TTL_MS, sentAt: Date.now(), attempts: 0 });
+    const code = generateCode();
+    Object.assign(pending, { codeHash: hashCode(config.sessionSecret, code), expires: Date.now() + CODE_TTL_MS, sentAt: Date.now(), attempts: 0 });
     await mailer.sendVerificationCode(pending.email, pending.prenom, code);
   }
 
@@ -135,9 +125,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
     if (Date.now() > pending.expires) return renderCode(res, pending, { status: 400, error: 'Ce code a expiré. Demandez-en un nouveau.' });
     if (pending.attempts >= MAX_ATTEMPTS) return renderCode(res, pending, { status: 429, error: 'Trop d’essais. Demandez un nouveau code.' });
 
-    const code = String(req.body.code ?? '').replace(/\D/g, '');
-    const valid = code.length === 6 && crypto.timingSafeEqual(Buffer.from(hashCode(code)), Buffer.from(pending.codeHash));
-    if (!valid) {
+    if (!codeMatches(config.sessionSecret, req.body.code, pending.codeHash)) {
       pending.attempts += 1;
       const left = MAX_ATTEMPTS - pending.attempts;
       return renderCode(res, pending, { status: 400, error: left > 0 ? `Code incorrect. Il vous reste ${left} essai(s).` : 'Trop d’essais. Demandez un nouveau code.' });

@@ -1,6 +1,8 @@
 const express = require('express');
 const { qrDataUrl, qrPng } = require('../qr');
-const { calendarLinks, buildIcs, eventTimes } = require('../calendar');
+const { calendarLinks, buildIcs } = require('../calendar');
+const { confirmAttendance } = require('../services/attendance');
+const { nextEvent } = require('../services/events');
 
 module.exports = function eventRoutes({ repo, config, mailer, format, access, logger }) {
   const calendarOptions = { timeZone: config.timezone, appUrl: config.appUrl };
@@ -15,24 +17,13 @@ module.exports = function eventRoutes({ repo, config, mailer, format, access, lo
     next();
   }
 
-  // Événement à mettre en avant : celui qui a lieu en ce moment, sinon le prochain à venir.
-  function nextEvent(events, now = Date.now()) {
-    const timed = events
-      .map((event) => ({ event, times: eventTimes(event, config.timezone) }))
-      .filter(({ times }) => times && times.end.getTime() > now)
-      .sort((a, b) => a.times.start - b.times.start);
-    if (!timed.length) return null;
-    const { event, times } = timed[0];
-    return { event, start: times.start.toISOString(), enCours: times.start.getTime() <= now };
-  }
-
   // « La maison » : les événements en cours, et les événements terminés mis de côté.
   router.get('/', async (req, res) => {
     const actifs = await repo.listActiveEvents();
     res.render('home', {
       title: 'Accueil',
       actifs,
-      prochain: nextEvent(actifs),
+      prochain: nextEvent(actifs, config.timezone),
       termines: await repo.listFinishedEvents(),
       participations: await repo.participationsForUser(req.user.id),
     });
@@ -62,17 +53,9 @@ module.exports = function eventRoutes({ repo, config, mailer, format, access, lo
       req.session.flash = { type: 'error', message: 'Cet événement est terminé.' };
       return res.redirect(`/evenements/${event.id}`);
     }
-    const alreadyConfirmed = Boolean(await repo.findParticipation(event.id, user.id));
-    const participation = await repo.confirmParticipation(event.id, user.id);
+    const { emailed } = await confirmAttendance({ repo, mailer, format, logger }, event, user);
     let message = 'Votre présence est notée. Voici votre QR code à présenter à l’entrée.';
-    if (!alreadyConfirmed) {
-      try {
-        const sent = await mailer.sendQrCode(event, user, await qrPng(participation.qr_token), format.eventRange(event.debut, event.fin));
-        if (sent) message += ' Il vous a aussi été envoyé par e-mail.';
-      } catch (error) {
-        logger.error(`QR code non envoyé à ${user.email} : ${error.message}`);
-      }
-    }
+    if (emailed) message += ' Il vous a aussi été envoyé par e-mail.';
     req.session.flash = { type: 'success', message };
     res.redirect(`/evenements/${event.id}`);
   });

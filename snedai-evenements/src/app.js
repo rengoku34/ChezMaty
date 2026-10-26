@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const adminRoutes = require('./routes/admin');
 const agentRoutes = require('./routes/agent');
+const apiRoutes = require('./routes/api');
 
 // Ajouté aux adresses du CSS et du JavaScript : à chaque mise en ligne, le navigateur charge
 // la nouvelle version au lieu de celle gardée en mémoire. Render fournit le commit déployé.
@@ -85,6 +86,8 @@ function createApp({ config, repo, mailer, logger = console }) {
   app.use('/static/vendor', express.static(path.join(ROOT, 'node_modules/html5-qrcode'), { maxAge: '7d' }));
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(express.json({ limit: '10kb' }));
+  // Application mobile : interface JSON avec jetons, sans session ni cookie (donc avant la session).
+  app.use('/api/v1', apiRoutes(deps));
   app.use(
     session({
       name: 'snedai.sid',
@@ -120,9 +123,12 @@ function createApp({ config, repo, mailer, logger = console }) {
   app.use('/scan', agentRoutes(deps));
   app.use(eventRoutes(deps));
 
+  app.use('/api', (req, res) => res.status(404).json({ ok: false, message: 'Adresse inconnue.' }));
   app.use((req, res) => res.status(404).render('error', { title: 'Page introuvable', message: 'Cette page n’existe pas.' }));
   app.use((err, req, res, _next) => {
     logger.error(err);
+    // Corps JSON invalide sur l'interface mobile : réponse JSON plutôt qu'une page HTML.
+    if (req.originalUrl.startsWith('/api/')) return res.status(err.status && err.status < 500 ? err.status : 500).json({ ok: false, message: 'Requête invalide.' });
     res.status(500).render('error', { title: 'Erreur', message: 'Une erreur est survenue. Réessayez dans un instant.' });
   });
 
