@@ -15,7 +15,7 @@ const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://snedai:
 const silent = { info() {}, error() {} };
 let app;
 let repo;
-const mails = { announced: [], qr: [], codes: [] };
+const mails = { announced: [], qr: [], codes: [], welcome: [] };
 
 function fakeMailer() {
   return {
@@ -35,7 +35,8 @@ function fakeMailer() {
       mails.codes.push({ email, prenom, code });
       return true;
     },
-    async sendWelcome() {
+    async sendWelcome(user) {
+      mails.welcome.push(user.email);
       return true;
     },
     async sendTest(to) {
@@ -431,6 +432,8 @@ test('inscription sans Google : code à 6 chiffres envoyé par e-mail', async ()
   const user = await repo.findUserByEmail('fatou@exemple.ci');
   assert.equal(user.nom, 'Bamba');
   assert.equal(user.google_id, null);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(mails.welcome, ['fatou@exemple.ci'], 'le message de bienvenue part à la création du compte');
   assert.match((await agent.get('/').expect(200)).text, /Bonjour Fatou/);
 
   // Reconnexion avec le mot de passe du site.
