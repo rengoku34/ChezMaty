@@ -50,6 +50,8 @@ function loadConfig(env = process.env) {
     mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || list(env.ADMIN_EMAILS, ',')[0] || ''),
     databaseUrl: env.DATABASE_URL || '',
     timezone: env.TIMEZONE || 'Africa/Abidjan',
+    // Tentatives de connexion / d'inscription autorisées par adresse IP et par période de 15 minutes.
+    loginRateLimit: Number(env.LOGIN_RATE_LIMIT) || 20,
   };
 }
 

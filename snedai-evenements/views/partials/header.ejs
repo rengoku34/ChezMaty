@@ -17,19 +17,32 @@
 <header class="topbar">
   <a class="brand" href="/"><%- include('logo') %> <span class="brand-text"><%= logoUrl ? 'Événements' : 'Événements SNEDAI' %></span></a>
   <% if (user) { %>
-  <nav class="nav">
-    <a href="/" class="<%= path === '/' ? 'active' : '' %>">Événements</a>
-    <% if (isAgent) { %><a href="/scan" class="<%= path.startsWith('/scan') ? 'active' : '' %>">Scanner</a><% } %>
-    <% if (isAdmin) { %>
-      <a href="/admin/evenements/nouveau" class="<%= path === '/admin/evenements/nouveau' ? 'active' : '' %>">Publier</a>
-      <a href="/admin/tableau-de-bord" class="<%= path === '/admin/tableau-de-bord' ? 'active' : '' %>">Tableau de bord</a>
-      <a href="/admin/agents" class="<%= path === '/admin/agents' ? 'active' : '' %>">Comptes</a>
-    <% } %>
-    <form method="post" action="/deconnexion" class="inline">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button type="submit" class="link">Déconnexion (<%= user.prenom %>)</button>
-    </form>
-  </nav>
+  <div class="usermenu">
+    <span class="usermenu-name"><%= user.prenom %></span>
+    <button type="button" class="menu-button" id="menu-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-panel" aria-label="Ouvrir le menu">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
+    <div class="menu-panel" id="menu-panel" role="menu" hidden>
+      <div class="menu-user">
+        <strong><%= user.prenom %> <%= user.nom %></strong>
+        <span><%= user.email %></span>
+        <small><%= isAdmin ? 'Administrateur' : (isAgent ? 'Agent de scan' : 'Employé') %></small>
+      </div>
+      <a role="menuitem" href="/" class="<%= path === '/' ? 'active' : '' %>"><%- include('icon', { name: 'calendar' }) %> Événements</a>
+      <% if (isAgent) { %><a role="menuitem" href="/scan" class="<%= path.startsWith('/scan') ? 'active' : '' %>"><%- include('icon', { name: 'scan' }) %> Scanner</a><% } %>
+      <% if (isAdmin) { %>
+        <div class="menu-sep"></div>
+        <a role="menuitem" href="/admin/evenements/nouveau" class="<%= path === '/admin/evenements/nouveau' ? 'active' : '' %>"><%- include('icon', { name: 'plus' }) %> Publier un événement</a>
+        <a role="menuitem" href="/admin/tableau-de-bord" class="<%= path === '/admin/tableau-de-bord' ? 'active' : '' %>"><%- include('icon', { name: 'chart' }) %> Tableau de bord</a>
+        <a role="menuitem" href="/admin/agents" class="<%= path === '/admin/agents' ? 'active' : '' %>"><%- include('icon', { name: 'users' }) %> Comptes</a>
+      <% } %>
+      <div class="menu-sep"></div>
+      <form method="post" action="/deconnexion">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" role="menuitem" class="menu-logout"><%- include('icon', { name: 'logout' }) %> Déconnexion</button>
+      </form>
+    </div>
+  </div>
   <% } %>
 </header>
 <main class="container">

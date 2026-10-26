@@ -1,5 +1,31 @@
 // Comportements communs (le CSP interdit les scripts dans les attributs HTML).
 
+// Menu déroulant (en haut à droite) : s'ouvre au clic sur le bouton, se ferme en cliquant ailleurs ou avec Échap.
+const menuButton = document.getElementById('menu-button');
+const menuPanel = document.getElementById('menu-panel');
+if (menuButton && menuPanel) {
+  const setOpen = (open) => {
+    menuPanel.hidden = !open;
+    menuButton.setAttribute('aria-expanded', String(open));
+    menuButton.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+  };
+  menuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setOpen(menuPanel.hidden);
+    // Ouvert au clavier (détail 0) : le curseur passe sur le premier lien.
+    if (!menuPanel.hidden && event.detail === 0) menuPanel.querySelector('a, button')?.focus({ preventScroll: true });
+  });
+  document.addEventListener('click', (event) => {
+    if (!menuPanel.hidden && !menuPanel.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !menuPanel.hidden) {
+      setOpen(false);
+      menuButton.focus();
+    }
+  });
+}
+
 // Page ressortie de la mémoire du navigateur (bouton « Retour ») : on la redemande au serveur,
 // qui renvoie vers la connexion si l'on s'est déconnecté.
 window.addEventListener('pageshow', (event) => {

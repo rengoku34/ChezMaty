@@ -63,6 +63,7 @@ before(async () => {
     SESSION_SECRET: 'secret-de-test',
     ADMIN_EMAILS: 'stagiaire@snedai.com',
     FILIALES: 'SNEDAI Groupe;OSIA',
+    LOGIN_RATE_LIMIT: '1000',
   });
   repo = await openDatabase(TEST_DATABASE_URL);
   await repo.pool.query('TRUNCATE users, events, participations, sessions, settings RESTART IDENTITY CASCADE');
@@ -440,4 +441,21 @@ test('inscription sans Google : code à 6 chiffres envoyé par e-mail', async ()
   const again = request.agent(app);
   const c2 = csrfFrom((await again.get('/connexion')).text);
   assert.equal((await again.post('/connexion').type('form').send({ _csrf: c2, email: 'fatou@exemple.ci', password: 'Secret2026' })).status, 302);
+});
+
+test('le menu déroulant n’affiche que les liens autorisés au rôle', async () => {
+  const links = async (email) => (await (await loginAs(email)).agent.get('/')).text;
+  const admin = await links('stagiaire@snedai.com');
+  assert.match(admin, /id="menu-button"/);
+  assert.match(admin, /Administrateur/);
+  for (const href of ['/admin/evenements/nouveau', '/admin/tableau-de-bord', '/admin/agents', '/scan', '/deconnexion']) {
+    assert.ok(admin.includes(`href="${href}"`) || admin.includes(`action="${href}"`), href);
+  }
+  await repo.createUser({ nom: 'Menu', prenom: 'Employe', filiale: 'OSIA', email: 'menu-employe@example.com', passwordHash: bcrypt.hashSync('motdepasse1', 4) });
+  const employee = await links('menu-employe@example.com');
+  assert.match(employee, /id="menu-button"/);
+  assert.match(employee, /Employé/);
+  assert.doesNotMatch(employee, /\/admin\//);
+  assert.doesNotMatch(employee, /href="\/scan"/);
+  assert.doesNotMatch((await request(app).get('/connexion')).text, /id="menu-button"/);
 });

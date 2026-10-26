@@ -9,7 +9,7 @@ module.exports = function authRoutes({ repo, config, passport, googleEnabled, ma
   const router = express.Router();
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 20,
+    limit: config.loginRateLimit,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     message: 'Trop de tentatives. Réessayez dans quelques minutes.',
