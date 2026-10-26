@@ -50,6 +50,12 @@ function loadConfig(env = process.env) {
     mailFrom: parseSender(env.MAIL_FROM || env.SMTP_USER || list(env.ADMIN_EMAILS, ',')[0] || ''),
     databaseUrl: env.DATABASE_URL || '',
     timezone: env.TIMEZONE || 'Africa/Abidjan',
+    // Application Android (TWA générée par PWABuilder) : identifiant du paquet et empreinte(s) SHA-256 du certificat,
+    // publiés dans /.well-known/assetlinks.json pour que l'application s'ouvre en plein écran, sans barre d'adresse.
+    android: {
+      packageName: (env.ANDROID_PACKAGE_NAME || '').trim(),
+      sha256: list(env.ANDROID_CERT_SHA256, ',').map((value) => value.toUpperCase()),
+    },
     // Tentatives de connexion / d'inscription autorisées par adresse IP et par période de 15 minutes.
     loginRateLimit: Number(env.LOGIN_RATE_LIMIT) || 20,
   };

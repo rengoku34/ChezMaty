@@ -64,6 +64,8 @@ before(async () => {
     ADMIN_EMAILS: 'stagiaire@snedai.com',
     FILIALES: 'SNEDAI Groupe;OSIA',
     LOGIN_RATE_LIMIT: '1000',
+    ANDROID_PACKAGE_NAME: 'ci.snedai.evenements',
+    ANDROID_CERT_SHA256: 'aa:bb:cc:dd',
   });
   repo = await openDatabase(TEST_DATABASE_URL);
   await repo.pool.query('TRUNCATE users, events, participations, sessions, settings RESTART IDENTITY CASCADE');
@@ -265,6 +267,10 @@ test('application installable : manifeste et service worker', async () => {
   const manifest = await request(app).get('/manifest.webmanifest').expect(200);
   assert.equal(manifest.body.short_name, 'SNEDAI');
   assert.equal(manifest.body.display, 'standalone');
+  assert.equal(manifest.body.id, '/');
+  const links = await request(app).get('/.well-known/assetlinks.json').expect(200);
+  assert.equal(links.body[0].target.package_name, 'ci.snedai.evenements');
+  assert.deepEqual(links.body[0].target.sha256_cert_fingerprints, ['AA:BB:CC:DD']);
   assert.match((await request(app).get('/sw.js').expect(200)).text, /addEventListener\('fetch'/);
 });
 

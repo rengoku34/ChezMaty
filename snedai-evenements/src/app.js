@@ -49,6 +49,7 @@ function createApp({ config, repo, mailer, logger = console }) {
   // Application installable (téléphone, ordinateur) : manifeste et service worker à la racine du site.
   app.get('/manifest.webmanifest', (req, res) => {
     res.type('application/manifest+json').json({
+      id: '/',
       name: 'Événements SNEDAI',
       short_name: 'SNEDAI',
       description: 'Événements internes SNEDAI : confirmez votre présence et retrouvez votre QR code d’entrée.',
@@ -56,6 +57,8 @@ function createApp({ config, repo, mailer, logger = console }) {
       start_url: '/',
       scope: '/',
       display: 'standalone',
+      categories: ['business', 'productivity'],
+      prefer_related_applications: false,
       background_color: '#eef0f5',
       theme_color: '#26246a',
       icons: [
@@ -64,6 +67,17 @@ function createApp({ config, repo, mailer, logger = console }) {
         { src: '/static/img/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
       ],
     });
+  });
+  // Lien entre le site et l'application Android : renseigné une fois l'application générée (voir le README).
+  app.get('/.well-known/assetlinks.json', (req, res) => {
+    const { packageName, sha256 } = config.android;
+    if (!packageName || !sha256.length) return res.status(404).end();
+    res.json([
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: { namespace: 'android_app', package_name: packageName, sha256_cert_fingerprints: sha256 },
+      },
+    ]);
   });
   app.get('/sw.js', (req, res) => {
     res.set('Cache-Control', 'no-cache').sendFile(path.join(ROOT, 'public/sw.js'));

@@ -154,6 +154,28 @@ npm start                 # http://localhost:3000
 
 Pour lancer les tests (`npm test`), il faut une base PostgreSQL **de test**, indiquée dans `TEST_DATABASE_URL`. Elle est vidée à chaque lancement : n'y mettez jamais la base réelle.
 
+## Application mobile
+
+Le site est une **application web installable** (PWA) : icône SNEDAI sur l'écran d'accueil, plein écran, page hors connexion. Elle fonctionne sur Android et sur iPhone, **gratuitement** et sans passer par un magasin d'applications.
+
+| Option | Ce que c'est | Coût | Matériel |
+|---|---|---|---|
+| **1. Installer le site** (déjà prêt) | Chrome : ⋮ puis « Installer l'application ». iPhone : Safari, Partager, puis « Sur l'écran d'accueil ». | Gratuit | Aucun |
+| **2. Fichier d'application Android (.apk)** | Le même site emballé dans une vraie application Android, à installer directement, par exemple sur le terminal de scan. | Gratuit | Aucun (outil en ligne) |
+| **3. Publication sur Google Play** | L'application dans le magasin Android. | Environ 25 $, une seule fois | Compte Google Play |
+| **4. Application iPhone native, publiée sur l'App Store** | Application iOS. | 99 $ par an | **Mac** avec Xcode |
+
+### Générer le fichier Android (.apk), option 2
+1. Ouvrez <https://www.pwabuilder.com> et collez l'adresse du site (par exemple `https://snedai-evenements.onrender.com`).
+2. Vérifiez que le diagnostic est vert (manifeste, service worker, HTTPS), puis appuyez sur **Package for stores**, **Android**.
+3. Renseignez l'identifiant du paquet, par exemple `ci.snedai.evenements`, et le nom « Événements SNEDAI ». Téléchargez l'archive.
+4. L'archive contient un fichier **.apk** à installer sur le téléphone ou le terminal, et un fichier `assetlinks.json` avec l'**empreinte SHA-256** du certificat.
+5. Dans Render, ajoutez deux variables : `ANDROID_PACKAGE_NAME` (l'identifiant du paquet) et `ANDROID_CERT_SHA256` (l'empreinte). Le site publie alors `/.well-known/assetlinks.json`, et l'application s'ouvre en plein écran, sans barre d'adresse.
+6. Installez le .apk sur l'appareil Android (autoriser « sources inconnues » si besoin).
+
+### Plus tard, avec un Mac
+Un outil comme **Capacitor** pourra emballer le même site pour iPhone et le tester dans le simulateur Xcode (gratuit). Seule la publication sur l'App Store est payante.
+
 ## Organisation du code
 
 ```
