@@ -1,15 +1,21 @@
+// Page de l'agent d'accueil : reçoit le code du QR (terminal de scan ou caméra), l'envoie au serveur,
+// et affiche le résultat (vert / orange / rouge) avec un bip.
 (() => {
   const root = document.querySelector('.scan');
-  const form = document.getElementById('scan-form');
-  const input = document.getElementById('scan-input');
+  const input = document.getElementById('scan-input');        // champ invisible qui reçoit le code du terminal
+  const ready = document.getElementById('scan-ready');        // message « Prêt à scanner »
   const result = document.getElementById('scan-result');
   const history = document.getElementById('scan-history');
   const cameraToggle = document.getElementById('camera-toggle');
+  // Style du résultat selon la réponse du serveur.
   const STYLES = { present: 'ok', deja: 'warn', termine: 'warn', inconnu: 'error' };
+  // Un QR code complet : « SNEDAI-EVT: » suivi de 32 caractères.
+  const FULL_CODE = /^SNEDAI-EVT:[A-Za-z0-9_-]{32}$/;
 
   let busy = false;
   let lastCode = '';
   let lastCodeAt = 0;
+  let autoTimer = null;
 
   // Bip court et aigu si la présence est confirmée, deux bips graves sinon (et vibration si possible).
   let audio = null;
@@ -30,15 +36,18 @@
     } catch {}
   }
 
+  // Affiche le résultat d'un scan.
   function show(data) {
     beep(data.status === 'present');
+    const style = STYLES[data.status] || 'error';
     const person = data.person ? `${data.person.prenom} ${data.person.nom}` : '';
+    ready.hidden = true;
     result.hidden = false;
-    result.className = `scan-result scan-${STYLES[data.status] || 'error'}`;
-    void result.offsetWidth; // relance l'animation à chaque scan
+    result.className = `scan-result scan-${style}`;
+    void result.offsetWidth;                 // relance l'animation à chaque scan
     result.classList.add('flash');
     const flash = document.getElementById('scan-flash');
-    flash.className = `scan-flash scan-flash-${STYLES[data.status] || 'error'}`;
+    flash.className = `scan-flash scan-flash-${style}`;
     void flash.offsetWidth;
     flash.classList.add('on');
     result.replaceChildren();
@@ -50,13 +59,15 @@
       details.textContent = `${person} — ${data.person.filiale} · ${data.person.evenement}`;
       result.append(details);
     }
+    // Une ligne de plus dans « Derniers scans » (15 au maximum).
     const item = document.createElement('li');
-    item.className = `scan-${STYLES[data.status] || 'error'}`;
+    item.className = `scan-${style}`;
     item.textContent = `${new Date().toLocaleTimeString('fr-FR')} · ${person || 'Inconnu'} · ${data.message}`;
     history.prepend(item);
     while (history.children.length > 15) history.lastChild.remove();
   }
 
+  // Envoie le code au serveur et affiche la réponse.
   async function submit(code) {
     code = code.trim();
     // La caméra lit le même code plusieurs fois par seconde : on ignore les répétitions.
@@ -80,29 +91,22 @@
     }
   }
 
-  // Une douchette « tape » le contenu du QR code puis la touche Entrée : le formulaire est envoyé.
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    clearTimeout(autoTimer);
-    submit(input.value);
+  // Le terminal « tape » le contenu du QR code, puis la touche Entrée (ou Tab selon son réglage).
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      clearTimeout(autoTimer);
+      submit(input.value);
+    }
   });
 
-  // Certaines machines n'envoient pas « Entrée » après le code : dès qu'un QR code complet est saisi,
-  // on valide après une courte pause.
-  const FULL_CODE = /^SNEDAI-EVT:[A-Za-z0-9_-]{32}$/;
-  let autoTimer = null;
+  // Certains terminaux n'envoient pas « Entrée » après le code : dès qu'un QR code complet est reçu,
+  // on l'envoie après une courte pause.
   const checkComplete = () => {
     clearTimeout(autoTimer);
     if (FULL_CODE.test(input.value.trim())) autoTimer = setTimeout(() => submit(input.value), 120);
   };
   input.addEventListener('input', checkComplete);
-  // Lecteur réglé pour envoyer « Tab » après le code : on valide au lieu de quitter le champ.
-  input.addEventListener('keydown', (event) => {
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      submit(input.value);
-    }
-  });
   // Certains lecteurs Android remplissent le champ sans déclencher d'événement : vérification régulière.
   let lastSeen = '';
   setInterval(() => {
@@ -112,7 +116,7 @@
     }
   }, 250);
 
-  // Le curseur reste toujours dans le champ : la machine peut scanner à tout moment,
+  // Le curseur reste toujours dans le champ invisible : le terminal peut scanner à tout moment,
   // même si quelqu'un a touché ailleurs sur l'écran.
   document.addEventListener('keydown', (event) => {
     if (document.activeElement !== input && event.key.length === 1 && !event.ctrlKey && !event.metaKey) input.focus();
@@ -121,20 +125,6 @@
     setTimeout(() => {
       if (document.activeElement === document.body || document.activeElement === null) input.focus({ preventScroll: true });
     }, 150);
-  });
-
-  // Mode « machine de scan » : sur le terminal Android à lecteur intégré, empêche le clavier
-  // de l'écran de s'ouvrir et de cacher le résultat. Activé par défaut sur Android ; choix mémorisé.
-  const machineMode = document.getElementById('machine-mode');
-  const applyMachineMode = () => input.setAttribute('inputmode', machineMode.checked ? 'none' : 'text');
-  let saved = null;
-  try { saved = localStorage.getItem('scan-machine-mode'); } catch {}
-  machineMode.checked = saved === null ? /android/i.test(navigator.userAgent) : saved === '1';
-  applyMachineMode();
-  machineMode.addEventListener('change', () => {
-    applyMachineMode();
-    try { localStorage.setItem('scan-machine-mode', machineMode.checked ? '1' : '0'); } catch {}
-    input.focus();
   });
 
   // L'écran du terminal reste allumé tant que la page Scanner est ouverte.
@@ -153,6 +143,7 @@
     if (document.visibilityState === 'visible') input.focus({ preventScroll: true });
   });
 
+  // Scan par la caméra (secours).
   let scanner = null;
   cameraToggle.addEventListener('click', async () => {
     if (scanner) {
