@@ -144,7 +144,21 @@
   });
 
   // Scan par la caméra (secours).
+  // On essaie d'abord la caméra ARRIÈRE (téléphone), puis n'importe quelle caméra (webcam d'ordinateur).
   let scanner = null;
+  const reglages = { fps: 10, qrbox: 250 };
+  const surScan = (texte) => submit(texte);
+
+  // Transforme l'erreur du navigateur en message clair.
+  function messageCamera(erreur) {
+    const nom = (erreur && (erreur.name || erreur)) + '';
+    if (/NotAllowed|Permission/i.test(nom)) return 'Accès à la caméra refusé. Cliquez sur le cadenas à gauche de l’adresse, puis autorisez la caméra et rechargez la page.';
+    if (/NotFound|DevicesNotFound/i.test(nom)) return 'Aucune caméra détectée sur cet appareil.';
+    if (/NotReadable|TrackStart|Abort/i.test(nom)) return 'La caméra est utilisée par une autre application (Teams, Zoom…). Fermez-la puis réessayez.';
+    if (/Secure|https/i.test(nom)) return 'La caméra exige une connexion sécurisée (HTTPS) ou l’adresse localhost.';
+    return 'Impossible d’ouvrir la caméra : ' + nom;
+  }
+
   cameraToggle.addEventListener('click', async () => {
     if (scanner) {
       await scanner.stop().catch(() => {});
@@ -152,14 +166,22 @@
       cameraToggle.textContent = 'Utiliser la caméra';
       return;
     }
-    if (!window.Html5Qrcode) return show({ status: 'inconnu', message: 'Lecteur caméra indisponible.' });
+    if (!window.Html5Qrcode) return show({ status: 'inconnu', message: 'Lecteur caméra indisponible : le fichier static/vendor/html5-qrcode.min.js est introuvable.' });
+    if (!window.isSecureContext) return show({ status: 'inconnu', message: messageCamera('Secure context https') });
     scanner = new window.Html5Qrcode('camera');
     try {
-      await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 250 }, (text) => submit(text));
+      try {
+        await scanner.start({ facingMode: 'environment' }, reglages, surScan);
+      } catch (premiereErreur) {
+        // Pas de caméra arrière (ordinateur) : on prend la première caméra disponible.
+        const cameras = await window.Html5Qrcode.getCameras();
+        if (!cameras.length) throw premiereErreur;
+        await scanner.start(cameras[0].id, reglages, surScan);
+      }
       cameraToggle.textContent = 'Arrêter la caméra';
-    } catch {
+    } catch (erreur) {
       scanner = null;
-      show({ status: 'inconnu', message: 'Impossible d’ouvrir la caméra (autorisation refusée ou site non sécurisé en HTTPS).' });
+      show({ status: 'inconnu', message: messageCamera(erreur) });
     }
   });
 })();
