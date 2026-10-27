@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{# Page d'erreur générique : titre + message. Réutilisée partout (accès refusé, page introuvable…). #}
+{% block content %}
+<section class="card narrow center">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <a class="btn" href="/">Retour à l’accueil</a>
+</section>
+{% endblock %}

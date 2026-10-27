@@ -1,0 +1,8 @@
+<%# Fil d'Ariane. Usage : include('partials/breadcrumb', { items: [{ label: 'Événements', href: '/' }, { label: 'Titre' }] }) %>
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <% items.forEach((item, i) => { %>
+      <li<%- i === items.length - 1 ? ' aria-current="page"' : '' %>><% if (item.href && i < items.length - 1) { %><a href="<%= item.href %>"><%= item.label %></a><% } else { %><span><%= item.label %></span><% } %></li>
+    <% }) %>
+  </ol>
+</nav>

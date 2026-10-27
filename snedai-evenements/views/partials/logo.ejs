@@ -1,0 +1,5 @@
+<% if (logoUrl) { %>
+  <img src="<%= logoUrl %>" alt="SNEDAI" class="logo logo-<%= typeof size !== 'undefined' ? size : 'small' %>">
+<% } else { %>
+  <span class="brand-mark logo-<%= typeof size !== 'undefined' ? size : 'small' %>">S</span>
+<% } %>

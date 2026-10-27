@@ -1,0 +1,196 @@
+const nodemailer = require('nodemailer');
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// Envoi par l'API HTTPS de Brevo (gratuit, et fonctionne sur les hébergeurs qui bloquent le SMTP).
+function brevoTransport(apiKey, sender, fetchImpl) {
+  return async ({ to, subject, text, html, attachments = [] }) => {
+    const response = await fetchImpl('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        sender,
+        to: [{ email: to }],
+        subject,
+        textContent: text,
+        htmlContent: html,
+        ...(attachments.length && {
+          attachment: attachments.map((a) => ({ name: a.filename, content: a.content.toString('base64') })),
+        }),
+      }),
+    });
+    if (!response.ok) throw new Error(`Brevo ${response.status} : ${await response.text()}`);
+  };
+}
+
+// Envoi par l'API HTTPS d'AgentMail (gratuit, sans carte bancaire), depuis une boîte du type nom@agentmail.to.
+function agentmailTransport(apiKey, inbox, fetchImpl) {
+  return async ({ to, subject, text, html, attachments = [] }) => {
+    const response = await fetchImpl(`https://api.agentmail.to/v0/inboxes/${encodeURIComponent(inbox)}/messages/send`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        to: [to],
+        subject,
+        text,
+        html,
+        ...(attachments.length && {
+          attachments: attachments.map((a) => ({ filename: a.filename, content_type: 'image/png', content: a.content.toString('base64') })),
+        }),
+      }),
+    });
+    if (!response.ok) throw new Error(`AgentMail ${response.status} : ${await response.text()}`);
+  };
+}
+
+function smtpTransport(smtp, sender) {
+  const transport = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    auth: smtp.user ? { user: smtp.user, pass: smtp.password } : undefined,
+  });
+  return (message) => transport.sendMail({ from: { name: sender.name, address: sender.email }, ...message });
+}
+
+function createMailer(config, logger = console, fetchImpl = globalThis.fetch) {
+  let deliver = null;
+  let provider = null;
+  let sender = config.mailFrom.email;
+  if (config.agentmail.apiKey && config.agentmail.inbox) {
+    deliver = agentmailTransport(config.agentmail.apiKey, config.agentmail.inbox, fetchImpl);
+    sender = config.agentmail.inbox;
+    provider = 'AgentMail';
+  } else if (config.brevoApiKey && config.mailFrom.email) {
+    deliver = brevoTransport(config.brevoApiKey, config.mailFrom, fetchImpl);
+    provider = 'Brevo';
+  } else if (config.smtp.host && config.mailFrom.email) {
+    deliver = smtpTransport(config.smtp, config.mailFrom);
+    provider = 'SMTP';
+  }
+  const configured = Boolean(deliver);
+  // Dernier résultat d'envoi, affiché à l'administrateur (page « Comptes ») pour trouver la cause d'une panne.
+  const state = { lastError: null, lastErrorAt: null, lastOkAt: null };
+
+  async function send(message) {
+    if (!deliver) {
+      logger.info(`[e-mail non envoyé : aucun service d’envoi configuré] À ${message.to} — ${message.subject}`);
+      return false;
+    }
+    try {
+      await deliver(message);
+    } catch (error) {
+      state.lastError = error.message;
+      state.lastErrorAt = new Date();
+      throw error;
+    }
+    state.lastOkAt = new Date();
+    return true;
+  }
+
+  function layout(content) {
+    return `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937">
+      <div style="background:#26246a;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0;border-bottom:4px solid #f08a46;font-size:18px;font-weight:bold">Événements SNEDAI</div>
+      <div style="border:1px solid #e5e7eb;border-top:0;padding:20px;border-radius:0 0 8px 8px">${content}</div>
+    </div>`;
+  }
+
+  return {
+    configured,
+    sender,
+    provider,
+    state,
+
+    // Code à 6 chiffres qui confirme l'adresse e-mail lors d'une inscription sans Google.
+    sendVerificationCode(email, prenom, code) {
+      return send({
+        to: email,
+        subject: `${code} est votre code de confirmation – Événements SNEDAI`,
+        text: `Bonjour ${prenom},\n\nVotre code de confirmation est : ${code}\nIl est valable 15 minutes.\n\nSi vous n’avez pas demandé à créer un compte, ignorez ce message.\n`,
+        html: layout(`<p>Bonjour ${escapeHtml(prenom)},</p>
+          <p>Voici votre code pour confirmer votre adresse e-mail :</p>
+          <p style="font-size:30px;font-weight:bold;letter-spacing:8px;color:#26246a;margin:16px 0">${escapeHtml(code)}</p>
+          <p style="color:#62647a">Il est valable 15 minutes. Si vous n’avez pas demandé à créer un compte, ignorez ce message.</p>`),
+      });
+    },
+
+    // Message de bienvenue envoyé juste après la création du compte.
+    sendWelcome(user) {
+      const link = `${config.appUrl}/`;
+      return send({
+        to: user.email,
+        subject: 'Bienvenue sur les Événements SNEDAI',
+        text: `Bonjour ${user.prenom},\n\nVotre compte est créé. Vous serez prévenu(e) par e-mail à chaque nouvel événement, et vous pourrez confirmer votre présence pour recevoir votre QR code d’entrée.\n\nAccéder au site : ${link}\n`,
+        html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
+          <p>Bienvenue sur la plateforme des <strong>événements SNEDAI</strong>. Votre compte est créé.</p>
+          <ul>
+            <li>Vous recevrez un e-mail <strong>à chaque nouvel événement</strong> ;</li>
+            <li>un clic sur « Je serai présent(e) » vous donne votre <strong>QR code d’entrée</strong> ;</li>
+            <li>le jour J, il suffit de le présenter à l’accueil.</li>
+          </ul>
+          <p><a href="${link}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir les événements</a></p>`),
+      });
+    },
+
+    // E-mail de test envoyé à l'administrateur : renvoie l'erreur exacte du service d'envoi s'il y en a une.
+    async sendTest(to) {
+      if (!deliver) return { ok: false, error: 'Aucun service d’envoi configuré (variable BREVO_API_KEY absente sur Render).' };
+      try {
+        await send({
+          to,
+          subject: 'Test d’envoi – Événements SNEDAI',
+          text: 'Si vous lisez ce message, les e-mails du site fonctionnent.',
+          html: layout('<p>Si vous lisez ce message, les e-mails du site <strong>fonctionnent</strong>.</p>'),
+        });
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: error.message };
+      }
+    },
+
+    // Prévient chaque inscrit d'un nouvel événement. Les envois se font un par un, en arrière-plan.
+    async announceEvent(event, users, whenText) {
+      const link = `${config.appUrl}/evenements/${event.id}`;
+      let sent = 0;
+      for (const user of users) {
+        try {
+          const ok = await send({
+            to: user.email,
+            subject: `Nouvel événement : ${event.titre}`,
+            text: `Bonjour ${user.prenom},\n\nUn nouvel événement a été publié : ${event.titre}.\n${whenText ? `Quand : ${whenText}\n` : ''}${event.lieu ? `Où : ${event.lieu}\n` : ''}\nConfirmez votre présence ici : ${link}\n`,
+            html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
+              <p>Un nouvel événement a été publié :</p>
+              <h2 style="margin:8px 0">${escapeHtml(event.titre)}</h2>
+              ${whenText ? `<p><strong>Quand :</strong> ${escapeHtml(whenText)}</p>` : ''}
+              ${event.lieu ? `<p><strong>Où :</strong> ${escapeHtml(event.lieu)}</p>` : ''}
+              <p><a href="${link}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Voir l’événement et confirmer ma présence</a></p>`),
+          });
+          if (ok) sent += 1;
+        } catch (error) {
+          logger.error(`Échec de l’envoi à ${user.email} : ${error.message}`);
+        }
+      }
+      return sent;
+    },
+
+    // Envoie le QR code personnel après le clic sur « Je serai présent(e) ».
+    sendQrCode(event, user, qrPng, whenText) {
+      return send({
+        to: user.email,
+        subject: `Votre QR code pour : ${event.titre}`,
+        text: `Bonjour ${user.prenom},\n\nVotre présence à « ${event.titre} » est notée. Présentez le QR code joint (pièce jointe) à l’agent d’accueil le jour de l’événement.\nVous pouvez aussi l’afficher ici : ${config.appUrl}/evenements/${event.id}\n`,
+        html: layout(`<p>Bonjour ${escapeHtml(user.prenom)},</p>
+          <p>Votre présence à <strong>${escapeHtml(event.titre)}</strong> est notée.</p>
+          ${whenText ? `<p><strong>Quand :</strong> ${escapeHtml(whenText)}</p>` : ''}
+          ${event.lieu ? `<p><strong>Où :</strong> ${escapeHtml(event.lieu)}</p>` : ''}
+          <p>Votre QR code est <strong>en pièce jointe</strong>. Présentez-le à l’agent d’accueil, il sera scanné pour confirmer votre venue.</p>
+          <p><a href="${config.appUrl}/evenements/${event.id}" style="display:inline-block;background:#26246a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none">Afficher mon QR code sur le site</a></p>`),
+        attachments: [{ filename: 'qrcode.png', content: qrPng }],
+      });
+    },
+  };
+}
+
+module.exports = { createMailer };

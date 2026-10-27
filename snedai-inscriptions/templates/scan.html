@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load snedai %}
+{% block content %}
+<div id="scan-flash" class="scan-flash" aria-hidden="true"></div>
+<section class="scan" data-csrf="{{ csrf_token }}">
+  <h1>Scanner les QR codes</h1>
+
+  {# Le lecteur du terminal « tape » le code dans ce champ puis appuie sur Entrée. #}
+  {# Le champ est INVISIBLE (l'agent n'a rien à saisir) mais il doit exister pour recevoir le code. #}
+  <form id="scan-form" autocomplete="off">
+    <input id="scan-input" name="code" autofocus autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Code scanné"
+           style="position:fixed; top:0; left:0; width:1px; height:1px; opacity:0; border:0; padding:0;">
+  </form>
+
+  <div class="empty-state">
+    {% icon 'scan' %}
+    <strong>Prêt à scanner</strong>
+    <span>Appuyez sur le bouton de scan du terminal et visez le QR code de l’employé.</span>
+  </div>
+
+  <div id="scan-result" class="scan-result" aria-live="assertive" hidden></div>
+
+  <details class="card camera-box">
+    <summary>Pas de terminal sous la main ? Scanner avec la caméra</summary>
+    <button id="camera-toggle" class="btn btn-secondary" type="button">{% icon 'camera' %} Utiliser la caméra</button>
+    <div id="camera" class="camera"></div>
+  </details>
+
+  <h2>Derniers scans</h2>
+  <ul id="scan-history" class="scan-history"></ul>
+</section>
+<script src="/static/vendor/html5-qrcode.min.js" defer></script>
+<script src="/static/js/scan.js?v={{ asset_version }}" defer></script>
+{% endblock %}

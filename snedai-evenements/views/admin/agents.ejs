@@ -1,0 +1,61 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <%- include('../partials/breadcrumb', { items: [{ label: 'Tableau de bord', href: '/admin/tableau-de-bord' }, { label: 'Comptes' }] }) %>
+</div>
+<section class="card">
+  <h1>Comptes</h1>
+  <p class="hint">Tous les comptes inscrits sur le site. Les <strong>agents de scan</strong> peuvent seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée : ils ne voient ni le tableau de bord, ni les listes, ni l’export Excel.</p>
+  <p class="hint">Supprimer un compte efface aussi ses réponses aux événements, et la personne est déconnectée. Elle pourra recréer un compte plus tard.</p>
+  <% if (!users.length) { %>
+    <p class="empty">Aucun inscrit pour le moment.</p>
+  <% } else { %>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nom</th><th>Prénom</th><th>E-mail</th><th>Filiale</th><th>Agent de scan</th><th>Supprimer</th></tr></thead>
+      <tbody>
+        <% users.forEach((u) => { %>
+          <tr>
+            <td><%= u.nom %></td><td><%= u.prenom %></td><td><%= u.email %></td><td><%= u.filiale %></td>
+            <% if (u.email.toLowerCase() === user.email.toLowerCase()) { %>
+              <td colspan="2"><span class="badge badge-ok">Administrateur (vous)</span></td>
+            <% } else { %>
+              <td>
+                <form method="post" action="/admin/agents/<%= u.id %>" class="inline">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="agent" value="<%= u.is_agent ? '0' : '1' %>">
+                  <button class="btn btn-small btn-secondary" type="submit"><%= u.is_agent ? 'Retirer' : 'Nommer agent' %></button>
+                </form>
+              </td>
+              <td>
+                <form method="post" action="/admin/comptes/<%= u.id %>/supprimer" class="inline" data-confirm="Supprimer le compte de <%= u.prenom %> <%= u.nom %> ? Cette action est définitive.">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-small btn-danger" type="submit"><%- include('../partials/icon', { name: 'trash' }) %> Supprimer</button>
+                </form>
+              </td>
+            <% } %>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<section class="card">
+  <h2>Vérifier les e-mails</h2>
+  <% if (!mail.provider) { %>
+    <div class="alert alert-error">Aucun service d’envoi d’e-mails n’est configuré. Ajoutez <code>AGENTMAIL_API_KEY</code> et <code>AGENTMAIL_INBOX</code> dans Render (Environment).</div>
+  <% } else { %>
+    <p class="hint">Service utilisé : <strong><%= mail.provider %></strong> (expéditeur : <%= mail.sender %>).</p>
+    <% if (mail.lastError) { %>
+      <div class="alert alert-error"><strong>Dernier échec d’envoi (<%= format.timestamp(mail.lastErrorAt.toISOString()) %>) :</strong> <%= mail.lastError %></div>
+    <% } %>
+    <% if (mail.lastOkAt) { %><p class="hint">Dernier envoi réussi : <%= format.timestamp(mail.lastOkAt.toISOString()) %>.</p><% } %>
+  <% } %>
+  <p class="hint">Envoie un e-mail de test à votre adresse et affiche l’erreur exacte si l’envoi échoue.</p>
+  <form method="post" action="/admin/test-email" class="inline">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn" type="submit"><%- include('../partials/icon', { name: 'mail' }) %> Envoyer un e-mail de test</button>
+  </form>
+</section>
+<%- include('../partials/footer') %>

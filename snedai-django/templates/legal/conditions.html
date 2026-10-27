@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<article class="card narrow legal">
+  <h1>Conditions d’utilisation</h1>
+  <ul>
+    <li>Ce site est réservé aux employés de SNEDAI et de ses filiales, pour s’informer des événements internes et confirmer sa présence.</li>
+    <li>Chaque personne crée un seul compte, à son propre nom, avec sa propre adresse e-mail.</li>
+    <li>Le QR code d’entrée est personnel : il ne doit pas être partagé ni utilisé par quelqu’un d’autre.</li>
+    <li>Seul l’administrateur du site publie les événements et consulte les listes de participants.</li>
+    <li>Un compte utilisé de façon abusive peut être supprimé.</li>
+  </ul>
+  <p>Questions : écrivez à l’administrateur du site{% if admin_contact %} (<a href="mailto:{{ admin_contact }}">{{ admin_contact }}</a>){% endif %}.</p>
+</article>
+{% endblock %}

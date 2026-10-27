@@ -1,0 +1,115 @@
+<%- include('../partials/header') %>
+<section>
+  <div class="dash-head">
+    <h1>Tableau de bord</h1>
+    <% if (events.length) { %>
+    <form method="get" action="/admin/tableau-de-bord" class="event-picker">
+      <label for="evenement">Événement (historique)</label>
+      <select id="evenement" name="evenement" data-autosubmit>
+        <% events.forEach((ev) => { %>
+          <option value="<%= ev.id %>" <%= event && ev.id === event.id ? 'selected' : '' %>><%= ev.termine_at ? 'Terminé — ' : 'En cours — ' %><%= ev.titre %></option>
+        <% }) %>
+      </select>
+      <noscript><button class="btn btn-secondary">Afficher</button></noscript>
+      <% if (event && !event.termine_at) { %>
+        <label class="dash-refresh"><input type="checkbox" id="auto-refresh" checked> Mise à jour automatique (toutes les 20 s)</label>
+      <% } %>
+    </form>
+    <% } %>
+  </div>
+
+  <% if (!event) { %>
+    <div class="card empty">Aucun événement publié. <a href="/admin/evenements/nouveau">Publier le premier</a>.</div>
+  <% } else { %>
+    <div class="card">
+      <h2><%= event.titre %></h2>
+      <% if (event.debut) { %><p class="meta"><%- include('../partials/icon', { name: 'calendar' }) %> <%= format.eventRange(event.debut, event.fin) %></p><% } %>
+      <% if (event.lieu) { %><p class="meta"><%- include('../partials/icon', { name: 'pin' }) %> <%= event.lieu %></p><% } %>
+
+      <div class="stats">
+        <a class="stat" href="#inscrits"><strong><%= inscrits.length %></strong><span>Inscrits sur le site</span></a>
+        <a class="stat" href="#confirmes"><strong><%= confirmes.length %></strong><span>Ont dit « je serai présent(e) »</span></a>
+        <a class="stat stat-ok" href="#presents"><strong><%= presents.length %></strong><span>Étaient là (QR scanné)</span></a>
+      </div>
+      <div class="rates">
+        <div class="rate">
+          <span>Taux de réponse</span>
+          <div class="gauge"><i style="width: <%= rates.reponse || 0 %>%"></i></div>
+          <strong><%= rates.reponse === null ? '—' : rates.reponse + ' %' %></strong>
+          <small>des inscrits ont dit « je serai présent(e) »</small>
+        </div>
+        <div class="rate rate-ok">
+          <span>Taux de présence</span>
+          <div class="gauge"><i style="width: <%= rates.presence || 0 %>%"></i></div>
+          <strong><%= rates.presence === null ? '—' : rates.presence + ' %' %></strong>
+          <small>des personnes annoncées étaient vraiment là</small>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="/admin/evenements/<%= event.id %>/export.xlsx"><%- include('../partials/icon', { name: 'download' }) %> Exporter les 3 listes (Excel)</a>
+        <a class="btn btn-secondary" href="/admin/evenements/<%= event.id %>/rapport.pdf"><%- include('../partials/icon', { name: 'download' }) %> Rapport PDF</a>
+        <a class="btn btn-secondary" href="/admin/evenements/<%= event.id %>/modifier"><%- include('../partials/icon', { name: 'edit' }) %> Modifier</a>
+        <a class="btn btn-secondary" href="/evenements/<%= event.id %>"><%- include('../partials/icon', { name: 'eye' }) %> Voir la page</a>
+      </div>
+    </div>
+
+    <% if (filiales.length) { %>
+    <div class="card" id="filiales">
+      <div class="list-head">
+        <h2>Participation par filiale</h2>
+        <div class="legend"><span class="l-inscrits"></span> Inscrits <span class="l-confirmes"></span> Ont dit oui <span class="l-presents"></span> Étaient là</div>
+      </div>
+      <div class="chart">
+        <% filiales.forEach((f) => { %>
+          <div class="chart-row">
+            <div class="chart-label"><%= f.filiale %></div>
+            <div class="chart-bars" title="<%= f.inscrits %> inscrits, <%= f.confirmes %> ont dit oui, <%= f.presents %> étaient là">
+              <i class="b-inscrits" style="width: <%= f.barInscrits.toFixed(1) %>%"></i>
+              <i class="b-confirmes" style="width: <%= f.barConfirmes.toFixed(1) %>%"></i>
+              <i class="b-presents" style="width: <%= f.barPresents.toFixed(1) %>%"></i>
+            </div>
+            <div class="chart-value"><strong><%= f.presents %></strong> / <%= f.confirmes %> <small><%= f.presence === null ? '' : '(' + f.presence + ' %)' %></small></div>
+          </div>
+        <% }) %>
+      </div>
+      <p class="hint">Chiffre de droite : personnes venues / personnes annoncées (taux de présence).</p>
+    </div>
+    <% } %>
+
+    <div class="card" id="inscrits">
+      <div class="list-head">
+        <h2>Inscrits sur le site (<%= inscrits.length %>)</h2>
+        <a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=inscrits"><%- include('../partials/icon', { name: 'download' }) %> Excel</a>
+      </div>
+      <%- include('people-table', { rows: inscrits, dateLabel: 'Inscrit le', dateKey: 'created_at' }) %>
+    </div>
+    <div class="card" id="confirmes">
+      <div class="list-head">
+        <h2>Ont dit qu’ils seront présents (<%= confirmes.length %>)</h2>
+        <a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=confirmes"><%- include('../partials/icon', { name: 'download' }) %> Excel</a>
+      </div>
+      <%- include('people-table', { rows: confirmes, dateLabel: 'Confirmé le', dateKey: 'confirme_at' }) %>
+    </div>
+    <div class="card" id="presents">
+      <div class="list-head">
+        <h2>Ont dit qu’ils seront présents et étaient là – QR scanné (<%= presents.length %>)</h2>
+        <a class="btn btn-small btn-secondary" href="/admin/evenements/<%= event.id %>/export.xlsx?liste=presents"><%- include('../partials/icon', { name: 'download' }) %> Excel</a>
+      </div>
+      <%- include('people-table', { rows: presents, dateLabel: 'Scanné le', dateKey: 'scanne_at' }) %>
+    </div>
+
+    <div class="card finish">
+      <% if (event.termine_at) { %>
+        <p class="finished-banner"><%- include('../partials/icon', { name: 'check' }) %> Terminé <small>le <%= format.timestamp(event.termine_at) %></small></p>
+      <% } else { %>
+        <p>Quand l’événement est fini, marquez-le comme terminé : les QR codes ne seront plus acceptés.</p>
+        <form method="post" action="/admin/evenements/<%= event.id %>/terminer" data-confirm="Marquer cet événement comme terminé ? Les QR codes ne pourront plus être scannés.">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-danger" type="submit"><%- include('../partials/icon', { name: 'flag' }) %> Marquer comme terminé</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/footer') %>
