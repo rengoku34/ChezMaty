@@ -1,0 +1,27 @@
+{% extends 'base.html' %}{% load snedai %}
+{# PUBLIC : le billet de l'inscrit, avec son QR code. On n'y accède qu'avec le code secret reçu par e-mail. #}
+{% block content %}
+<div class="public-layout">
+  {% if nouveau %}
+    <div class="alert alert-success">
+      Inscription enregistrée !
+      {% if email_configure %}Votre QR code vous a aussi été envoyé par e-mail à <strong>{{ inscription.email }}</strong>.{% endif %}
+    </div>
+  {% endif %}
+  <div class="ticket {% if inscription.present %}ticket-ok{% endif %}">
+    <div class="ticket-head">{% if inscription.present %}{% icon 'check' %} Présence validée{% else %}{% icon 'ticket' %} Billet d’entrée{% endif %}</div>
+    <div class="ticket-body">
+      <p class="ticket-name">{{ inscription.prenom }} {{ inscription.nom }}</p>
+      <p class="ticket-sub">{{ inscription.filiale }}</p>
+      <p class="ticket-sub"><strong>{{ event.titre }}</strong>{% if event.debut %} · {{ event.range_text }}{% endif %}{% if event.lieu %} · {{ event.lieu }}{% endif %}</p>
+      {% if inscription.present %}
+        <p class="ticket-note">Votre venue a été confirmée à l’entrée le {{ inscription.scanne_at|ts }}. Bon événement !</p>
+      {% else %}
+        <img class="ticket-qr" src="{{ qr }}" alt="Votre QR code personnel" width="240" height="240">
+        <p class="ticket-note">Présentez ce QR code à l’accueil, sur votre téléphone ou imprimé.</p>
+        <a class="btn btn-secondary btn-block" href="/billet/{{ inscription.qr_token }}/qr.png">{% icon 'download' %} Télécharger mon QR code</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

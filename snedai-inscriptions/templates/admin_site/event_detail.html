@@ -1,0 +1,69 @@
+{% extends 'base.html' %}{% load snedai %}
+{# READ : un événement, son lien d'inscription, et la liste des inscriptions avec « Présent » vrai ou faux. #}
+{% block content %}
+<div class="page-head">
+  {% include 'partials/breadcrumb.html' with parent_label='Événements' parent_href='/admin/evenements' current=event.titre %}
+  <div class="actions">
+    <a class="btn btn-small btn-secondary" href="/admin/evenements/{{ event.id }}/modifier">{% icon 'edit' %} Modifier</a>
+    <form method="post" action="/admin/evenements/{{ event.id }}/supprimer" class="inline" data-confirm="Supprimer « {{ event.titre }} » et ses {{ nb_inscrits }} inscription(s) ? Cette action est définitive.">
+      {% csrf_token %}
+      <button class="btn btn-small btn-danger" type="submit">{% icon 'trash' %} Supprimer</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h1>{{ event.titre }}</h1>
+  {% if event.debut %}<p class="meta">{% icon 'calendar' %} {{ event.range_text }}</p>{% endif %}
+  {% if event.lieu %}<p class="meta">{% icon 'pin' %} {{ event.lieu }}</p>{% endif %}
+  <p>{{ event.description }}</p>
+</div>
+
+{# Le lien d'inscription à partager #}
+<div class="card">
+  <h2>Lien d’inscription</h2>
+  <p class="hint">Partagez ce lien aux employés : ils remplissent le formulaire et reçoivent leur QR code par e-mail.</p>
+  <div class="row-link">
+    <input id="lien-inscription" class="lien-input" readonly value="{{ event.url_inscription }}">
+    <button type="button" class="btn" data-copy="{{ event.url_inscription }}" data-target="lien-inscription">{% icon 'download' %} <span>Copier le lien</span></button>
+    <a class="btn btn-secondary" href="/e/{{ event.lien }}" target="_blank" rel="noopener">{% icon 'eye' %} Ouvrir</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><strong>{{ nb_inscrits }}</strong><span>Inscrits</span></div>
+  <div class="stat stat-ok"><strong>{{ nb_presents }}</strong><span>Présents (QR scanné)</span></div>
+  <div class="stat"><strong>{{ taux|pct }}</strong><span>Taux de présence</span></div>
+</div>
+
+<div class="card">
+  <div class="list-head">
+    <h2>Liste des inscriptions ({{ nb_inscrits }})</h2>
+    <a class="btn btn-small" href="/admin/evenements/{{ event.id }}/export.xlsx">{% icon 'download' %} Exporter en Excel</a>
+  </div>
+  {% if not inscriptions %}
+    <p class="empty">Personne ne s’est encore inscrit. Partagez le lien ci-dessus.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Filiale</th><th>Téléphone</th><th>E-mail</th><th>Présent</th><th></th></tr></thead>
+      <tbody>
+        {% for i in inscriptions %}
+          <tr>
+            <td>{{ forloop.counter }}</td><td>{{ i.nom }}</td><td>{{ i.prenom }}</td><td>{{ i.filiale }}</td><td>{{ i.telephone }}</td><td>{{ i.email }}</td>
+            {# Présent : vrai (vert) ou faux (gris) #}
+            <td>{% if i.present %}<span class="badge badge-ok" title="Scanné le {{ i.scanne_at|ts }}">Vrai</span>{% else %}<span class="badge badge-done">Faux</span>{% endif %}</td>
+            <td>
+              <form method="post" action="/admin/evenements/{{ event.id }}/inscriptions/{{ i.id }}/supprimer" class="inline" data-confirm="Supprimer l’inscription de {{ i.prenom }} {{ i.nom }} ?">
+                {% csrf_token %}
+                <button class="btn btn-small btn-danger" type="submit" aria-label="Supprimer l’inscription">{% icon 'trash' %}</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

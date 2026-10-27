@@ -1,0 +1,40 @@
+{% extends 'base.html' %}{% load snedai %}
+{# PUBLIC : la page du lien d'inscription. Aucune connexion : n'importe qui ayant le lien peut s'inscrire. #}
+{% block content %}
+<div class="public-layout">
+  <div class="public-event">
+    <span class="hero-kicker">Inscription</span>
+    <h1>{{ event.titre }}</h1>
+    {% if event.debut %}<p class="meta">{% icon 'calendar' %} {{ event.range_text }}</p>{% endif %}
+    {% if event.lieu %}<p class="meta">{% icon 'pin' %} {{ event.lieu }}</p>{% endif %}
+    <p class="desc">{{ event.description }}</p>
+  </div>
+
+  <section class="card">
+    <h2>Je m’inscris</h2>
+    <p class="hint">Remplissez ce formulaire : vous recevrez aussitôt votre <strong>QR code</strong> par e-mail, à présenter à l’entrée.</p>
+    {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+    {% if info %}<div class="alert alert-info">{{ info }}</div>{% endif %}
+    <form method="post" action="/e/{{ event.lien }}" class="form">
+      {% csrf_token %}
+      <div class="row">
+        <label>Nom<input name="nom" required maxlength="100" autocomplete="family-name" value="{{ values.nom|default:'' }}"></label>
+        <label>Prénom<input name="prenom" required maxlength="100" autocomplete="given-name" value="{{ values.prenom|default:'' }}"></label>
+      </div>
+      <label>Filiale
+        {% if filiales %}
+          <select name="filiale" required>
+            <option value="">Choisir…</option>
+            {% for f in filiales %}<option {% if values.filiale == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+          </select>
+        {% else %}
+          <input name="filiale" required maxlength="100" value="{{ values.filiale|default:'' }}">
+        {% endif %}
+      </label>
+      <label>Numéro de téléphone<input type="tel" name="telephone" required maxlength="30" autocomplete="tel" placeholder="Ex. : 07 00 00 00 00" value="{{ values.telephone|default:'' }}"></label>
+      <label>Adresse e-mail<input type="email" name="email" required maxlength="200" autocomplete="email" autocapitalize="none" value="{{ values.email|default:'' }}"></label>
+      <button type="submit" class="btn btn-big btn-block">{% icon 'check' %} Je m’inscris</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{# Le même formulaire sert à CRÉER (event est vide) et à MODIFIER (event existe). #}
+{% block content %}
+<div class="page-head">
+  {% include 'partials/breadcrumb.html' with parent_label='Événements' parent_href='/admin/evenements' current=title %}
+</div>
+<section class="card narrow">
+  <h1>{% if event %}Modifier l’événement{% else %}Créer un événement{% endif %}</h1>
+  {% if event %}
+    <p class="hint">Le lien d’inscription et les QR codes déjà délivrés restent valables.</p>
+  {% else %}
+    <p class="hint">Un lien d’inscription sera créé automatiquement. Vous le partagerez aux employés.</p>
+  {% endif %}
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="{% if event %}/admin/evenements/{{ event.id }}/modifier{% else %}/admin/evenements/creer{% endif %}" class="form">
+    {% csrf_token %}
+    {# value="{{ values.titre|default:'' }}" : on remet ce qui avait été saisi si le formulaire est renvoyé avec une erreur #}
+    <label>Nom de l’événement<input name="titre" required maxlength="150" value="{{ values.titre|default:'' }}"></label>
+    <label>Description<textarea name="description" required rows="6" maxlength="5000">{{ values.description|default:'' }}</textarea></label>
+    <div class="row">
+      <label>Date et heure de début<input type="datetime-local" name="debut" value="{{ values.debut|default:'' }}"></label>
+      <label>Date et heure de fin<input type="datetime-local" name="fin" value="{{ values.fin|default:'' }}"></label>
+    </div>
+    <label>Lieu<input name="lieu" maxlength="200" value="{{ values.lieu|default:'' }}" placeholder="Ex. : Siège SNEDAI, salle de conférence"></label>
+    <div class="actions">
+      <button type="submit" class="btn">{% if event %}Enregistrer les modifications{% else %}Créer l’événement{% endif %}</button>
+      <a class="btn btn-secondary" href="{% if event %}/admin/evenements/{{ event.id }}{% else %}/admin/evenements{% endif %}">Annuler</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

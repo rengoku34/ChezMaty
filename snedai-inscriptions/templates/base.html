@@ -1,0 +1,56 @@
+{% load snedai %}<!doctype html>
+{# base.html est le GABARIT PARENT : l'en-tête et le pied de page communs à toutes les pages. #}
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · Événements SNEDAI</title>
+  <meta name="theme-color" content="#26246a">
+  <link rel="icon" type="image/png" href="/static/img/icon-192.png">
+  <link rel="stylesheet" href="/static/css/style.css?v={{ asset_version }}">
+  <script src="/static/js/app.js?v={{ asset_version }}" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">{% include 'partials/logo.html' %} <span class="brand-text">{% if logo_url %}Événements{% else %}Événements SNEDAI{% endif %}</span></a>
+  {# Le menu en haut à droite : seulement pour l'administrateur et les agents connectés. #}
+  {% if user.is_authenticated %}
+  <div class="usermenu">
+    <span class="usermenu-name">{{ user.prenom }}</span>
+    <button type="button" class="menu-button" id="menu-button" aria-haspopup="true" aria-expanded="false" aria-controls="menu-panel" aria-label="Ouvrir le menu">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
+    <div class="menu-panel" id="menu-panel" role="menu" hidden>
+      <div class="menu-user">
+        <strong>{{ user.prenom }} {{ user.nom }}</strong>
+        <span>{{ user.email }}</span>
+        <small>{% if is_admin %}Administrateur{% else %}Agent de scan{% endif %}</small>
+      </div>
+      {% if is_admin %}
+        <a role="menuitem" href="/admin/evenements" class="{% if '/admin/evenements' in path %}active{% endif %}">{% icon 'calendar' %} Événements</a>
+      {% endif %}
+      <a role="menuitem" href="/scan" class="{% if path == '/scan' %}active{% endif %}">{% icon 'scan' %} Scanner</a>
+      {% if is_admin %}
+        <a role="menuitem" href="/admin/agents" class="{% if path == '/admin/agents' %}active{% endif %}">{% icon 'users' %} Agents de scan</a>
+      {% endif %}
+      <div class="menu-sep"></div>
+      <form method="post" action="/deconnexion">
+        {% csrf_token %}   {# jeton anti-CSRF : obligatoire dans tout formulaire POST #}
+        <button type="submit" role="menuitem" class="menu-logout">{% icon 'logout' %} Déconnexion</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</header>
+
+<main class="container">
+  {# Les petits messages (« Événement créé ») posés par les vues avec messages.success(...) #}
+  {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+
+  {# Les pages enfants viennent remplir ce « trou » #}
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">SNEDAI · Plateforme interne des événements</footer>
+</body>
+</html>
