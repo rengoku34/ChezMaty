@@ -14,7 +14,8 @@ from ..services.mailer import reset_mailer
 REGLAGES = dict(ADMIN_EMAILS=['admin@test.ci'], FILIALES=['SNEDAI', 'SNEDAI Telecom'], AGENTMAIL_API_KEY='cle',
                 AGENTMAIL_INBOX='snedai@agentmail.to', BREVO_API_KEY='', SMTP_HOST='', LOGIN_RATE_LIMIT=1000,
                 PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])
-FORMULAIRE = {'nom': 'Kone', 'prenom': 'Awa', 'filiale': 'SNEDAI Telecom', 'telephone': '07 07 11 22 33', 'email': 'Awa.Kone@exemple.ci'}
+FORMULAIRE = {'nom': 'Kone', 'prenom': 'Awa', 'filiale': 'SNEDAI Telecom', 'telephone': '07 07 11 22 33', 'email': 'Awa.Kone@exemple.ci',
+              'creneau': '11:00 – 13:00'}
 MDP = 'motdepasse1'
 
 
@@ -43,7 +44,8 @@ class BaseTest(TestCase):
         self.admin = User.objects.create_user('admin@test.ci', MDP, nom='Nabaloum', prenom='Aboubakar')
         self.agent = User.objects.create_user('moussa@test.ci', MDP, nom='Traore', prenom='Moussa', is_agent=True)
         self.event = Event.objects.create(titre='Journée bien-être', description='Texte', debut='2099-11-14T09:00',
-                                          fin='2099-11-14T16:00', lieu='Siège')
+                                          fin='2099-11-14T16:00', lieu='Siège',
+                                          creneaux='09:00 – 11:00\n11:00 – 13:00\n14:00 – 16:00\n16:00 – 18:00')
 
     def connecter(self, email='admin@test.ci'):
         client = Client()
@@ -66,13 +68,16 @@ class ParcoursTests(BaseTest):
         reponse = publique.post(f'/e/{self.event.lien}', FORMULAIRE)
         inscription = Inscription.objects.get()
         self.assertEqual(reponse['Location'], f'/billet/{inscription.qr_token}?nouveau=1')
-        self.assertEqual((inscription.present, inscription.email), (False, 'awa.kone@exemple.ci'))   # FAUX au départ
+        self.assertEqual((inscription.present, inscription.email, inscription.creneau), (False, 'awa.kone@exemple.ci', '11:00 – 13:00'))   # FAUX au départ
+        self.assertContains(page, '11:00 – 13:00')                  # les 4 créneaux sont proposés
+        self.assertContains(page, '16:00 – 18:00')
 
         # 2. Il reçoit un e-mail avec son QR code en pièce jointe
         self.attendre_emails(1)
         self.assertEqual(self.envoyes[0]['to'], ['awa.kone@exemple.ci'])
         self.assertEqual(self.envoyes[0]['attachments'][0]['filename'], 'qrcode.png')
         self.assertIn(inscription.url_billet, self.envoyes[0]['html'])
+        self.assertIn('11:00 – 13:00', self.envoyes[0]['text'])      # le créneau est rappelé dans l'e-mail
 
         # 3. La page du billet affiche le QR (seulement avec le code secret)
         self.assertContains(publique.get(f'/billet/{inscription.qr_token}'), 'data:image/png;base64,')
@@ -84,6 +89,7 @@ class ParcoursTests(BaseTest):
         code = f'SNEDAI-EVT:{inscription.qr_token}'
         premier = agent.post('/scan', json.dumps({'code': code}), content_type='application/json')
         self.assertEqual((premier.status_code, premier.json()['status'], premier.json()['person']['prenom']), (200, 'present', 'Awa'))
+        self.assertEqual(premier.json()['person']['creneau'], '11:00 – 13:00')
         second = agent.post('/scan', json.dumps({'code': code}), content_type='application/json')
         self.assertEqual((second.status_code, second.json()['status']), (409, 'deja'))
         inscription.refresh_from_db()
@@ -99,12 +105,13 @@ class ParcoursTests(BaseTest):
         self.assertContains(detail, '>Vrai<')
         classeur = load_workbook(io.BytesIO(admin.get(f'/admin/evenements/{self.event.id}/export.xlsx').content))
         lignes = list(classeur['Inscriptions'].iter_rows(values_only=True))
-        self.assertEqual(lignes[0][:6], ('Nom', 'Prénom', 'Filiale', 'Numéro de téléphone', 'Adresse e-mail', 'Présent'))
-        self.assertEqual(lignes[1][:6], ('Kone', 'Awa', 'SNEDAI Telecom', '07 07 11 22 33', 'awa.kone@exemple.ci', 'Vrai'))
+        self.assertEqual(lignes[0][:7], ('Nom', 'Prénom', 'Filiale', 'Numéro de téléphone', 'Adresse e-mail', 'Créneau', 'Présent'))
+        self.assertEqual(lignes[1][:7], ('Kone', 'Awa', 'SNEDAI Telecom', '07 07 11 22 33', 'awa.kone@exemple.ci', '11:00 – 13:00', 'Vrai'))
 
     def test_validation_du_formulaire(self):
         for changement, message in (({'nom': ''}, 'nom et votre prénom'), ({'filiale': 'Autre'}, 'filiale dans la liste'),
-                                    ({'telephone': 'abc'}, 'téléphone invalide'), ({'email': 'pasunemail'}, 'e-mail invalide')):
+                                    ({'telephone': 'abc'}, 'téléphone invalide'), ({'email': 'pasunemail'}, 'e-mail invalide'),
+                                    ({'creneau': ''}, 'Choisissez un créneau'), ({'creneau': '03:00 – 04:00'}, 'Choisissez un créneau')):
             reponse = Client().post(f'/e/{self.event.lien}', {**FORMULAIRE, **changement})
             self.assertContains(reponse, message, status_code=400)
         self.assertEqual(Inscription.objects.count(), 0)
@@ -119,8 +126,8 @@ class ParcoursTests(BaseTest):
         self.attendre_emails(2)                                    # mais le billet est renvoyé par e-mail
         self.assertEqual(len(self.envoyes), 2)
         # la même adresse peut s'inscrire à un AUTRE événement
-        autre = Event.objects.create(titre='Autre', description='x')
-        Client().post(f'/e/{autre.lien}', FORMULAIRE)
+        autre = Event.objects.create(titre='Autre', description='x')      # sans créneaux
+        Client().post(f'/e/{autre.lien}', {**FORMULAIRE, 'creneau': ''})
         self.assertEqual(Inscription.objects.count(), 2)
 
     def test_une_panne_d_e_mail_n_empeche_pas_l_inscription(self):
@@ -139,20 +146,24 @@ class BackofficeTests(BaseTest):
     def test_crud_des_evenements(self):
         admin = self.connecter()
         # Create
-        reponse = admin.post('/admin/evenements/creer', {'titre': 'Soirée', 'description': 'Venez', 'lieu': 'Siège', 'debut': '2099-12-20T18:00', 'fin': '2099-12-20T23:00'})
+        reponse = admin.post('/admin/evenements/creer', {'titre': 'Soirée', 'description': 'Venez', 'lieu': 'Siège', 'debut': '2099-12-20T18:00', 'fin': '2099-12-20T23:00',
+                                                         'creneau_debut_1': '18:00', 'creneau_fin_1': '20:00', 'creneau_debut_2': '20:00', 'creneau_fin_2': '22:00'})
         nouveau = Event.objects.get(titre='Soirée')
         self.assertEqual(reponse['Location'], f'/admin/evenements/{nouveau.id}')
         self.assertTrue(nouveau.lien)
+        self.assertEqual(nouveau.liste_creneaux, ['18:00 – 20:00', '20:00 – 22:00'])      # 2 créneaux sur 4 renseignés
         # Read
         self.assertContains(admin.get('/admin/evenements'), 'Soirée')
         self.assertContains(admin.get(f'/admin/evenements/{nouveau.id}'), f'/e/{nouveau.lien}')
         # Update : le lien ne change pas
         ancien_lien = nouveau.lien
-        admin.post(f'/admin/evenements/{nouveau.id}/modifier', {'titre': 'Soirée 2099', 'description': 'Nouveau', 'lieu': 'Salle'})
+        self.assertContains(admin.get(f'/admin/evenements/{nouveau.id}/modifier'), 'value="18:00"')    # formulaire pré-rempli
+        admin.post(f'/admin/evenements/{nouveau.id}/modifier', {'titre': 'Soirée 2099', 'description': 'Nouveau', 'lieu': 'Salle',
+                                                                'creneau_debut_1': '19:00', 'creneau_fin_1': '21:00'})
         nouveau.refresh_from_db()
-        self.assertEqual((nouveau.titre, nouveau.lien), ('Soirée 2099', ancien_lien))
+        self.assertEqual((nouveau.titre, nouveau.lien, nouveau.liste_creneaux), ('Soirée 2099', ancien_lien, ['19:00 – 21:00']))
         # Delete : efface aussi les inscriptions
-        Client().post(f'/e/{nouveau.lien}', FORMULAIRE)
+        Client().post(f'/e/{nouveau.lien}', {**FORMULAIRE, 'creneau': '19:00 – 21:00'})
         self.assertEqual(Inscription.objects.count(), 1)
         admin.post(f'/admin/evenements/{nouveau.id}/supprimer')
         self.assertFalse(Event.objects.filter(pk=nouveau.pk).exists())
@@ -162,7 +173,10 @@ class BackofficeTests(BaseTest):
         admin = self.connecter()
         for champs, message in (({'titre': '', 'description': 'x'}, 'obligatoires'), ({'titre': 'a', 'description': 'b', 'debut': 'demain'}, 'Horaires invalides'),
                                 ({'titre': 'a', 'description': 'b', 'fin': '2099-01-01T10:00'}, 'avant l’heure de fin'),
-                                ({'titre': 'a', 'description': 'b', 'debut': '2099-01-02T10:00', 'fin': '2099-01-01T10:00'}, 'après le début')):
+                                ({'titre': 'a', 'description': 'b', 'debut': '2099-01-02T10:00', 'fin': '2099-01-01T10:00'}, 'après le début'),
+                                ({'titre': 'a', 'description': 'b', 'creneau_debut_1': '10:00'}, 'Créneau 1'),
+                                ({'titre': 'a', 'description': 'b', 'creneau_debut_2': '12:00', 'creneau_fin_2': '10:00'}, 'Créneau 2 : la fin'),
+                                ({'titre': 'a', 'description': 'b', 'creneau_debut_1': '10:00', 'creneau_fin_1': '11:00', 'creneau_debut_3': '10:00', 'creneau_fin_3': '11:00'}, 'existe déjà')):
             self.assertContains(admin.post('/admin/evenements/creer', champs), message, status_code=400)
 
     def test_droits_d_acces(self):
@@ -221,3 +235,20 @@ class BackofficeTests(BaseTest):
             client = Client()
             codes = [client.post(f'/e/{self.event.lien}', {**FORMULAIRE, 'email': f'a{i}@exemple.ci'}).status_code for i in range(4)]
             self.assertEqual(codes[-1], 429)                        # trop de tentatives depuis la même adresse IP
+
+
+class CreneauxTests(BaseTest):
+    def test_repartition_par_creneau_dans_le_backoffice(self):
+        for i, creneau in enumerate(['09:00 – 11:00', '09:00 – 11:00', '16:00 – 18:00']):
+            Inscription.objects.create(event=self.event, nom=f'N{i}', prenom='P', filiale='SNEDAI', telephone='0700000000',
+                                       email=f'p{i}@exemple.ci', creneau=creneau, present=(i == 0))
+        page = self.connecter().get(f'/admin/evenements/{self.event.id}')
+        repartition = {r['creneau']: (r['inscrits'], r['presents']) for r in page.context['repartition']}
+        self.assertEqual(repartition, {'09:00 – 11:00': (2, 1), '11:00 – 13:00': (0, 0), '14:00 – 16:00': (0, 0), '16:00 – 18:00': (1, 0)})
+        self.assertContains(page, 'Répartition par créneau')
+
+    def test_un_evenement_sans_creneau_ne_demande_pas_de_choix(self):
+        sans = Event.objects.create(titre='Sans créneau', description='x')
+        self.assertNotContains(Client().get(f'/e/{sans.lien}'), 'Choisissez votre créneau')
+        Client().post(f'/e/{sans.lien}', {**FORMULAIRE, 'creneau': 'nimporte quoi'})
+        self.assertEqual(Inscription.objects.get().creneau, '')

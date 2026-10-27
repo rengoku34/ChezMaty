@@ -33,6 +33,18 @@
       </label>
       <label>Numéro de téléphone<input type="tel" name="telephone" required maxlength="30" autocomplete="tel" placeholder="Ex. : 07 00 00 00 00" value="{{ values.telephone|default:'' }}"></label>
       <label>Adresse e-mail<input type="email" name="email" required maxlength="200" autocomplete="email" autocapitalize="none" value="{{ values.email|default:'' }}"></label>
+
+      {# Les créneaux horaires proposés par l'administrateur : la personne en choisit UN. #}
+      {% if event.liste_creneaux %}
+      <fieldset class="creneaux">
+        <legend>Choisissez votre créneau horaire</legend>
+        <div class="creneaux-grille">
+          {% for c in event.liste_creneaux %}
+            <label class="creneau"><input type="radio" name="creneau" value="{{ c }}" required {% if values.creneau == c %}checked{% endif %}>{% icon 'clock' %} {{ c }}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% endif %}
       <button type="submit" class="btn btn-big btn-block">{% icon 'check' %} Je m’inscris</button>
     </form>
   </section>

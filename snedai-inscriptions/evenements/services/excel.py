@@ -11,7 +11,7 @@ from .formatting import timestamp
 
 # Les colonnes : (titre, largeur).
 COLONNES = [('Nom', 22), ('Prénom', 22), ('Filiale', 24), ('Numéro de téléphone', 22), ('Adresse e-mail', 34),
-            ('Présent', 12), ('Inscrit le', 20), ('Scanné le', 20)]
+            ('Créneau', 16), ('Présent', 12), ('Inscrit le', 20), ('Scanné le', 20)]
 
 
 def build_inscriptions_workbook(event, inscriptions):
@@ -21,7 +21,7 @@ def build_inscriptions_workbook(event, inscriptions):
     feuille.title = 'Inscriptions'
     feuille.append([titre for titre, _ in COLONNES])
     for i in inscriptions:
-        feuille.append([i.nom, i.prenom, i.filiale, i.telephone, i.email,
+        feuille.append([i.nom, i.prenom, i.filiale, i.telephone, i.email, i.creneau,
                         'Vrai' if i.present else 'Faux',               # la colonne vrai / faux demandée
                         timestamp(i.created_at), timestamp(i.scanne_at)])
     for numero, (_, largeur) in enumerate(COLONNES):

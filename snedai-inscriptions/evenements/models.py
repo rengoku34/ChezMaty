@@ -109,6 +109,9 @@ class User(AbstractBaseUser):
 # ---------------------------------------------------------------------------
 # 2. L'événement
 # ---------------------------------------------------------------------------
+MAX_CRENEAUX = 4      # nombre maximum de créneaux horaires par événement
+
+
 def nouveau_lien():
     """Le code secret du lien d'inscription (/e/xxxx) : impossible à deviner."""
     return secrets.token_urlsafe(9)
@@ -123,6 +126,8 @@ class Event(models.Model):
     debut = models.CharField('date et heure de début', max_length=16, blank=True, default='')
     fin = models.CharField('date et heure de fin', max_length=16, blank=True, default='')
     lieu = models.CharField(max_length=200, blank=True, default='')
+    # Les créneaux horaires proposés à l'inscription (jusqu'à 4), un par ligne : « 09:00 – 11:00 ».
+    creneaux = models.TextField('créneaux horaires', blank=True, default='')
     lien = models.CharField(max_length=40, unique=True, default=nouveau_lien, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -131,6 +136,19 @@ class Event(models.Model):
 
     def __str__(self):
         return self.titre
+
+    @property
+    def liste_creneaux(self):
+        """Les créneaux sous forme de liste : ['09:00 – 11:00', '11:00 – 13:00', ...] (vide s'il n'y en a pas)."""
+        return [ligne.strip() for ligne in self.creneaux.splitlines() if ligne.strip()]
+
+    @property
+    def creneaux_formulaire(self):
+        """Toujours 4 lignes pour le formulaire : [{'n': 1, 'debut': '09:00', 'fin': '11:00'}, ... , {'n': 4, 'debut': '', 'fin': ''}]"""
+        lignes = [{'n': n + 1, 'debut': '', 'fin': ''} for n in range(MAX_CRENEAUX)]
+        for ligne, creneau in zip(lignes, self.liste_creneaux):
+            ligne['debut'], _, ligne['fin'] = creneau.partition(' – ')
+        return lignes
 
     @property
     def url_inscription(self):
@@ -179,6 +197,7 @@ class Inscription(models.Model):
     filiale = models.CharField(max_length=100)
     telephone = models.CharField('numéro de téléphone', max_length=30)
     email = models.EmailField(max_length=200)
+    creneau = models.CharField('créneau horaire choisi', max_length=40, blank=True, default='')   # ex. « 09:00 – 11:00 »
     qr_token = models.CharField(max_length=64, unique=True, default=nouveau_jeton_qr)
     present = models.BooleanField(default=False)                  # FAUX tant que le QR n'est pas scanné
     scanne_at = models.DateTimeField(null=True, blank=True)       # quand il a été scanné

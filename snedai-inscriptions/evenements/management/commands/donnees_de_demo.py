@@ -28,7 +28,8 @@ class Command(BaseCommand):
         bienetre = Event.objects.create(
             titre='Journée bien-être SNEDAI', lieu='Siège SNEDAI, Abidjan',
             description='Une journée pour prendre soin de soi : ateliers sport et nutrition, repas partagé et activités d’équipe.',
-            debut=dans_18_jours.strftime('%Y-%m-%dT09:00'), fin=dans_18_jours.strftime('%Y-%m-%dT16:00'))
+            debut=dans_18_jours.strftime('%Y-%m-%dT09:00'), fin=dans_18_jours.strftime('%Y-%m-%dT18:00'),
+            creneaux='09:00 – 11:00\n11:00 – 13:00\n14:00 – 16:00\n16:00 – 18:00')
         Event.objects.create(
             titre='Séminaire de rentrée', lieu='Salle de conférence',
             description='Présentation des objectifs de l’année et des nouveaux projets.',
@@ -36,8 +37,10 @@ class Command(BaseCommand):
         gens = [('Kone', 'Awa', 'SNEDAI Telecom', '07 07 11 22 33'), ('Diallo', 'Issa', 'SNEDAI', '05 44 55 66 77'),
                 ('Traore', 'Fatou', 'SNEDAI Distribution', '01 02 03 04 05'), ('Yao', 'Marc', 'SNEDAI', '07 88 99 00 11'),
                 ('Bamba', 'Koffi', 'SNEDAI Telecom', '05 12 34 56 78')]
+        creneaux = bienetre.liste_creneaux
         for index, (nom, prenom, filiale, telephone) in enumerate(gens):
             Inscription.objects.create(event=bienetre, nom=nom, prenom=prenom, filiale=filiale, telephone=telephone,
+                                       creneau=creneaux[index % len(creneaux)],
                                        email=f'{prenom.lower()}.{nom.lower()}@exemple.ci', present=index < 2,
                                        scanne_at=timezone.now() if index < 2 else None)
         self.stdout.write(self.style.SUCCESS(f'Prêt. Administrateur : admin@test.ci · Agent : moussa@test.ci · mot de passe : {mot_de_passe}'))

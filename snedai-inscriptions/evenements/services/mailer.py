@@ -162,13 +162,15 @@ class Mailer:
         return self.send(
             inscription.email, f'Votre QR code pour : {event.titre}',
             f'Bonjour {inscription.prenom},\n\nVotre inscription à « {event.titre} » est enregistrée.\n'
-            + (f'Quand : {quand}\n' if quand else '') + (f'Où : {event.lieu}\n' if event.lieu else '')
+            + (f'Quand : {quand}\n' if quand else '') + (f'Créneau : {inscription.creneau}\n' if inscription.creneau else '')
+            + (f'Où : {event.lieu}\n' if event.lieu else '')
             + f'\nPrésentez le QR code joint (pièce jointe) à l’accueil le jour de l’événement.\n'
             f'Vous pouvez aussi l’afficher ici : {inscription.url_billet}\n',
             self.habiller(
                 f'<p>Bonjour {escape(inscription.prenom)},</p>'
                 f'<p>Votre inscription à <strong>{escape(event.titre)}</strong> est enregistrée.</p>'
                 + (f'<p><strong>Quand :</strong> {escape(quand)}</p>' if quand else '')
+                + (f'<p><strong>Votre créneau :</strong> {escape(inscription.creneau)}</p>' if inscription.creneau else '')
                 + (f'<p><strong>Où :</strong> {escape(event.lieu)}</p>' if event.lieu else '')
                 + '<p>Votre QR code est <strong>en pièce jointe</strong>. Présentez-le à l’accueil, il sera scanné pour confirmer votre venue.</p>'
                 + self.bouton(inscription.url_billet, 'Voir mon QR code')),

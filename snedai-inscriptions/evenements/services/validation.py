@@ -10,7 +10,7 @@ EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 TELEPHONE_RE = re.compile(r'^\+?[0-9 .\-()]{8,20}$')
 
 
-def inscription_error(valeurs, filiales=()):
+def inscription_error(valeurs, filiales=(), creneaux=()):
     """Vérifie le formulaire d'inscription. Renvoie le premier message d'erreur trouvé, ou None."""
     if not valeurs['nom'] or not valeurs['prenom']:
         return 'Merci de remplir votre nom et votre prénom.'
@@ -22,6 +22,8 @@ def inscription_error(valeurs, filiales=()):
         return 'Numéro de téléphone invalide.'
     if not EMAIL_RE.match(valeurs['email']):
         return 'Adresse e-mail invalide.'
+    if creneaux and valeurs['creneau'] not in creneaux:
+        return 'Choisissez un créneau horaire.'
     return None
 
 

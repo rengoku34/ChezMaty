@@ -13,6 +13,7 @@
     <div class="ticket-body">
       <p class="ticket-name">{{ inscription.prenom }} {{ inscription.nom }}</p>
       <p class="ticket-sub">{{ inscription.filiale }}</p>
+      {% if inscription.creneau %}<p class="ticket-sub"><strong>Créneau : {{ inscription.creneau }}</strong></p>{% endif %}
       <p class="ticket-sub"><strong>{{ event.titre }}</strong>{% if event.debut %} · {{ event.range_text }}{% endif %}{% if event.lieu %} · {{ event.lieu }}{% endif %}</p>
       {% if inscription.present %}
         <p class="ticket-note">Votre venue a été confirmée à l’entrée le {{ inscription.scanne_at|ts }}. Bon événement !</p>

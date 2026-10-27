@@ -12,7 +12,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
-from ..models import Event, Inscription, User
+from ..models import MAX_CRENEAUX, Event, Inscription, User
 from ..security import admin_required
 from ..services import queries
 from ..services.excel import build_inscriptions_workbook
@@ -21,6 +21,7 @@ from ..services.validation import EMAIL_RE, clean
 from .outils import charger_evenement
 
 HORAIRE = re.compile(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$')    # le format du champ « date et heure » du navigateur
+HEURE = re.compile(r'^([01]\d|2[0-3]):[0-5]\d$')              # une heure « 09:30 »
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +35,27 @@ def liste_evenements(request):
 # ---------------------------------------------------------------------------
 # CREATE et UPDATE : le formulaire d'un événement
 # ---------------------------------------------------------------------------
+def lire_creneaux(request):
+    """Lit les 4 lignes « de ... à ... » du formulaire. Renvoie (liste de créneaux, lignes à réafficher, erreur)."""
+    lignes, creneaux, erreur = [], [], None
+    for n in range(1, MAX_CRENEAUX + 1):
+        debut, fin = clean(request.POST.get(f'creneau_debut_{n}'), 5), clean(request.POST.get(f'creneau_fin_{n}'), 5)
+        lignes.append({'n': n, 'debut': debut, 'fin': fin})
+        if not debut and not fin:
+            continue                                         # ligne laissée vide : ce créneau n'existe pas
+        if not (HEURE.match(debut) and HEURE.match(fin)):
+            erreur = erreur or f'Créneau {n} : indiquez l’heure de début ET l’heure de fin.'
+        elif fin <= debut:
+            erreur = erreur or f'Créneau {n} : la fin doit être après le début.'
+        elif f'{debut} – {fin}' in creneaux:
+            erreur = erreur or f'Créneau {n} : ce créneau existe déjà.'
+        else:
+            creneaux.append(f'{debut} – {fin}')
+    return creneaux, lignes, erreur
+
+
 def lire_formulaire_evenement(request):
-    """Lit les champs du formulaire et les vérifie. Renvoie (valeurs, erreur)."""
+    """Lit les champs du formulaire et les vérifie. Renvoie (valeurs, erreur, lignes_creneaux)."""
     valeurs = {
         'titre': clean(request.POST.get('titre'), 150),
         'description': clean(request.POST.get('description'), 5000),
@@ -43,8 +63,11 @@ def lire_formulaire_evenement(request):
         'debut': clean(request.POST.get('debut'), 16),
         'fin': clean(request.POST.get('fin'), 16),
     }
-    erreur = None
-    if not valeurs['titre'] or not valeurs['description']:
+    creneaux, lignes_creneaux, erreur = lire_creneaux(request)
+    valeurs['creneaux'] = '\n'.join(creneaux)                # les créneaux sont gardés un par ligne
+    if erreur:
+        pass
+    elif not valeurs['titre'] or not valeurs['description']:
         erreur = 'Le nom et la description sont obligatoires.'
     elif (valeurs['debut'] and not HORAIRE.match(valeurs['debut'])) or (valeurs['fin'] and not HORAIRE.match(valeurs['fin'])):
         erreur = 'Horaires invalides.'
@@ -53,14 +76,16 @@ def lire_formulaire_evenement(request):
     elif valeurs['debut'] and valeurs['fin'] and valeurs['fin'] < valeurs['debut']:
         # Ces textes « 2026-12-20T09:00 » se comparent correctement comme du texte (année, mois, jour, heure…).
         erreur = 'La fin doit être après le début.'
-    return valeurs, erreur
+    return valeurs, erreur, lignes_creneaux
 
 
-def afficher_formulaire_evenement(request, event, valeurs, erreur=None, status=200):
+def afficher_formulaire_evenement(request, event, valeurs, erreur=None, status=200, lignes_creneaux=None):
     """Affiche le formulaire : vide pour une création, pré-rempli pour une modification."""
     return render(request, 'admin_site/event_form.html', {
         'title': 'Modifier l’événement' if event else 'Créer un événement',
         'event': event, 'values': valeurs, 'error': erreur,
+        # Les 4 lignes de créneaux : celles de l'événement, ou celles qui viennent d'être saisies (en cas d'erreur).
+        'creneaux_formulaire': lignes_creneaux or (event.creneaux_formulaire if event else Event().creneaux_formulaire),
     }, status=status)
 
 
@@ -74,9 +99,9 @@ def nouvel_evenement(request):
 @admin_required
 def creer_evenement(request):
     """POST /admin/evenements : CREATE. Enregistre le nouvel événement et son lien d'inscription."""
-    valeurs, erreur = lire_formulaire_evenement(request)
+    valeurs, erreur, lignes = lire_formulaire_evenement(request)
     if erreur:
-        return afficher_formulaire_evenement(request, None, valeurs, erreur, 400)
+        return afficher_formulaire_evenement(request, None, valeurs, erreur, 400, lignes)
     event = Event.objects.create(**valeurs)
     messages.success(request, 'Événement créé. Copiez son lien d’inscription et partagez-le aux employés.')
     return redirect(f'/admin/evenements/{event.id}')
@@ -89,9 +114,9 @@ def modifier_evenement(request, event):
     """UPDATE : modifier un événement. Le lien d'inscription et les billets déjà délivrés restent valables."""
     if request.method == 'GET':
         return afficher_formulaire_evenement(request, event, event)
-    valeurs, erreur = lire_formulaire_evenement(request)
+    valeurs, erreur, lignes = lire_formulaire_evenement(request)
     if erreur:
-        return afficher_formulaire_evenement(request, event, valeurs, erreur, 400)
+        return afficher_formulaire_evenement(request, event, valeurs, erreur, 400, lignes)
     for champ, valeur in valeurs.items():
         setattr(event, champ, valeur)
     event.save()
@@ -119,7 +144,11 @@ def detail_evenement(request, event):
     """La liste des inscriptions de l'événement, avec la colonne « Présent » (vrai ou faux)."""
     inscriptions = list(event.inscriptions.all())
     presents = sum(1 for i in inscriptions if i.present)
+    # Pour chaque créneau : combien de personnes sont inscrites, et combien sont déjà présentes.
+    repartition = [{'creneau': c, 'inscrits': sum(1 for i in inscriptions if i.creneau == c),
+                    'presents': sum(1 for i in inscriptions if i.creneau == c and i.present)} for c in event.liste_creneaux]
     return render(request, 'admin_site/event_detail.html', {
+        'repartition': repartition,
         'title': event.titre, 'event': event, 'inscriptions': inscriptions,
         'nb_inscrits': len(inscriptions), 'nb_presents': presents,
         'taux': round(presents / len(inscriptions) * 100) if inscriptions else None,

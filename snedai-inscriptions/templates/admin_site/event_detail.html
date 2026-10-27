@@ -36,6 +36,18 @@
   <div class="stat"><strong>{{ taux|pct }}</strong><span>Taux de présence</span></div>
 </div>
 
+{# Combien de personnes dans chaque créneau horaire #}
+{% if repartition %}
+<div class="card">
+  <h2>Répartition par créneau</h2>
+  <div class="creneaux-stats">
+    {% for r in repartition %}
+      <div class="creneau-stat"><span>{% icon 'clock' %} {{ r.creneau }}</span><strong>{{ r.inscrits }}</strong><small>inscrit(s) · {{ r.presents }} présent(s)</small></div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="list-head">
     <h2>Liste des inscriptions ({{ nb_inscrits }})</h2>
@@ -46,11 +58,12 @@
   {% else %}
   <div class="table-wrap">
     <table>
-      <thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Filiale</th><th>Téléphone</th><th>E-mail</th><th>Présent</th><th></th></tr></thead>
+      <thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Filiale</th><th>Téléphone</th><th>E-mail</th>{% if event.liste_creneaux %}<th>Créneau</th>{% endif %}<th>Présent</th><th></th></tr></thead>
       <tbody>
         {% for i in inscriptions %}
           <tr>
             <td>{{ forloop.counter }}</td><td>{{ i.nom }}</td><td>{{ i.prenom }}</td><td>{{ i.filiale }}</td><td>{{ i.telephone }}</td><td>{{ i.email }}</td>
+            {% if event.liste_creneaux %}<td>{{ i.creneau|default:'—' }}</td>{% endif %}
             {# Présent : vrai (vert) ou faux (gris) #}
             <td>{% if i.present %}<span class="badge badge-ok" title="Scanné le {{ i.scanne_at|ts }}">Vrai</span>{% else %}<span class="badge badge-done">Faux</span>{% endif %}</td>
             <td>

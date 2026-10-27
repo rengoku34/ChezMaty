@@ -22,6 +22,19 @@
       <label>Date et heure de fin<input type="datetime-local" name="fin" value="{{ values.fin|default:'' }}"></label>
     </div>
     <label>Lieu<input name="lieu" maxlength="200" value="{{ values.lieu|default:'' }}" placeholder="Ex. : Siège SNEDAI, salle de conférence"></label>
+
+    {# Les créneaux horaires : jusqu'à 4. L'employé en choisira un en s'inscrivant. Une ligne vide = pas de créneau. #}
+    <fieldset class="creneaux-form">
+      <legend>Créneaux horaires <small>(jusqu’à 4, facultatif)</small></legend>
+      <p class="hint small">Chaque personne choisit un créneau en s’inscrivant. Laissez les lignes vides si l’événement n’a pas de créneaux.</p>
+      {% for c in creneaux_formulaire %}
+        <div class="creneau-ligne">
+          <span>Créneau {{ c.n }}</span>
+          <label>de <input type="time" name="creneau_debut_{{ c.n }}" value="{{ c.debut }}"></label>
+          <label>à <input type="time" name="creneau_fin_{{ c.n }}" value="{{ c.fin }}"></label>
+        </div>
+      {% endfor %}
+    </fieldset>
     <div class="actions">
       <button type="submit" class="btn">{% if event %}Enregistrer les modifications{% else %}Créer l’événement{% endif %}</button>
       <a class="btn btn-secondary" href="{% if event %}/admin/evenements/{{ event.id }}{% else %}/admin/evenements{% endif %}">Annuler</a>

@@ -17,7 +17,7 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(Inscription)
 class InscriptionAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'prenom', 'filiale', 'telephone', 'email', 'event', 'present')
+    list_display = ('nom', 'prenom', 'filiale', 'telephone', 'email', 'event', 'creneau', 'present')
     list_filter = ('event', 'present', 'filiale')
     search_fields = ('nom', 'prenom', 'email', 'telephone')
     readonly_fields = ('qr_token',)

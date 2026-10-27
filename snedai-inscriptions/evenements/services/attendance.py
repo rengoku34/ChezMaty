@@ -22,7 +22,7 @@ def scan_code(code_lu, agent):
 
     # Ces informations s'affichent à l'écran de l'agent : il voit QUI vient d'entrer.
     personne = {'nom': inscription.nom, 'prenom': inscription.prenom, 'filiale': inscription.filiale,
-                'evenement': inscription.event.titre}
+                'evenement': inscription.event.titre, 'creneau': inscription.creneau}
 
     if inscription.present:
         return 409, {'ok': False, 'status': 'deja', 'message': f'Déjà scanné le {timestamp(inscription.scanne_at)}.', 'person': personne}

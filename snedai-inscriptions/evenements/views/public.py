@@ -44,8 +44,10 @@ def page_inscription(request, lien):
         'nom': clean(request.POST.get('nom')), 'prenom': clean(request.POST.get('prenom')),
         'filiale': clean(request.POST.get('filiale')), 'telephone': clean(request.POST.get('telephone'), 30),
         'email': clean(request.POST.get('email'), 200).lower(),
+        # Le créneau choisi (vide si l'événement n'en propose pas).
+        'creneau': clean(request.POST.get('creneau'), 40) if event.liste_creneaux else '',
     }
-    erreur = inscription_error(valeurs, settings.FILIALES)
+    erreur = inscription_error(valeurs, settings.FILIALES, event.liste_creneaux)
     if erreur:
         return render(request, 'public/inscription.html', {**contexte, 'values': valeurs, 'error': erreur}, status=400)
 

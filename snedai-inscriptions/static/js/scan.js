@@ -47,7 +47,7 @@
     result.append(title);
     if (data.person) {
       const details = document.createElement('div');
-      details.textContent = `${person} — ${data.person.filiale} · ${data.person.evenement}`;
+      details.textContent = `${person} — ${data.person.filiale} · ${data.person.evenement}` + (data.person.creneau ? ` · ${data.person.creneau}` : '');
       result.append(details);
     }
     const item = document.createElement('li');

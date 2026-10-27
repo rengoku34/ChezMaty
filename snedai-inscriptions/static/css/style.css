@@ -411,3 +411,24 @@ tbody tr:hover { background: #f7f7fb; }
 .public-event .meta { color: #d6d6e8; }
 .public-event p.desc { color: #e8e8f3; margin: .8rem 0 0; white-space: pre-line; }
 .public-layout { max-width: 640px; margin-inline: auto; }
+
+/* Choix du créneau horaire (formulaire public) : des cases à cocher en forme de boutons. */
+fieldset.creneaux, fieldset.creneaux-form { border: 0; padding: 0; margin: 0; min-width: 0; }
+.creneaux legend, .creneaux-form legend { font-weight: 600; font-size: .88rem; padding: 0; margin-bottom: .5rem; }
+.creneaux-grille { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.form label.creneau { display: flex; align-items: center; gap: .5rem; border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem .8rem; cursor: pointer; background: #fff; font-weight: 600; transition: border-color .15s, background .15s; }
+.form label.creneau input { width: auto; margin: 0; }
+.form label.creneau:has(input:checked) { border-color: var(--accent); background: #fff4ec; color: var(--accent-dark); }
+@media (max-width: 420px) { .creneaux-grille { grid-template-columns: 1fr; } }
+
+/* Les 4 lignes de créneaux dans le formulaire de l'administrateur. */
+.creneau-ligne { display: grid; grid-template-columns: 90px 1fr 1fr; gap: .6rem; align-items: center; margin-bottom: .5rem; }
+.creneau-ligne > span { font-size: .88rem; color: var(--muted); font-weight: 600; }
+.creneau-ligne label { display: flex; align-items: center; gap: .4rem; }
+
+/* Répartition par créneau (backoffice). */
+.creneaux-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .8rem; }
+.creneau-stat { border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: var(--radius); padding: .7rem .9rem; display: grid; gap: .1rem; }
+.creneau-stat span { font-weight: 600; color: var(--primary); display: inline-flex; align-items: center; gap: .35rem; }
+.creneau-stat strong { font-size: 1.6rem; color: var(--text); }
+.creneau-stat small { color: var(--muted); }
