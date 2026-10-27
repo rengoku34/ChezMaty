@@ -11,6 +11,7 @@ Trois tables seulement :
 Les employés qui s'inscrivent n'ont PAS de compte : ils remplissent seulement le formulaire du lien.
 """
 import secrets
+import string
 
 from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
@@ -112,9 +113,17 @@ class User(AbstractBaseUser):
 MAX_CRENEAUX = 4      # nombre maximum de créneaux horaires par événement
 
 
+ALPHABET = string.ascii_letters + string.digits      # lettres et chiffres seulement : un lien ne risque pas d'être coupé
+
+
+def code_secret(longueur):
+    """Un code aléatoire impossible à deviner (module `secrets`, fait pour la sécurité), sans tiret ni souligné."""
+    return ''.join(secrets.choice(ALPHABET) for _ in range(longueur))
+
+
 def nouveau_lien():
-    """Le code secret du lien d'inscription (/e/xxxx) : impossible à deviner."""
-    return secrets.token_urlsafe(9)
+    """Le code secret du lien d'inscription (/e/xxxx)."""
+    return code_secret(12)
 
 
 class Event(models.Model):
@@ -181,8 +190,8 @@ class Event(models.Model):
 # 3. L'inscription = une personne inscrite à un événement
 # ---------------------------------------------------------------------------
 def nouveau_jeton_qr():
-    """Un code secret impossible à deviner, qui sera dans le QR code (24 octets aléatoires)."""
-    return secrets.token_urlsafe(24)
+    """Le code secret du billet, celui qui est dans le QR code (32 caractères)."""
+    return code_secret(32)
 
 
 class Inscription(models.Model):
