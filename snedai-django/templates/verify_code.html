@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card narrow verify">
+  <h1>Confirmez votre adresse e-mail</h1>
+  <p>Nous avons envoyé un code à 6 chiffres à <strong>{{ email }}</strong>. Saisissez-le ci-dessous pour créer votre compte.</p>
+  <p class="hint">Pensez à regarder dans les « Spams » ou « Promotions ». Le code est valable 15 minutes.</p>
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  {% if info %}<div class="alert alert-success">{{ info }}</div>{% endif %}
+  <form method="post" action="/inscription/code" class="form" autocomplete="off">
+    {% csrf_token %}
+    <label class="field">Code de confirmation
+      <input class="code-input" name="code" required inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" autofocus placeholder="000000">
+    </label>
+    <button class="btn" type="submit">Confirmer et créer mon compte</button>
+  </form>
+  <form method="post" action="/inscription/code/renvoyer" class="resend">
+    {% csrf_token %}
+    <span class="hint">Pas reçu ?</span> <button class="link" type="submit">Renvoyer un code</button>
+    · <a href="/connexion?onglet=inscription">Modifier mes informations</a>
+  </form>
+</section>
+{% endblock %}

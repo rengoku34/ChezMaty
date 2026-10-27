@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-head">
+  {% include 'partials/breadcrumb.html' with parent_label='Tableau de bord' parent_href=back_href current=title %}
+</div>
+<section class="card narrow">
+  <h1>{% if event %}Modifier l’événement{% else %}Publier un événement{% endif %}</h1>
+  {% if event %}
+    <p class="hint">Les inscrits ne sont pas prévenus à nouveau, et les QR codes déjà envoyés restent valables.</p>
+  {% else %}
+    <p class="hint">Dès la publication, tous les inscrits reçoivent un e-mail avec le lien pour confirmer leur présence.</p>
+  {% endif %}
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="{% if event %}/admin/evenements/{{ event.id }}/modifier{% else %}/admin/evenements{% endif %}" enctype="multipart/form-data" class="form">
+    {% csrf_token %}
+    <label>Sujet<input name="titre" required maxlength="150" value="{{ values.titre|default:'' }}"></label>
+    <label>Description<textarea name="description" required rows="7" maxlength="5000">{{ values.description|default:'' }}</textarea></label>
+    {% if event and event.has_photo %}
+      <div class="current-photo">
+        <img src="/evenements/{{ event.id }}/photo" alt="Photo actuelle">
+        <label class="checkbox"><input type="checkbox" name="supprimer_photo" value="1"> Supprimer la photo actuelle</label>
+      </div>
+    {% endif %}
+    <label>{% if event and event.has_photo %}Remplacer la photo{% else %}Photo{% endif %} (JPG, PNG, WEBP – 3 Mo max)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+    <div class="row">
+      <label>Début<input type="datetime-local" name="debut" value="{{ values.debut|default:'' }}"></label>
+      <label>Fin<input type="datetime-local" name="fin" value="{{ values.fin|default:'' }}"></label>
+    </div>
+    <label>Lieu<input name="lieu" maxlength="200" value="{{ values.lieu|default:'' }}" placeholder="Ex. : Siège SNEDAI, salle de conférence"></label>
+    {% if event %}
+      <div class="actions">
+        <button type="submit" class="btn">Enregistrer les modifications</button>
+        <a class="btn btn-secondary" href="/admin/tableau-de-bord?evenement={{ event.id }}">Annuler</a>
+      </div>
+    {% else %}
+      <button type="submit" class="btn">Publier et prévenir les inscrits</button>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}
