@@ -2,28 +2,7 @@
 import sys
 
 MODIFS = {
-    "evenements/models.py": [
-        ("import secrets\nimport string\n\nfrom django.conf import settings\nfrom django.db import models\nfrom django.db.models.functions import Lower\n",
-         "import secrets\nimport string\nfrom datetime import datetime, time, timedelta\n\nfrom django.conf import settings\nfrom django.db import models\nfrom django.db.models.functions import Lower\nfrom django.utils import timezone\n"),
-        ('        return f"{settings.APP_URL}/e/{self.lien}/"\n',
-         '''        return f"{settings.APP_URL}/e/{self.lien}/"
-
-    @property
-    def fin(self):
-        """Le moment où les inscriptions se ferment : la fin du dernier créneau, ou minuit (fin du jour J) s'il n'y a pas de créneau."""
-        if self.creneaux:
-            heures, minutes = max(creneau.split("-")[1] for creneau in self.creneaux).split(":")
-            moment = datetime.combine(self.date, time(int(heures), int(minutes)))
-        else:
-            moment = datetime.combine(self.date + timedelta(days=1), time(0, 0))
-        return timezone.make_aware(moment)
-
-    @property
-    def inscriptions_ouvertes(self):
-        """Vrai tant que l'événement n'est pas terminé : ensuite, le lien d'inscription a expiré."""
-        return timezone.now() < self.fin
-'''),
-    ],
+    "evenements/models.py": "tolerant",
     "evenements/serializers.py": [
         ('''    nombre_presents = serializers.SerializerMethodField()
 
@@ -42,27 +21,7 @@ MODIFS = {
             "lien", "url_inscription", "inscriptions_ouvertes", "nombre_inscrits", "nombre_presents", "cree_le",
         ]'''),
     ],
-    "evenements/pages.py": [
-        ('''def evenement_accueil(request, lien):
-    """/e/<lien>/ : la page d'accueil de l'événement : son nom, son lieu et le bouton « Démarrer »."""
-    evenement = get_object_or_404(Evenement, lien=lien)
-    return render''', '''def page_lien_expire(request, evenement):
-    """La page affichée quand l'événement est terminé : le lien d'inscription a expiré."""
-    return render(request, "public/expire.html", {"title": "Lien expiré", "evenement": evenement}, status=410)
-
-
-def evenement_accueil(request, lien):
-    """/e/<lien>/ : la page d'accueil de l'événement : son nom, son lieu et le bouton « Démarrer »."""
-    evenement = get_object_or_404(Evenement, lien=lien)
-    if not evenement.inscriptions_ouvertes:
-        return page_lien_expire(request, evenement)
-    return render'''),
-        ('''    evenement = get_object_or_404(Evenement, lien=lien)
-    return render(request, "public/formulaire.html"''', '''    evenement = get_object_or_404(Evenement, lien=lien)
-    if not evenement.inscriptions_ouvertes:
-        return page_lien_expire(request, evenement)
-    return render(request, "public/formulaire.html"'''),
-    ],
+    "evenements/pages.py": "tolerant",
     "evenements/views.py": [
         ('''        evenement = self.get_object()
         diffusion = adresses_diffusion()
@@ -108,6 +67,52 @@ PAGE_EXPIREE = """{% extends 'base.html' %}
 {% endblock %}
 """
 
+def apres_ligne(texte, repere, ajout, apres=0):
+    """Insère `ajout` juste après la première ligne qui contient `repere` (en cherchant à partir de la position `apres`)."""
+    debut = texte.find(repere, apres)
+    if debut < 0:
+        raise ValueError(repere)
+    fin_ligne = texte.find("\n", debut) + 1
+    return texte[:fin_ligne] + ajout + texte[fin_ligne:]
+
+
+def modifier_models(texte):
+    texte = apres_ligne(texte, "import string", "from datetime import datetime, time, timedelta\nfrom django.utils import timezone\n")
+    return apres_ligne(texte, "/e/{self.lien}/", '''
+    @property
+    def fin(self):
+        """Le moment où les inscriptions se ferment : la fin du dernier créneau, ou minuit (fin du jour J) s'il n'y a pas de créneau."""
+        if self.creneaux:
+            heures, minutes = max(creneau.split("-")[1] for creneau in self.creneaux).split(":")
+            moment = datetime.combine(self.date, time(int(heures), int(minutes)))
+        else:
+            moment = datetime.combine(self.date + timedelta(days=1), time(0, 0))
+        return timezone.make_aware(moment)
+
+    @property
+    def inscriptions_ouvertes(self):
+        """Vrai tant que l'événement n'est pas terminé : ensuite, le lien d'inscription a expiré."""
+        return timezone.now() < self.fin
+''')
+
+
+def modifier_pages(texte):
+    verification = "    if not evenement.inscriptions_ouvertes:\n        return page_lien_expire(request, evenement)\n"
+    for fonction in ("def evenement_formulaire(request, lien):", "def evenement_accueil(request, lien):"):
+        debut = texte.index(fonction)
+        texte = apres_ligne(texte, "get_object_or_404(Evenement, lien=lien)", verification, debut)
+    page = '''def page_lien_expire(request, evenement):
+    """La page affichée quand l'événement est terminé : le lien d'inscription a expiré."""
+    return render(request, "public/expire.html", {"title": "Lien expiré", "evenement": evenement}, status=410)
+
+
+'''
+    debut = texte.index("def evenement_accueil(request, lien):")
+    return texte[:debut] + page + texte[debut:]
+
+
+OUTILS = {"evenements/models.py": modifier_models, "evenements/pages.py": modifier_pages}
+
 nouveaux = {}
 deja = 0
 for chemin, paires in MODIFS.items():
@@ -119,10 +124,16 @@ for chemin, paires in MODIFS.items():
     if "inscriptions_ouvertes" in texte:
         deja += 1
         continue
-    for ancien, nouveau in paires:
-        if ancien not in texte:
-            sys.exit(f"ARRET : {chemin} n'a pas le contenu attendu (début : {ancien[:50]!r}). Rien n'a ete modifie.")
-        texte = texte.replace(ancien, nouveau, 1)
+    if paires == "tolerant":
+        try:
+            texte = OUTILS[chemin](texte)
+        except ValueError as erreur:
+            sys.exit(f"ARRET : {chemin} n'a pas le contenu attendu (introuvable : {erreur}). Rien n'a ete modifie.")
+    else:
+        for ancien, nouveau in paires:
+            if ancien not in texte:
+                sys.exit(f"ARRET : {chemin} n'a pas le contenu attendu (début : {ancien[:50]!r}). Rien n'a ete modifie.")
+            texte = texte.replace(ancien, nouveau, 1)
     nouveaux[chemin] = texte
 
 if deja == len(MODIFS):
