@@ -1,7 +1,7 @@
 /*
   Application WEB : gestion des événements par l'administrateur.
   Elle parle au BACKEND (l'API Django) : connexion par jeton, création / lecture / modification / suppression
-  des événements, liste des participants, export Excel et envoi du lien par e-mail.
+  des événements, liste des participants, export Excel et envoi du lien par e-mail à tous les employés.
   L'adresse de l'API est celle de cet ordinateur sur le port 8000 : rien à configurer.
 */
 (() => {
@@ -52,13 +52,12 @@
 
   async function api(chemin, { methode = "GET", corps, fichier = false } = {}) {
     const entetes = {};
-    const estFichier = typeof FormData !== "undefined" && corps instanceof FormData;
-    if (corps !== undefined && !estFichier) entetes["Content-Type"] = "application/json";
+    if (corps !== undefined) entetes["Content-Type"] = "application/json";
     const jeton = sessionStorage.getItem("jeton");
     if (jeton) entetes.Authorization = `Token ${jeton}`;
     let reponse;
     try {
-      reponse = await fetch(API + chemin, { method: methode, headers: entetes, body: corps === undefined ? undefined : (estFichier ? corps : JSON.stringify(corps)) });
+      reponse = await fetch(API + chemin, { method: methode, headers: entetes, body: corps === undefined ? undefined : JSON.stringify(corps) });
     } catch (erreur) {
       throw { statut: 0, donnees: { detail: "Connexion au serveur impossible. Vérifiez que le backend est lancé." } };
     }
@@ -278,53 +277,23 @@
       catch (erreur) { prompt("Copiez ce lien :", evenement.url_inscription); }
     };
 
-    /* Envoi du lien aux employés : liste de diffusion de l'entreprise, fichier Excel/CSV, ou quelques adresses collées. */
+    /* Envoi du lien à tous les employés : un seul bouton, vers la liste de diffusion de l'entreprise. */
     const diffusion = JSON.parse(sessionStorage.getItem("diffusion") || "[]");
-    const texteBilan = (bilan) => {
-      let texte = `Lien envoyé à ${bilan.envoyes} adresse(s)`;
-      if (bilan.deja_inscrits) texte += `, ${bilan.deja_inscrits} déjà inscrite(s) ignorée(s)`;
-      if (bilan.invalides && bilan.invalides.length) texte += `, ${bilan.invalides.length} invalide(s) ignorée(s)`;
-      return texte;
-    };
-    const envoyerInvitation = async (bouton, requete) => {
-      bouton.disabled = true;
-      try { notifier(texteBilan(await requete())); }
-      catch (erreur) { notifier(phrases(erreur.donnees).join(" "), true); }
-      finally { bouton.disabled = false; }
-    };
+    const boutonEnvoi = h("button", { class: "btn", type: "button", disabled: diffusion.length === 0, onclick: async () => {
+      if (!confirm(`Envoyer le lien d'inscription de « ${evenement.nom} » à tous les employés ?`)) return;
+      boutonEnvoi.disabled = true;
+      try {
+        const bilan = await api(`/api/evenements/${id}/inviter/`, { methode: "POST" });
+        notifier(`Lien envoyé à ${bilan.envoyes} adresse(s)` + (bilan.deja_inscrits ? `, ${bilan.deja_inscrits} déjà inscrite(s) ignorée(s)` : ""));
+      } catch (erreur) { notifier(phrases(erreur.donnees).join(" "), true); }
+      finally { boutonEnvoi.disabled = false; }
+    } }, "Envoyer le lien à tous les employés");
 
-    const boutonDiffusion = h("button", { class: "btn", type: "button", onclick: () => {
-      if (!confirm(`Envoyer le lien d'inscription à : ${diffusion.join(", ")} ?`)) return;
-      envoyerInvitation(boutonDiffusion, () => api(`/api/evenements/${id}/inviter/`, { methode: "POST", corps: { tous: true } }));
-    } }, "Envoyer à toute l'entreprise");
-
-    const fichier = h("input", { type: "file", accept: ".xlsx,.csv,.txt" });
-    const boutonFichier = h("button", { class: "btn", type: "button", onclick: () => {
-      if (!fichier.files.length) { notifier("Choisissez d'abord un fichier.", true); return; }
-      const donnees = new FormData();
-      donnees.append("fichier", fichier.files[0]);
-      envoyerInvitation(boutonFichier, async () => {
-        const bilan = await api(`/api/evenements/${id}/inviter-fichier/`, { methode: "POST", corps: donnees });
-        fichier.value = "";
-        return bilan;
-      });
-    } }, "Envoyer aux adresses du fichier");
-
-    const adresses = h("textarea", { rows: 4, placeholder: "prenom.nom@entreprise.ci, autre@entreprise.ci", style: "width:100%;padding:.55rem .75rem;border:1px solid var(--border);border-radius:6px;font:inherit" });
-    const boutonAdresses = h("button", { class: "btn btn-clair", type: "button", onclick: () => envoyerInvitation(boutonAdresses, async () => {
-      const bilan = await api(`/api/evenements/${id}/inviter/`, { methode: "POST", corps: { adresses: adresses.value } });
-      adresses.value = "";
-      return bilan;
-    }) }, "Envoyer à ces adresses");
-
-    const sectionEnvoi = h("div", { class: "carte" }, h("h2", {}, "Envoyer le lien aux employés"),
-      diffusion.length ? h("div", { style: "margin-bottom:1.1rem" },
-        h("p", { class: "muted", style: "margin:0 0 .5rem" }, `Liste de diffusion de l'entreprise : ${diffusion.join(", ")}`), boutonDiffusion) : null,
-      h("div", { style: "margin-bottom:1.1rem" },
-        h("p", { class: "muted", style: "margin:0 0 .5rem" }, "Fichier Excel (.xlsx) ou CSV contenant les adresses e-mail des employés, par exemple la liste fournie par les ressources humaines."),
-        h("div", { class: "actions" }, fichier, boutonFichier)),
-      h("details", {}, h("summary", { class: "muted", style: "cursor:pointer" }, "Quelques adresses seulement"),
-        h("div", { style: "margin-top:.7rem" }, adresses, h("div", { style: "margin-top:.6rem" }, boutonAdresses))));
+    const sectionEnvoi = h("div", { class: "carte" }, h("h2", {}, "Informer les employés"),
+      h("p", { class: "muted", style: "margin:0 0 .8rem" }, diffusion.length
+        ? "Le lien d'inscription est envoyé par e-mail à tous les employés. Chacun s'inscrit, puis reçoit son QR code par e-mail."
+        : "Aucune adresse de diffusion n'est configurée : renseignez ADRESSES_DIFFUSION dans config/settings.py."),
+      boutonEnvoi);
 
     coque(
       h("div", { class: "barre" },

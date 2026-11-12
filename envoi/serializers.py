@@ -114,21 +114,3 @@ class ScanReponseSerializer(serializers.Serializer):
     statut = serializers.ChoiceField(choices=["present", "deja", "inconnu"])
     message = serializers.CharField()
     personne = PersonneScanneeSerializer(required=False)
-
-
-class InvitationSerializer(serializers.Serializer):
-    """Qui inviter : des adresses (séparées par un retour à la ligne ou une virgule) et/ou la liste de diffusion de l'entreprise."""
-
-    adresses = serializers.CharField(required=False, allow_blank=True, help_text="Les adresses e-mail, séparées par un retour à la ligne ou une virgule.")
-    tous = serializers.BooleanField(required=False, default=False, help_text="Envoyer aussi à la liste de diffusion de l'entreprise (réglages).")
-
-    def validate(self, donnees):
-        if not donnees.get("adresses", "").strip() and not donnees.get("tous"):
-            raise serializers.ValidationError("Indiquez des adresses ou choisissez la liste de diffusion.")
-        return donnees
-
-
-class FichierInvitationSerializer(serializers.Serializer):
-    """Un fichier Excel (.xlsx), CSV ou texte contenant les adresses des employés."""
-
-    fichier = serializers.FileField()
