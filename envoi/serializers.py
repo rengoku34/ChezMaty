@@ -18,12 +18,13 @@ class EvenementSerializer(serializers.ModelSerializer):
     url_inscription = serializers.CharField(read_only=True)
     nombre_inscrits = serializers.SerializerMethodField()
     nombre_presents = serializers.SerializerMethodField()
+    inscriptions_ouvertes = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Evenement
         fields = [
             "id", "nom", "date", "description", "lieu", "creneaux",
-            "lien", "url_inscription", "nombre_inscrits", "nombre_presents", "cree_le",
+            "lien", "url_inscription", "inscriptions_ouvertes", "nombre_inscrits", "nombre_presents", "cree_le",
         ]
         read_only_fields = ["id", "lien", "cree_le"]      # calculés par le serveur : on ne les envoie pas
 

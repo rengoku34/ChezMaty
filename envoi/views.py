@@ -108,6 +108,8 @@ class EvenementViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def inviter(self, request, pk=None):
         evenement = self.get_object()
+        if not evenement.inscriptions_ouvertes:
+            return Response({"detail": "Cet événement est terminé : le lien d'inscription a expiré."}, status=status.HTTP_400_BAD_REQUEST)
         diffusion = adresses_diffusion()
         if not diffusion:
             return Response({"detail": "Aucune liste de diffusion n'est configurée (ADRESSES_DIFFUSION dans les réglages)."},
@@ -145,6 +147,8 @@ class InscriptionPubliqueView(generics.CreateAPIView):
         self.inscription = inscription
 
     def create(self, request, *args, **kwargs):
+        if not get_object_or_404(Evenement, lien=self.kwargs["lien"]).inscriptions_ouvertes:
+            return Response({"detail": "Les inscriptions sont closes : ce lien a expiré."}, status=status.HTTP_410_GONE)
         try:
             reponse = super().create(request, *args, **kwargs)
         except IntegrityError:

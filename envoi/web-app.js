@@ -163,7 +163,7 @@
     };
 
     const lignes = evenements.map((e) => h("tr", {},
-      h("td", {}, h("strong", {}, e.nom)),
+      h("td", {}, h("strong", {}, e.nom), e.inscriptions_ouvertes ? null : h("span", { class: "badge non", style: "margin-left:.5rem" }, "Terminé")),
       h("td", {}, formaterDate(e.date)),
       h("td", {}, e.lieu),
       h("td", {}, String(e.nombre_inscrits)),
@@ -279,7 +279,7 @@
 
     /* Envoi du lien à tous les employés : un seul bouton, vers la liste de diffusion de l'entreprise. */
     const diffusion = JSON.parse(sessionStorage.getItem("diffusion") || "[]");
-    const boutonEnvoi = h("button", { class: "btn", type: "button", disabled: diffusion.length === 0, onclick: async () => {
+    const boutonEnvoi = h("button", { class: "btn", type: "button", disabled: diffusion.length === 0 || !evenement.inscriptions_ouvertes, onclick: async () => {
       if (!confirm(`Envoyer le lien d'inscription de « ${evenement.nom} » à tous les employés ?`)) return;
       boutonEnvoi.disabled = true;
       try {
@@ -290,7 +290,9 @@
     } }, "Envoyer le lien à tous les employés");
 
     const sectionEnvoi = h("div", { class: "carte" }, h("h2", {}, "Informer les employés"),
-      h("p", { class: "muted", style: "margin:0 0 .8rem" }, diffusion.length
+      h("p", { class: "muted", style: "margin:0 0 .8rem" }, !evenement.inscriptions_ouvertes
+        ? "Cet événement est terminé : le lien d'inscription a expiré."
+        : diffusion.length
         ? "Le lien d'inscription est envoyé par e-mail à tous les employés. Chacun s'inscrit, puis reçoit son QR code par e-mail."
         : "Aucune adresse de diffusion n'est configurée : renseignez ADRESSES_DIFFUSION dans config/settings.py."),
       boutonEnvoi);
@@ -306,6 +308,7 @@
         h("div", { class: "stat" }, h("strong", {}, String(nbPresents)), h("span", {}, "Présents")),
         h("div", { class: "stat" }, h("strong", {}, String(participants.length - nbPresents)), h("span", {}, "Absents"))),
       h("div", { class: "carte" }, h("h2", {}, "Lien d'inscription"),
+        evenement.inscriptions_ouvertes ? null : h("div", { class: "alerte" }, "Ce lien a expiré : l'événement est terminé, plus personne ne peut s'inscrire."),
         h("div", { class: "lien-inscription" }, h("code", {}, evenement.url_inscription), h("button", { class: "btn btn-clair btn-petit", type: "button", onclick: copier }, "Copier"))),
       h("div", { class: "carte" }, h("h2", {}, "Participants"),
         h("div", { class: "outils" }, recherche, filtre, compteur),
