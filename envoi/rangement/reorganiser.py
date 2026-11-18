@@ -49,8 +49,9 @@ def etape(titre):
 flutter = shutil.which("flutter")
 if not flutter:
     sys.exit("ARRET : la commande flutter est introuvable. Ouvre un terminal ou 'flutter --version' fonctionne, puis relance ce script.")
-for fichier in (("urls.py",), ("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"),
-                ("services", "courrier.py"), ("services", "invitations.py"), ("services", "billets.py")):
+for fichier in (("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"),
+                ("backend", "evenements", "models.py"), ("backend", "evenements", "migrations", "0006_lieu_obligatoire.py"),
+                ("backend", "config", "urls.py"), ("web", "app.js")):
     if not os.path.exists(ici(*fichier)):
         sys.exit(f"ARRET : le fichier {os.path.join(*fichier)} manque a cote du script.")
 
@@ -97,56 +98,36 @@ try:
 except PermissionError as erreur:
     sys.exit(f"ARRET : un fichier est utilise ({erreur}). Arrete le serveur (Ctrl+C), ferme les terminaux qui font tourner le site, puis relance ce script.")
 
-# ------------------------------------------------------------------ 3. reglages et adresses du backend
-etape("3. Reglages et adresses du backend")
+# ------------------------------------------------------------------ 3. le backend a jour (code, e-mails, lieux, jeton) et ses reglages
+etape("3. Le backend a jour : lieux, jeton qui expire, e-mails, page de remerciement")
 reglages = lire(chemin("backend", "config", "settings.py"))
+duree = re.search(r"^JETON_DUREE_HEURES\s*=\s*(\d+)", reglages, re.MULTILINE)
+duree = duree.group(1) if duree else "12"                                 # une duree deja choisie est conservee
 lignes = [l for l in reglages.split("\n")
-          if "CorsMiddleware" not in l and not l.startswith(("CORS_", "DOSSIER_"))
-          and not l.startswith(("# --- Les trois dossiers du projet", "# --- Les dossiers du projet"))]
-ecrire(chemin("backend", "config", "settings.py"), "\n".join(lignes).rstrip("\n") + '''
+          if "CorsMiddleware" not in l
+          and not l.startswith(("CORS_", "DOSSIER_", "JETON_DUREE_HEURES", 'REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]',
+                                'SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"]', "# --- Les trois dossiers du projet",
+                                "# --- Les dossiers du projet", "# --- La duree de vie du jeton"))]
+ecrire(chemin("backend", "config", "settings.py"), "\n".join(lignes).rstrip("\n") + f'''
+
+# --- La duree de vie du jeton de connexion : passe ce delai (en heures), il faut se reconnecter ---
+JETON_DUREE_HEURES = {duree}
+REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["evenements.authentification.JetonExpirant", "rest_framework.authentication.SessionAuthentication"]
+SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"] = ["evenements.authentification.JetonExpirant"]
 
 # --- Les dossiers du projet : le meme serveur sert l'application web et le fichier d'installation de l'application mobile ---
 DOSSIER_WEB = BASE_DIR.parent / "web"
 DOSSIER_LIVRABLES = BASE_DIR.parent / "livrables"       # le fichier d'installation de l'application mobile (snedai-scan.apk)
 ''')
-shutil.copy(ici("urls.py"), chemin("backend", "config", "urls.py"))
-for nom in ("courrier.py", "invitations.py", "billets.py"):          # les e-mails : une lettre (Chers tous, ... Cordialement,)
-    shutil.copy(ici("services", nom), chemin("backend", "evenements", "services", nom))
+for dossier in ("evenements", "templates", "static"):
+    shutil.copytree(ici("backend", dossier), chemin("backend", dossier), dirs_exist_ok=True)
+shutil.copy(ici("backend", "config", "urls.py"), chemin("backend", "config", "urls.py"))
+print(f"  fait : evenements, templates, static, urls.py, reglages (jeton : {duree} heures)")
 
-vues = lire(chemin("backend", "evenements", "views.py"))
-if "def ping(" not in vues:
-    vues = remplacer(vues, "from rest_framework.decorators import action, api_view\n",
-                     "from rest_framework.decorators import action, api_view, authentication_classes, permission_classes\n", "views.py")
-    ancre = '@extend_schema(tags=["Compte"], summary="Se déconnecter'
-    ping = '''@extend_schema(tags=["Compte"], summary="Le serveur répond-il ? (l'application mobile s'en sert pour retrouver le serveur)", auth=[],
-               responses={200: OpenApiTypes.OBJECT})
-@api_view(["GET"])
-@authentication_classes([])
-@permission_classes([permissions.AllowAny])
-def ping(request):
-    """Répond toujours la même chose : l'application mobile reconnaît ainsi le serveur SNEDAI sur le réseau."""
-    return Response({"application": "snedai-evenements"})
-
-
-'''
-    vues = remplacer(vues, ancre, ping + ancre, "views.py")
-    ecrire(chemin("backend", "evenements", "views.py"), vues)
-print("  fait : settings.py, urls.py (liens /api/ping/ et /snedai-scan.apk), views.py, e-mails (courrier.py, invitations.py, billets.py)")
-
-# ------------------------------------------------------------------ 4. l'application web : liens relatifs vers l'API
-etape("4. L'application web appelle l'API par des liens relatifs")
-app_web = lire(chemin("web", "app.js"))
-if 'const API = "";' not in app_web:
-    app_web = remplacer(app_web, "const API = `${location.protocol}//${location.hostname}:8000`;",
-                        'const API = "";        /* le site et l\'API sont sur le même serveur : les appels commencent par /api/ */', "web/app.js")
-    app_web = remplacer(app_web, 'suivant = page.next ? page.next.replace(API, "") : null;',
-                        'suivant = page.next ? new URL(page.next).pathname + new URL(page.next).search : null;', "web/app.js")
-    app_web = app_web.replace("  L'adresse de l'API est celle de cet ordinateur sur le port 8000 : rien à configurer.",
-                              "  Le site et l'API sont servis par le même serveur : les appels commencent par /api/, rien à configurer.")
-    ecrire(chemin("web", "app.js"), app_web)
-    print("  fait : web/app.js")
-else:
-    print("  deja fait")
+# ------------------------------------------------------------------ 4. l'application web a jour
+etape("4. L'application web a jour : lieux, selecteurs de date et d'heure, liens relatifs vers l'API")
+shutil.copytree(ici("web"), chemin("web"), dirs_exist_ok=True)
+print("  fait : web/ (app.js, style.css, index.html)")
 
 # ------------------------------------------------------------------ 5. documentation, livrables, nettoyage
 etape("5. Documentation, livrables et nettoyage")
@@ -204,10 +185,11 @@ for titre, commande in (("flutter pub get", ["pub", "get"]), ("flutter analyze",
     sys.stdout.flush()
     if subprocess.run([flutter] + commande, cwd=mobile).returncode != 0:
         echecs.append(titre)
-print("\n--- python manage.py check")
-sys.stdout.flush()
-if subprocess.run([sys.executable, "manage.py", "check"], cwd=chemin("backend")).returncode != 0:
-    echecs.append("manage.py check")
+for titre, commande in (("manage.py migrate (met la base a jour, tes donnees sont conservees)", ["migrate"]), ("manage.py check", ["check"])):
+    print(f"\n--- python {titre}")
+    sys.stdout.flush()
+    if subprocess.run([sys.executable, "manage.py"] + commande, cwd=chemin("backend")).returncode != 0:
+        echecs.append(titre.split(" (")[0])
 
 print("\n" + "=" * 70)
 if echecs:

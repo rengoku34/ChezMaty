@@ -17,6 +17,7 @@ from evenements import pages, views
 # Le routeur fabrique tout seul les adresses de l'API à partir des viewsets.
 router = routers.DefaultRouter()
 router.register("evenements", views.EvenementViewSet, basename="evenement")
+router.register("lieux", views.LieuViewSet, basename="lieu")
 
 urlpatterns = [
     path("admin/", admin.site.urls),                                      # le backoffice (comptes et inscriptions)
@@ -24,6 +25,7 @@ urlpatterns = [
     # --- Les pages (HTML) que voient les employés ---
     path("e/<str:lien>/", pages.evenement_accueil, name="evenement-accueil"),                 # le lien envoyé aux employés
     path("e/<str:lien>/formulaire/", pages.evenement_formulaire, name="evenement-formulaire"),
+    path("e/<str:lien>/merci/", pages.evenement_merci, name="evenement-merci"),                # après l'envoi du formulaire
     path("billet/<str:jeton>/", pages.billet, name="billet"),                                 # le billet avec le QR code
     path("billet/<str:jeton>/qr.png", pages.billet_png, name="billet-png"),                   # le QR code en image
 

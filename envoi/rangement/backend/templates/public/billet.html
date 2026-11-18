@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{# PUBLIC : la page du QR code de l'inscrit. On n'y accède qu'avec le code secret reçu par e-mail. #}
+{% block nav %}{% endblock %}
+{% block content %}
+<section class="card billet">
+  {% if inscription.present %}<h2>Présence validée</h2>{% endif %}
+  <p class="nom">{{ inscription.prenom }} {{ inscription.nom }}</p>
+  <p class="ligne">{{ inscription.filiale }}</p>
+  <p class="ligne"><strong>{{ evenement.nom }}</strong> · {{ evenement.date|date:"l j F Y" }}</p>
+  <p class="ligne">{{ evenement.lieu }}{% if inscription.creneau %} · Créneau {{ inscription.creneau }}{% endif %}</p>
+  {% if inscription.present %}
+    <p class="alerte ok">Votre venue a été confirmée à l'entrée le {{ inscription.scanne_le|date:"d/m/Y à H:i" }}. Bon événement !</p>
+  {% else %}
+    <img src="{{ qr }}" alt="Votre QR code personnel" style="width:100%; max-width:330px; height:auto; image-rendering:pixelated; background:#fff; display:block; margin:0 auto;">
+    <p class="hint">Présentez ce QR code à l'accueil, sur votre téléphone ou imprimé.</p>
+    <a class="btn btn-secondary btn-block" href="{% url 'billet-png' inscription.qr_token %}">Télécharger mon QR code</a>
+  {% endif %}
+</section>
+{% endblock %}

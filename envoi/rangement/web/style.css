@@ -1,0 +1,95 @@
+/* Application web : la gestion des événements (couleurs SNEDAI : bleu marine et orange). */
+:root {
+  --primary: #26246a; --primary-soft: #eeeef6; --accent: #f08a46; --accent-dark: #d9732f;
+  --bg: #eef0f5; --card: #ffffff; --text: #1d1d2b; --muted: #62647a; --border: #dcdde6;
+  --ok: #17703a; --ok-bg: #e7f4ec; --warn: #9a5a10; --warn-bg: #fdf1e2; --error: #b42318; --error-bg: #fdecea;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; font-size: 15px;
+  background: var(--bg); color: var(--text); min-height: 100vh; }
+h1 { margin: 0 0 .25rem; font-size: 1.5rem; color: var(--primary); }
+h2 { margin: 0 0 .75rem; font-size: 1.1rem; color: var(--primary); }
+a { color: var(--primary); }
+.muted { color: var(--muted); }
+
+/* En-tête */
+.entete { background: var(--primary); border-bottom: 3px solid var(--accent); padding: .6rem 1.2rem; display: flex;
+  align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.marque { display: flex; align-items: center; gap: .6rem; color: #fff; font-weight: 600; text-decoration: none; }
+.logo { background: #fff; border-radius: 8px; padding: .3rem .65rem; display: inline-flex; align-items: center; }
+.logo img { height: 34px; width: auto; display: block; }
+.logo.grand { padding: .6rem 1.2rem; }
+.logo.grand img { height: 72px; }
+.entete .droite { display: flex; align-items: center; gap: 1rem; color: #d8d9ee; font-size: .9rem; }
+.lien-bouton { background: none; border: 0; color: #fff; font: inherit; cursor: pointer; text-decoration: underline; padding: 0; }
+
+.page { max-width: 1100px; margin: 0 auto; padding: 1.2rem 1rem 3rem; }
+.barre { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.carte { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; margin-bottom: 1rem;
+  box-shadow: 0 4px 18px rgba(38, 36, 106, .07); }
+
+/* Boutons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; height: 40px; padding: 0 1.1rem; border: 0;
+  border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
+.btn:hover { background: var(--accent-dark); }
+.btn:disabled { opacity: .6; cursor: wait; }
+.btn-clair { background: #fff; color: var(--primary); border: 1px solid var(--border); }
+.btn-clair:hover { background: var(--primary-soft); }
+.btn-danger { background: #fff; color: var(--error); border: 1px solid #f0c4bf; }
+.btn-danger:hover { background: var(--error-bg); }
+.btn-petit { height: 32px; padding: 0 .7rem; font-size: .85rem; }
+.actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+/* Formulaires */
+.formulaire { display: grid; gap: 1rem; max-width: 560px; }
+.champ label { display: block; font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
+.champ input, .champ textarea, .champ select { width: 100%; padding: .55rem .75rem; border: 1px solid var(--border);
+  border-radius: 6px; background: #fff; font: inherit; }
+.champ input:focus, .champ textarea:focus, .champ select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.champ .aide { color: var(--muted); font-size: .82rem; margin-top: .2rem; }
+.champ .erreur { color: var(--error); font-size: .85rem; margin-top: .2rem; }
+.alerte { border-radius: 8px; padding: .7rem .9rem; margin-bottom: 1rem; background: var(--error-bg); color: var(--error); }
+.alerte.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* Connexion */
+.connexion { max-width: 400px; margin: 8vh auto 0; }
+.connexion .marque { justify-content: center; margin-bottom: 1.2rem; }
+
+/* Tableaux */
+.tableau-conteneur { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { background: var(--primary-soft); color: var(--primary); font-weight: 700; white-space: nowrap; }
+tr:hover td { background: #fafafe; }
+.badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+.badge.oui { background: var(--ok-bg); color: var(--ok); }
+.badge.non { background: var(--warn-bg); color: var(--warn); }
+.vide { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+
+/* Statistiques et outils */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin-bottom: 1rem; }
+.stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; }
+.stat strong { display: block; font-size: 1.8rem; color: var(--primary); }
+.stat span { color: var(--muted); font-size: .85rem; }
+.outils { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: .9rem; align-items: center; }
+.outils input, .outils select { padding: .45rem .7rem; border: 1px solid var(--border); border-radius: 6px; font: inherit; background: #fff; }
+.outils input { flex: 1; min-width: 180px; }
+.lien-inscription { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.lien-inscription code { background: var(--primary-soft); padding: .3rem .6rem; border-radius: 6px; word-break: break-all; }
+
+/* Notification */
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 90px); background: var(--ok); color: #fff; padding: .75rem 1.3rem;
+  border-radius: 10px; box-shadow: 0 6px 20px rgba(0, 0, 0, .25); opacity: 0; transition: all .3s ease; z-index: 50; pointer-events: none; }
+#toast.visible { opacity: 1; transform: translate(-50%, 0); }
+#toast.erreur { background: var(--error); }
+
+/* Menu, sélecteurs d'heure, lieux */
+.menu { display: flex; gap: 1.2rem; margin: 0 auto 0 1.2rem; }
+.menu a { color: #d8d9ee; text-decoration: none; font-weight: 600; padding: .2rem .1rem; border-bottom: 2px solid transparent; }
+.menu a:hover { color: #fff; border-bottom-color: var(--accent); }
+.ligne-creneau { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; flex-wrap: wrap; }
+.champ .ligne-creneau input { width: auto; }
+.ligne-lieu { display: flex; gap: .5rem; margin: .5rem 0 1rem; flex-wrap: wrap; }
+.ligne-lieu[hidden] { display: none; }
+.ligne-lieu input, td input { flex: 1; min-width: 200px; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.lien-texte { background: none; border: 0; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; font-size: .85rem; }

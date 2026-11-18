@@ -1,0 +1,42 @@
+{% extends 'base.html' %}{% load static %}
+{# PUBLIC : le formulaire d'inscription. Il envoie ses données à l'API (voir static/js/inscription.js). #}
+{% block nav %}{% endblock %}
+{% block content %}
+<section class="card">
+  <h2>Je m'inscris</h2>
+  <p class="hint">Remplissez ce formulaire : vous recevrez aussitôt votre <strong>QR code</strong> par e-mail, à présenter à l'entrée.</p>
+  <div class="alerte" id="alerte" hidden></div>
+
+  <form id="form-inscription" class="form" data-api="{% url 'api-public-inscription' evenement.lien %}" data-merci="{% url 'evenement-merci' evenement.lien %}" novalidate>
+    <div class="row">
+      <label>Nom<input name="nom" required maxlength="100" autocomplete="family-name"><small class="erreur" data-champ="nom"></small></label>
+      <label>Prénom<input name="prenom" required maxlength="100" autocomplete="given-name"><small class="erreur" data-champ="prenom"></small></label>
+    </div>
+    <label>Filiale
+      <select name="filiale" required>
+        <option value="">Choisir…</option>
+        {% for filiale in filiales %}<option>{{ filiale }}</option>{% endfor %}
+      </select>
+      <small class="erreur" data-champ="filiale"></small>
+    </label>
+    <label>Numéro de téléphone<input type="tel" name="telephone" required maxlength="30" autocomplete="tel" placeholder="Ex. : 07 00 00 00 00"><small class="erreur" data-champ="telephone"></small></label>
+    <label>Adresse e-mail<input type="email" name="email" required maxlength="200" autocomplete="email" autocapitalize="none"><small class="erreur" data-champ="email"></small></label>
+
+    {# Les créneaux horaires proposés par l'administrateur : la personne en choisit UN. #}
+    {% if evenement.creneaux %}
+    <fieldset>
+      <legend>Choisissez votre créneau horaire</legend>
+      <div class="creneaux">
+        {% for creneau in evenement.creneaux %}
+          <label class="creneau"><input type="radio" name="creneau" value="{{ creneau }}" required> {{ creneau }}</label>
+        {% endfor %}
+      </div>
+      <small class="erreur" data-champ="creneau"></small>
+    </fieldset>
+    {% endif %}
+
+    <button type="submit" class="btn btn-block" id="bouton-envoyer">Envoyer</button>
+  </form>
+</section>
+<script src="{% static 'js/inscription.js' %}"></script>
+{% endblock %}

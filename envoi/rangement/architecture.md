@@ -11,3 +11,6 @@ l'API, qui décide. L'application web appelle l'API par des liens relatifs (`/ap
 sur le Wi-Fi grâce à `/api/ping/`.
 
 Rôles : l'administrateur est un compte « staff », l'agent de scan appartient au groupe « Agents de scan », l'employé n'a pas de compte.
+
+Les lieux sont une table à part (`Lieu`) : un événement choisit son lieu dans la liste, et deux événements ne peuvent pas occuper le même lieu à des heures qui se chevauchent.
+Le jeton de connexion a une durée de vie limitée (12 heures par défaut) : un appareil perdu ne donne pas un accès éternel.

@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+{# base.html est le GABARIT PARENT : l'en-tête et le pied de page communs à toutes les pages. #}
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · Événements SNEDAI</title>
+  <link rel="icon" href="{% static 'img/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><img class="logo-image" src="{% static 'img/logo.png' %}" alt="SNEDAI" style="height:34px;width:auto;max-width:60vw;display:block;background:#fff;padding:4px 10px;border-radius:6px"></a>
+  {# Le menu : les pages publiques (employés) le remplacent par un bloc vide. #}
+  {% block nav %}
+  <nav>
+    {% if user.is_authenticated %}
+      {% if user.is_staff %}<a href="/admin/">Administration</a>{% endif %}
+      <a href="/scan/">Scanner</a>
+      <a href="/docs/">API</a>
+      <form method="post" action="/deconnexion/">{% csrf_token %}<button type="submit">Déconnexion</button></form>
+    {% else %}
+      <a href="/docs/">Documentation de l'API</a>
+      <a href="/connexion/">Connexion</a>
+    {% endif %}
+  </nav>
+  {% endblock %}
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+<footer class="footer">SNEDAI · Plateforme interne des événements</footer>
+</body>
+</html>

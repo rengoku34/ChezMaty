@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{# L'administration aux couleurs de SNEDAI, avec le logo à la place du titre. #}
+
+{% block extrahead %}{{ block.super }}<link rel="icon" href="{% static 'img/favicon.png' %}">{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  :root {
+    --primary: #26246a; --secondary: #26246a; --accent: #f08a46;
+    --header-bg: #26246a; --header-color: #ffffff; --header-branding-color: #ffffff; --header-link-color: #ffffff;
+    --breadcrumbs-bg: #3b3896; --breadcrumbs-fg: #d8d9ee; --breadcrumbs-link-fg: #ffffff;
+    --link-fg: #26246a; --link-hover-color: #f08a46; --link-selected-fg: #26246a;
+    --button-bg: #26246a; --button-hover-bg: #1a1950; --default-button-bg: #f08a46; --default-button-hover-bg: #d9732f;
+    --selected-bg: #eeeef6; --selected-row: #fdf1e2; --module-header-bg: #26246a;
+  }
+  #header { border-bottom: 3px solid #f08a46; padding: 8px 20px; }
+  #site-name { margin: 0; }
+  .logo-admin { height: 34px; width: auto; display: block; background: #fff; padding: 4px 10px; border-radius: 6px; }
+  .module h2, .module caption, .inline-group h2 { background: #26246a; }
+  .button.default, input[type=submit].default { background: #f08a46; }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}"><img class="logo-admin" src="{% static 'img/logo.png' %}" alt="SNEDAI"></a></div>
+{% endblock %}

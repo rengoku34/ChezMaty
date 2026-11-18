@@ -31,6 +31,11 @@ Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête.
 | `http://localhost:8000/admin/` | Le backoffice Django (comptes et inscriptions) |
 | `http://localhost:8000/snedai-scan.apk` | L'installation de l'application mobile sur le Zebra |
 
+## Les lieux et le jeton
+
+- Les **lieux** des événements se gèrent dans la page « Lieux » de l'application web (ajouter, renommer, supprimer). Un lieu utilisé par un événement ne peut pas être supprimé.
+- Le **jeton** de connexion expire après `JETON_DUREE_HEURES` heures (12 par défaut, dans `backend/config/settings.py`). Passé ce délai, il faut se reconnecter. Changer le mot de passe d'un compte déconnecte aussi ses appareils.
+
 ## L'application mobile
 
 Voir `mobile/README.md` : `flutter test`, puis `flutter build apk --release`.
