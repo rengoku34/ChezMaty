@@ -49,7 +49,8 @@ def etape(titre):
 flutter = shutil.which("flutter")
 if not flutter:
     sys.exit("ARRET : la commande flutter est introuvable. Ouvre un terminal ou 'flutter --version' fonctionne, puis relance ce script.")
-for fichier in (("urls.py",), ("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart")):
+for fichier in (("urls.py",), ("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"),
+                ("services", "courrier.py"), ("services", "invitations.py"), ("services", "billets.py")):
     if not os.path.exists(ici(*fichier)):
         sys.exit(f"ARRET : le fichier {os.path.join(*fichier)} manque a cote du script.")
 
@@ -109,6 +110,8 @@ DOSSIER_WEB = BASE_DIR.parent / "web"
 DOSSIER_LIVRABLES = BASE_DIR.parent / "livrables"       # le fichier d'installation de l'application mobile (snedai-scan.apk)
 ''')
 shutil.copy(ici("urls.py"), chemin("backend", "config", "urls.py"))
+for nom in ("courrier.py", "invitations.py", "billets.py"):          # les e-mails : une lettre (Chers tous, ... Cordialement,)
+    shutil.copy(ici("services", nom), chemin("backend", "evenements", "services", nom))
 
 vues = lire(chemin("backend", "evenements", "views.py"))
 if "def ping(" not in vues:
@@ -128,7 +131,7 @@ def ping(request):
 '''
     vues = remplacer(vues, ancre, ping + ancre, "views.py")
     ecrire(chemin("backend", "evenements", "views.py"), vues)
-print("  fait : settings.py, urls.py (liens /api/ping/ et /snedai-scan.apk), views.py")
+print("  fait : settings.py, urls.py (liens /api/ping/ et /snedai-scan.apk), views.py, e-mails (courrier.py, invitations.py, billets.py)")
 
 # ------------------------------------------------------------------ 4. l'application web : liens relatifs vers l'API
 etape("4. L'application web appelle l'API par des liens relatifs")

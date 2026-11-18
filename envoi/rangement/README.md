@@ -39,4 +39,6 @@ Voir `mobile/README.md` : `flutter test`, puis `flutter build apk --release`.
 
 - `APP_URL` : l'adresse du site dans les liens des e-mails (à mettre à jour si l'adresse IP change).
 - `ADRESSES_DIFFUSION` : les destinataires du bouton « Envoyer le lien à tous les employés ».
+- `CONTACT_EVENEMENTS` (facultatif) : la personne à contacter, affichée en bas des e-mails (ex. `"le Département Relation Sociale au 00 00 00 00"`).
+- `SIGNATURE_EVENEMENTS` (facultatif) : la signature des e-mails (`"SNEDAI"` par défaut).
 - Les e-mails utilisent les variables Windows `EMAIL_USER` et `EMAIL_MOT_DE_PASSE` (jamais écrites dans le code).
