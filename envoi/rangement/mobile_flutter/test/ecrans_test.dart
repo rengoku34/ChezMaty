@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use, unnecessary_import
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -50,7 +51,12 @@ Future<void> scanner(WidgetTester tester, String code) async {
 
 void main() {
   group("l'écran de scan", () {
+    StreamController<String>? lecteurFaux;
+    var configurations = 0;
+
     Future<(FauxService, FausseSonnerie, List<String>)> ouvrir(WidgetTester tester, List<Object> reponses) async {
+      configurations = 0;
+      lecteurFaux = StreamController<String>();
       final service = FauxService(reponses);
       final sonnerie = FausseSonnerie();
       final evenements = <String>[];
@@ -62,6 +68,8 @@ void main() {
           onDeconnexion: () => evenements.add('deconnexion'),
           onSessionExpiree: () => evenements.add('session'),
           onReseauPerdu: () => evenements.add('reseau'),
+          lecteur: lecteurFaux?.stream ?? const Stream<String>.empty(),
+          configurerLecteur: () async { configurations++; },
         ),
       ));
       await tester.pump();
@@ -69,6 +77,46 @@ void main() {
     }
 
     Color couleurCarte(WidgetTester tester) => ((tester.widget<AnimatedContainer>(find.byKey(const Key('carte-etat'))).decoration) as BoxDecoration).color!;
+
+    testWidgets("lecteur Zebra (DataWedge) : le code reçu par message est envoyé à l'API, écran vert, bip, et la ligne de diagnostic le dit", (tester) async {
+      final (service, sonnerie, _) = await ouvrir(tester, [const ReponseScan(statut: 'present', message: 'Présence confirmée.', personne: personne)]);
+      expect(configurations, 1);                                         // le profil DataWedge est configuré à l'ouverture de l'écran
+      expect(find.text("Lecteur : en attente d'un code"), findsOneWidget);
+      lecteurFaux!.add(code1);                                           // DataWedge envoie le code lu
+      await tester.pump();
+      await tester.pump();
+      expect(service.codes, [code1]);
+      expect(find.text('Présence validée'), findsOneWidget);
+      expect(sonnerie.appels, [true]);
+      expect(find.textContaining('Code reçu à'), findsOneWidget);
+      expect(find.textContaining('(32 caractères)'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets("lecteur Zebra : un code vide ou avec des espaces autour est nettoyé, deux codes différents donnent deux scans", (tester) async {
+      final (service, _, _) = await ouvrir(tester, [
+        const ReponseScan(statut: 'present', message: '', personne: personne),
+        const ReponseScan(statut: 'deja', message: '', personne: personne),
+      ]);
+      lecteurFaux!.add('   ');
+      await tester.pump();
+      expect(service.codes, isEmpty);
+      lecteurFaux!.add('  $code1\n');
+      await tester.pump();
+      await tester.pump();
+      lecteurFaux!.add(code2);
+      await tester.pump();
+      await tester.pump();
+      expect(service.codes, [code1, code2]);
+      await tester.pump(const Duration(seconds: 5));
+    });
+
+    testWidgets("lecteur Zebra : une erreur du lecteur ne fait pas planter l'écran", (tester) async {
+      await ouvrir(tester, []);
+      lecteurFaux!.addError('lecteur indisponible');
+      await tester.pump();
+      expect(find.text('Prêt à scanner'), findsOneWidget);
+    });
 
     testWidgets("au départ : « Prêt à scanner », le nom de l'agent est affiché", (tester) async {
       await ouvrir(tester, []);

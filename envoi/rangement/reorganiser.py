@@ -49,7 +49,7 @@ def etape(titre):
 flutter = shutil.which("flutter")
 if not flutter:
     sys.exit("ARRET : la commande flutter est introuvable. Ouvre un terminal ou 'flutter --version' fonctionne, puis relance ce script.")
-for fichier in (("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"),
+for fichier in (("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"), ("mobile_flutter", "android", "MainActivity.java"),
                 ("backend", "evenements", "models.py"), ("backend", "evenements", "migrations", "0007_limite_et_places.py"),
                 ("backend", "config", "urls.py"), ("web", "app.js")):
     if not os.path.exists(ici(*fichier)):
@@ -150,37 +150,44 @@ for dossier in ("logs", "outils"):
 print("  fait : README.md, docs/architecture.md, dossier livrables ; plus de cors.py, lancer.ps1, arreter.ps1")
 
 # ------------------------------------------------------------------ 6. l'application mobile Flutter
-etape("6. L'application mobile Flutter")
+etape("6. L'application mobile Flutter (code, lecteur Zebra, configuration Android)")
 mobile = chemin("mobile")
-if not os.path.exists(os.path.join(mobile, "lib", "ecrans.dart")):
-    os.makedirs(mobile, exist_ok=True)
-    if not os.path.exists(os.path.join(mobile, "android")):
-        resultat = subprocess.run([flutter, "create", "--org", "ci.snedai", "--project-name", "snedai_scan",
-                                   "--platforms", "android", "--no-pub", "."], cwd=mobile)
-        if resultat.returncode != 0:
-            sys.exit("ARRET : 'flutter create' a echoue (voir le message ci-dessus). Corrige le probleme puis relance ce script.")
-    for nom in ("lib", "test", "assets"):
-        if os.path.isdir(os.path.join(mobile, nom)):
-            shutil.rmtree(os.path.join(mobile, nom))
-        shutil.copytree(ici("mobile_flutter", nom), os.path.join(mobile, nom))
-    for nom in ("pubspec.yaml", "analysis_options.yaml", "README.md"):
-        shutil.copy(ici("mobile_flutter", nom), os.path.join(mobile, nom))
+os.makedirs(mobile, exist_ok=True)
+if not os.path.exists(os.path.join(mobile, "android")):
+    resultat = subprocess.run([flutter, "create", "--org", "ci.snedai", "--project-name", "snedai_scan",
+                               "--platforms", "android", "--no-pub", "."], cwd=mobile)
+    if resultat.returncode != 0:
+        sys.exit("ARRET : 'flutter create' a echoue (voir le message ci-dessus). Corrige le probleme puis relance ce script.")
+for nom in ("lib", "test", "assets"):
+    if os.path.isdir(os.path.join(mobile, nom)):
+        shutil.rmtree(os.path.join(mobile, nom))
+    shutil.copytree(ici("mobile_flutter", nom), os.path.join(mobile, nom))
+for nom in ("pubspec.yaml", "analysis_options.yaml", "README.md"):
+    shutil.copy(ici("mobile_flutter", nom), os.path.join(mobile, nom))
 
-    manifeste = os.path.join(mobile, "android", "app", "src", "main", "AndroidManifest.xml")
-    texte = lire(manifeste)
-    if "android.permission.INTERNET" not in texte:
-        texte = re.sub(r"(<manifest[^>]*>)", r'\1\n    <uses-permission android:name="android.permission.INTERNET"/>', texte, count=1)
-    if "usesCleartextTraffic" not in texte:
-        texte = re.sub(r"<application\b", '<application\n        android:usesCleartextTraffic="true"', texte, count=1)
-    texte = re.sub(r'android:label="[^"]*"', 'android:label="SNEDAI Scan"', texte, count=1)
-    ecrire(manifeste, texte)
-    for densite in ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"):
-        icone = chemin("_icones", f"{densite}.png")
-        if os.path.exists(icone):
-            shutil.copy(icone, os.path.join(mobile, "android", "app", "src", "main", "res", f"mipmap-{densite}", "ic_launcher.png"))
-    print("  fait : projet Flutter cree, fichiers installes, Android configure (HTTP local, internet, nom et icone)")
-else:
-    print("  deja fait")
+manifeste = os.path.join(mobile, "android", "app", "src", "main", "AndroidManifest.xml")
+texte = lire(manifeste)
+if "android.permission.INTERNET" not in texte:
+    texte = re.sub(r"(<manifest[^>]*>)", r'\1\n    <uses-permission android:name="android.permission.INTERNET"/>', texte, count=1)
+if "usesCleartextTraffic" not in texte:
+    texte = re.sub(r"<application\b", '<application\n        android:usesCleartextTraffic="true"', texte, count=1)
+texte = re.sub(r'android:label="[^"]*"', 'android:label="SNEDAI Scan"', texte, count=1)
+ecrire(manifeste, texte)
+for densite in ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"):
+    icone = chemin("_icones", f"{densite}.png")
+    if os.path.exists(icone):
+        shutil.copy(icone, os.path.join(mobile, "android", "app", "src", "main", "res", f"mipmap-{densite}", "ic_launcher.png"))
+
+# L'activite Android : version Java qui relie le lecteur du Zebra (DataWedge) a l'application. Elle remplace celle de Kotlin.
+racine_kotlin = os.path.join(mobile, "android", "app", "src", "main", "kotlin")
+for dossier, _, fichiers in os.walk(racine_kotlin):
+    for fichier in fichiers:
+        if fichier == "MainActivity.kt":
+            os.remove(os.path.join(dossier, fichier))
+dossier_java = os.path.join(mobile, "android", "app", "src", "main", "java", "ci", "snedai", "snedai_scan")
+os.makedirs(dossier_java, exist_ok=True)
+shutil.copy(ici("mobile_flutter", "android", "MainActivity.java"), os.path.join(dossier_java, "MainActivity.java"))
+print("  fait : sources Flutter, lecteur Zebra (MainActivity.java), configuration Android (HTTP local, internet, nom et icone)")
 shutil.rmtree(chemin("_icones"), ignore_errors=True)
 
 # ------------------------------------------------------------------ 7. verifications

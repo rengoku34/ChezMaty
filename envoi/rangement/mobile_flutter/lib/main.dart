@@ -13,17 +13,28 @@ import 'api.dart';
 import 'decouverte.dart';
 import 'depot.dart';
 import 'ecrans.dart';
+import 'lecteur.dart';
 import 'son.dart';
 
 /// Tout ce que l'application utilise de l'extérieur (réseau, mémoire, son) : on le remplace dans les tests.
 class Services {
-  Services({required this.depot, required this.sonnerie, required this.trouver, required this.creerApi, this.dureeLogo = const Duration(seconds: 1)});
+  Services({
+    required this.depot,
+    required this.sonnerie,
+    required this.trouver,
+    required this.creerApi,
+    this.dureeLogo = const Duration(seconds: 1),
+    this.lecteur,
+    this.configurerLecteur,
+  });
 
   factory Services.reels() => Services(
         depot: DepotLocal(),
         sonnerie: SonnerieAudio(),
         trouver: trouverServeur,
         creerApi: (hote, jeton) => Api(hote: hote, jeton: jeton),
+        lecteur: Lecteur.codes(),
+        configurerLecteur: Lecteur.configurer,
       );
 
   final Depot depot;
@@ -31,6 +42,8 @@ class Services {
   final Future<String?> Function(String? derniere) trouver;
   final Api Function(String hote, String? jeton) creerApi;
   final Duration dureeLogo;
+  final Stream<String>? lecteur;
+  final Future<void> Function()? configurerLecteur;
 }
 
 void main() {
@@ -177,6 +190,8 @@ class _EtatApp extends State<AppSnedai> {
           onDeconnexion: _deconnecter,
           onSessionExpiree: () => _oublierSession('Session expirée : reconnectez-vous.'),
           onReseauPerdu: _demarrer,
+          lecteur: _s.lecteur,
+          configurerLecteur: _s.configurerLecteur,
         );
     }
     return MaterialApp(

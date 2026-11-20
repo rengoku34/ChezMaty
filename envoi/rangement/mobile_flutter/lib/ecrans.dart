@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'api.dart';
+import 'lecteur.dart';
 import 'son.dart';
 
 const Color bleuSnedai = Color(0xFF26246A);
@@ -293,7 +294,13 @@ class EcranScan extends StatefulWidget {
     required this.onDeconnexion,
     required this.onSessionExpiree,
     required this.onReseauPerdu,
+    this.lecteur,
+    this.configurerLecteur,
   });
+
+  /// Les codes envoyés par le lecteur du Zebra (DataWedge). Par défaut, le vrai lecteur ; les tests en fournissent un faux.
+  final Stream<String>? lecteur;
+  final Future<void> Function()? configurerLecteur;
 
   final ServiceScan service;
   final Sonnerie sonnerie;
@@ -311,6 +318,8 @@ class _EtatScan extends State<EcranScan> {
   final _focus = FocusNode();
   final List<_LigneHistorique> _historique = [];
 
+  StreamSubscription<String>? _abonnementLecteur;
+  String _etatLecteur = "Lecteur : en attente d'un code";
   String _statut = 'attente';
   String _detail = '';
   bool _occupe = false;
@@ -326,12 +335,16 @@ class _EtatScan extends State<EcranScan> {
     super.initState();
     WakelockPlus.enable().catchError((_) {});       // l'écran reste allumé pendant les scans (sans effet dans les tests)
     HardwareKeyboard.instance.addHandler(_surTouche);
+    // Le lecteur du Zebra envoie chaque code par un message ; l'application configure d'abord le profil DataWedge qui le permet.
+    _abonnementLecteur = (widget.lecteur ?? Lecteur.codes()).listen(_envoyer, onError: (_) {});
+    (widget.configurerLecteur ?? Lecteur.configurer)().catchError((_) {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
   }
 
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_surTouche);
+    _abonnementLecteur?.cancel();
     _retourAttente?.cancel();
     _minuteurSaisie?.cancel();
     _minuteurTampon?.cancel();
@@ -367,6 +380,10 @@ class _EtatScan extends State<EcranScan> {
 
   Future<void> _envoyer(String brut) async {
     final code = brut.trim();
+    if (code.isNotEmpty && mounted) {
+      final h = TimeOfDay.now();
+      setState(() => _etatLecteur = 'Code reçu à ${h.hour.toString().padLeft(2, '0')}:${h.minute.toString().padLeft(2, '0')} (${code.length} caractères)');
+    }
     if (code.isEmpty || _occupe || (code == _dernierCode && DateTime.now().difference(_dernierMoment) < const Duration(seconds: 3))) return;
     _occupe = true;
     _dernierCode = code;
@@ -472,6 +489,10 @@ class _EtatScan extends State<EcranScan> {
                     },
                   ),
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(_etatLecteur, key: const Key('etat-lecteur'), style: const TextStyle(fontSize: 12, color: Color(0xFF62647A))),
               ),
               Expanded(
                 child: Padding(
