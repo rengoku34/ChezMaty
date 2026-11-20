@@ -16,23 +16,9 @@ un QR code par e-mail. Les agents scannent ce QR code à l'entrée (Zebra) : la 
 ## Où trouver quoi
 
 ```
-backend/                       Django + API
-  manage.py, requirements.txt, db.sqlite3
-  config/                      réglages (settings.py) et liste des adresses (urls.py)
-  evenements/
-    models.py, validators.py   les données et leurs règles
-    api/                       tout ce qui répond à /api/ : views/ (compte, événements, lieux, inscription, scan),
-                               serializers.py, permissions.py, authentification.py, urls.py
-    pages/                     les pages HTML : lien, formulaire, merci, billet, connexion, scan
-    services/                  le travail : e-mails, QR codes, conflits de lieu, scan, Excel
-    migrations/
-  templates/, static/          les pages des employés (HTML, CSS, JavaScript)
-web/                           l'application de l'administrateur
-  index.html
-  css/style.css
-  js/                          main.js (pages), api.js, outils.js, coque.js, vues/ (une page par fichier)
-  img/                         logo et icône
-mobile/                        l'application Flutter des agents de scan
+backend/    manage.py, config/ (réglages, adresses), evenements/ (models, views, serializers, services, ...), templates/, static/
+web/        index.html, style.css, app.js, logo.png
+mobile/     l'application Flutter
 ```
 
 ## Démarrer le site (un seul serveur)
@@ -43,7 +29,7 @@ Dans le dossier `backend` :
 python manage.py runserver 0.0.0.0:8000
 ```
 
-Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête (aucun serveur caché : le site n'est plus joignable ensuite).
+Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête.
 
 | Adresse | Ce que c'est |
 |---|---|
@@ -56,7 +42,7 @@ Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête (aucun serveur caché 
 ## Les lieux, les places et le jeton
 
 - Les **lieux** des événements se gèrent dans la page « Lieux » de l'application web (ajouter, renommer, supprimer). Un lieu utilisé par un événement ne peut pas être supprimé.
-- Dans le formulaire d'un événement, le **lieu** se choisit dans la liste (on peut aussi taper quelques lettres pour le retrouver). La **date** et les **horaires** se choisissent avec des sélecteurs.
+- Dans le formulaire d'un événement, le **lieu** se choisit dans la liste (on peut taper quelques lettres pour le retrouver). La date et les horaires se choisissent avec des sélecteurs.
 - Le **numéro de téléphone** d'un employé compte exactement 10 chiffres.
 - Chaque événement peut avoir une **date limite d'inscription** et un **nombre de places** (facultatifs) : passé la date, ou quand toutes les places sont prises, le lien n'accepte plus d'inscription.
 - Le **jeton** de connexion expire après `JETON_DUREE_HEURES` heures (12 par défaut, dans `backend/config/settings.py`). Passé ce délai, il faut se reconnecter. Changer le mot de passe d'un compte déconnecte aussi ses appareils.

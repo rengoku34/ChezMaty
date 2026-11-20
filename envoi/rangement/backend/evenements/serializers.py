@@ -5,9 +5,9 @@ et ils VÉRIFIENT les données reçues.
 from django.conf import settings
 from rest_framework import serializers
 
-from ..validators import chiffres_du_telephone
-from ..models import Evenement, Inscription, Lieu, moment_de_fin
-from ..services.conflits import message_conflit, normaliser, trouver_conflit
+from .validators import chiffres_du_telephone
+from .models import Evenement, Inscription, Lieu, moment_de_fin
+from .services.conflits import message_conflit, normaliser, trouver_conflit
 
 
 # ---------------------------------------------------------------------------

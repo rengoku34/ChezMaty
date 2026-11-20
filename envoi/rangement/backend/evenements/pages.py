@@ -9,9 +9,9 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import ensure_csrf_cookie
 
-from ..models import Evenement, Inscription
-from ..api.permissions import est_administrateur, est_agent
-from ..services.qr import qr_data_url, qr_png
+from .models import Evenement, Inscription
+from .permissions import est_administrateur, est_agent
+from .services.qr import qr_data_url, qr_png
 
 
 # --- Ce que voient les employés (aucune connexion demandée) -----------------

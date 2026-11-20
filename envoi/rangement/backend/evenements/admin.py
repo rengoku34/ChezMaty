@@ -11,7 +11,7 @@ from django.contrib.auth.models import Group, User
 from rest_framework.authtoken.models import Token, TokenProxy
 
 from .models import Inscription
-from .api.permissions import est_administrateur, est_agent
+from .permissions import est_administrateur, est_agent
 
 admin.site.site_header = "SNEDAI"
 admin.site.site_title = "SNEDAI : administration"

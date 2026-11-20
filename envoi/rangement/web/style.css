@@ -94,5 +94,6 @@ tr:hover td { background: #fafafe; }
 .ligne-lieu[hidden] { display: none; }
 .ligne-lieu input, td input { flex: 1; min-width: 200px; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
 .lien-texte { background: none; border: 0; padding: 0; color: var(--primary); text-decoration: underline; cursor: pointer; font: inherit; font-size: .85rem; }
+
 .grille-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2rem; align-items: start; }
 @media (max-width: 700px) { .grille-2 { grid-template-columns: 1fr; } }
