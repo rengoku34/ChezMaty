@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{# PUBLIC : après l'envoi du formulaire, on quitte le formulaire : l'inscription est enregistrée, le QR code arrive par e-mail. #}
+{% block nav %}{% endblock %}
+{% block content %}
+<section class="card merci">
+  <h1>Merci, votre inscription est enregistrée</h1>
+  <p>Vous allez recevoir votre <strong>QR code par e-mail</strong>. Présentez-le à l'entrée de « {{ evenement.nom }} », le {{ evenement.date|date:"l j F Y" }}.</p>
+  <p class="hint">Vous pouvez fermer cette page. Si vous ne recevez pas l'e-mail, pensez à regarder dans vos courriers indésirables.</p>
+</section>
+{% endblock %}

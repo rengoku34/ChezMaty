@@ -1,0 +1,28 @@
+<% const p = participations.get(ev.id); const day = format.eventDay(ev.debut); %>
+<article class="event-card <%= ev.termine_at ? 'is-finished' : '' %>">
+  <a href="/evenements/<%= ev.id %>" class="event-link">
+    <div class="event-cover">
+      <% if (ev.has_photo) { %>
+        <img src="/evenements/<%= ev.id %>/photo" alt="" class="event-photo" loading="lazy">
+      <% } else { %>
+        <div class="event-photo placeholder"><%- include('icon', { name: 'calendar' }) %></div>
+      <% } %>
+      <% if (day) { %><span class="date-chip"><strong><%= day.jour %></strong><small><%= day.mois %></small></span><% } %>
+      <% if (ev.termine_at) { %>
+        <span class="status status-done">Terminé</span>
+      <% } else if (p && p.scanne_at) { %>
+        <span class="status status-ok">Présence validée</span>
+      <% } else if (p) { %>
+        <span class="status status-ok">Inscrit(e)</span>
+      <% } else { %>
+        <span class="status status-todo">À confirmer</span>
+      <% } %>
+    </div>
+    <div class="event-body">
+      <h3><%= ev.titre %></h3>
+      <% if (ev.debut) { %><p class="meta"><%- include('icon', { name: 'clock' }) %> <%= format.eventHours(ev.debut, ev.fin) %></p><% } %>
+      <% if (ev.lieu) { %><p class="meta"><%- include('icon', { name: 'pin' }) %> <%= ev.lieu %></p><% } %>
+      <span class="card-cta"><%= ev.termine_at ? 'Voir le détail' : (p ? 'Voir mon billet' : 'Répondre') %> <%- include('icon', { name: 'chevron-right' }) %></span>
+    </div>
+  </a>
+</article>

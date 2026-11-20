@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{# La connexion du backoffice : réservée à l'administrateur et aux agents de scan. #}
+{% block content %}
+<section class="card narrow">
+  <h1>Connexion</h1>
+  <p class="hint">Espace réservé à l’administrateur et aux agents de scan.</p>
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="/connexion" class="form">
+    {% csrf_token %}
+    <label>Adresse e-mail<input type="email" name="email" required autocomplete="username" autocapitalize="none" value="{{ email|default:'' }}"></label>
+    <label>Mot de passe<input type="password" name="password" required autocomplete="current-password"></label>
+    <button type="submit" class="btn btn-big">Se connecter</button>
+  </form>
+</section>
+{% endblock %}

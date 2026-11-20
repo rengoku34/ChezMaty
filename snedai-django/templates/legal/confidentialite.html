@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<article class="card narrow legal">
+  <h1>Politique de confidentialité</h1>
+  <p>Ce site est la plateforme interne des événements des employés de SNEDAI. Cette page explique quelles informations sont collectées et comment elles sont utilisées.</p>
+
+  <h2>Informations collectées</h2>
+  <ul>
+    <li>Votre nom, votre prénom et votre filiale, saisis lors de l’inscription.</li>
+    <li>Votre adresse e-mail et, si vous utilisez la connexion Google, votre identifiant Google transmis par Google. Aucune autre donnée de votre compte Google n’est lue.</li>
+    <li>Votre mot de passe, enregistré uniquement sous forme chiffrée (impossible à relire).</li>
+    <li>Vos réponses aux événements (« Je serai présent(e) ») et l’heure du scan de votre QR code à l’entrée.</li>
+  </ul>
+
+  <h2>Utilisation</h2>
+  <ul>
+    <li>Vous prévenir par e-mail des nouveaux événements et vous envoyer votre QR code d’entrée.</li>
+    <li>Établir les listes de participants de chaque événement, consultables et exportables uniquement par l’administrateur du site.</li>
+  </ul>
+  <p>Vos informations ne sont ni vendues, ni partagées avec des tiers, ni utilisées à des fins publicitaires. Les e-mails sont envoyés par un service d’envoi sécurisé et les données sont hébergées chez Render et Neon, uniquement pour faire fonctionner le site.</p>
+
+  <h2>Vos droits</h2>
+  <p>Vous pouvez demander à consulter, corriger ou supprimer vos informations en écrivant à l’administrateur du site{% if admin_contact %} : <a href="mailto:{{ admin_contact }}">{{ admin_contact }}</a>{% endif %}.</p>
+</article>
+{% endblock %}

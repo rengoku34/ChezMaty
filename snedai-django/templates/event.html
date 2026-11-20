@@ -1,0 +1,90 @@
+{% extends 'base.html' %}{% load snedai %}
+{% block content %}
+<div class="page-head">
+  {% include 'partials/breadcrumb.html' with parent_label='Événements' parent_href='/' current=event.titre %}
+  {% if is_admin %}<a class="btn btn-small btn-secondary" href="/admin/evenements/{{ event.id }}/modifier">{% icon 'edit' %} Modifier</a>{% endif %}
+</div>
+
+<div class="event-layout">
+  <article class="event-main">
+    {% if event.has_photo %}<img src="/evenements/{{ event.id }}/photo" alt="Photo de l’événement" class="detail-photo">{% endif %}
+    <div class="detail-body">
+      <h1>{{ event.titre }}</h1>
+
+      <ul class="infos">
+        {% if event.debut %}
+          <li>
+            {% icon 'calendar' %}
+            <div><strong>{{ event.day_text }}</strong><span>{{ event.hours_text }}</span></div>
+          </li>
+        {% endif %}
+        {% if event.lieu %}
+          <li>{% icon 'pin' %}<div><strong>{{ event.lieu }}</strong><span>Lieu</span></div></li>
+        {% endif %}
+      </ul>
+
+      {% if agenda %}
+        <div class="agenda">
+          <span>Ajouter à mon agenda</span>
+          <a class="btn btn-small btn-secondary" href="{{ agenda.google }}" target="_blank" rel="noopener">Google Agenda</a>
+          <a class="btn btn-small btn-secondary" href="{{ agenda.outlook }}" target="_blank" rel="noopener">Outlook</a>
+          <a class="btn btn-small btn-secondary" href="{{ agenda.ics }}">iPhone / autre</a>
+        </div>
+      {% endif %}
+
+      <h2 class="section-title">À propos</h2>
+      <div class="description">{{ event.description }}</div>
+    </div>
+  </article>
+
+  <aside class="event-side">
+    {% if event.termine_at %}
+      <div class="side-card side-done">
+        <span class="status status-done">Terminé</span>
+        <h2>Cet événement est terminé</h2>
+        {% if participation and participation.scanne_at %}
+          <p>Votre présence a été validée à l’entrée. Merci d’avoir participé.</p>
+        {% else %}
+          <p>Retrouvez les prochains événements sur la page d’accueil.</p>
+        {% endif %}
+      </div>
+
+    {% elif participation and participation.scanne_at %}
+      <div class="ticket ticket-ok">
+        <div class="ticket-head">{% icon 'check' %} Présence validée</div>
+        <div class="ticket-body">
+          <p class="ticket-name">{{ user.prenom }} {{ user.nom }}</p>
+          <p class="ticket-sub">{{ user.filiale }}</p>
+          <p class="ticket-note">Votre venue a été confirmée à l’entrée le {{ participation.scanne_at|ts }}. Bon événement !</p>
+        </div>
+      </div>
+
+    {% elif participation %}
+      <div class="ticket">
+        <div class="ticket-head">{% icon 'ticket' %} Billet d’entrée</div>
+        <div class="ticket-body">
+          <p class="ticket-name">{{ user.prenom }} {{ user.nom }}</p>
+          <p class="ticket-sub">{{ user.filiale }}</p>
+          <img class="ticket-qr" src="{{ qr }}" alt="Votre QR code personnel" width="240" height="240">
+          <p class="ticket-note">Présentez ce QR code à l’agent d’accueil, sur votre téléphone ou imprimé.</p>
+          <a class="btn btn-secondary btn-block" href="/evenements/{{ event.id }}/qr.png">{% icon 'download' %} Télécharger mon QR code</a>
+        </div>
+        <form class="ticket-foot" method="post" action="/evenements/{{ event.id }}/annuler" data-confirm="Annuler votre participation ? Votre QR code ne sera plus valable.">
+          {% csrf_token %}
+          <button class="link danger" type="submit">Je ne pourrai finalement pas venir</button>
+        </form>
+      </div>
+
+    {% else %}
+      <div class="side-card">
+        <h2>Serez-vous présent(e) ?</h2>
+        <p>Confirmez votre venue : vous recevrez aussitôt votre billet avec un QR code personnel, à présenter à l’entrée.</p>
+        <form method="post" action="/evenements/{{ event.id }}/participer">
+          {% csrf_token %}
+          <button class="btn btn-big btn-block" type="submit">{% icon 'check' %} Je serai présent(e)</button>
+        </form>
+      </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

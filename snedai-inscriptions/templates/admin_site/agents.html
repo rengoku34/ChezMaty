@@ -1,0 +1,67 @@
+{% extends 'base.html' %}{% load snedai %}
+{% block content %}
+<div class="page-head">
+  <h1>Agents de scan</h1>
+</div>
+<section class="card">
+  <p class="hint">Un <strong>agent de scan</strong> se connecte et peut seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée. Il ne voit ni les événements ni les listes d’inscrits.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nom</th><th>Prénom</th><th>E-mail</th><th>Rôle</th><th>Supprimer</th></tr></thead>
+      <tbody>
+        {# {% for %} répète le bloc pour chaque compte de la liste "users" #}
+        {% for u in users %}
+          <tr>
+            <td>{{ u.nom }}</td><td>{{ u.prenom }}</td><td>{{ u.email }}</td>
+            {% if u.is_admin %}
+              <td colspan="2"><span class="badge badge-ok">Administrateur{% if u.id == user.id %} (vous){% endif %}</span></td>
+            {% else %}
+              <td><span class="badge badge-done">Agent de scan</span></td>
+              <td>
+                <form method="post" action="/admin/agents/{{ u.id }}/supprimer" class="inline" data-confirm="Supprimer le compte de {{ u.prenom }} {{ u.nom }} ?">
+                  {% csrf_token %}
+                  <button class="btn btn-small btn-danger" type="submit">{% icon 'trash' %} Supprimer</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card narrow">
+  <h2>Ajouter un agent de scan</h2>
+  {% if error %}<div class="alert alert-error">{{ error }}</div>{% endif %}
+  <form method="post" action="/admin/agents" class="form">
+    {% csrf_token %}
+    <div class="row">
+      <label>Nom<input name="nom" required maxlength="100" value="{{ values.nom|default:'' }}"></label>
+      <label>Prénom<input name="prenom" required maxlength="100" value="{{ values.prenom|default:'' }}"></label>
+    </div>
+    <label>Adresse e-mail<input type="email" name="email" required maxlength="200" value="{{ values.email|default:'' }}"></label>
+    <label>Mot de passe (8 caractères minimum)<input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <button type="submit" class="btn">Créer l’agent</button>
+  </form>
+</section>
+
+{# Vérifier que les e-mails (QR codes) partent bien #}
+<section class="card">
+  <h2>Vérifier les e-mails</h2>
+  {% if not mail.provider %}
+    <div class="alert alert-error">Aucun service d’envoi d’e-mails n’est configuré : les inscrits ne recevront pas leur QR code par e-mail (ils le voient quand même à l’écran). Ajoutez <code>AGENTMAIL_API_KEY</code> et <code>AGENTMAIL_INBOX</code> dans le fichier <code>.env</code> (ou dans Render, section Environment).</div>
+  {% else %}
+    <p class="hint">Service utilisé : <strong>{{ mail.provider }}</strong> (expéditeur : {{ mail.sender }}).</p>
+    {% if mail.last_error %}
+      <div class="alert alert-error"><strong>Dernier échec d’envoi ({{ mail.last_error_at|ts }}) :</strong> {{ mail.last_error }}</div>
+    {% endif %}
+    {% if mail.last_ok_at %}<p class="hint">Dernier envoi réussi : {{ mail.last_ok_at|ts }}.</p>{% endif %}
+  {% endif %}
+  <p class="hint">Envoie un e-mail de test à votre adresse et affiche l’erreur exacte si l’envoi échoue.</p>
+  <form method="post" action="/admin/test-email" class="inline">
+    {% csrf_token %}
+    <button class="btn" type="submit">{% icon 'mail' %} Envoyer un e-mail de test</button>
+  </form>
+</section>
+{% endblock %}

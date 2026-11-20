@@ -1,0 +1,46 @@
+{% extends 'base.html' %}{% load snedai %}
+{# READ : la liste de tous les événements, avec les boutons du CRUD. #}
+{% block content %}
+<div class="page-head">
+  <h1>Événements</h1>
+  <a class="btn" href="/admin/evenements/nouveau">{% icon 'plus' %} Créer un événement</a>
+</div>
+
+{% if not events %}
+  <div class="empty-state">
+    {% icon 'calendar' %}
+    <strong>Aucun événement pour le moment</strong>
+    <span>Créez votre premier événement : vous obtiendrez un lien d’inscription à partager.</span>
+  </div>
+{% else %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Événement</th><th>Date</th><th>Lieu</th><th>Inscrits</th><th>Présents</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+          <tr>
+            <td><strong><a href="/admin/evenements/{{ e.id }}">{{ e.titre }}</a></strong></td>
+            <td>{% if e.debut %}{{ e.day_text }}<br><small>{{ e.hours_text }}</small>{% else %}—{% endif %}</td>
+            <td>{{ e.lieu|default:'—' }}</td>
+            <td>{{ e.nb_inscrits }}</td>
+            <td>{{ e.nb_presents }}</td>
+            <td>
+              <div class="actions">
+                <a class="btn btn-small" href="/admin/evenements/{{ e.id }}">{% icon 'eye' %} Voir</a>
+                <a class="btn btn-small btn-secondary" href="/admin/evenements/{{ e.id }}/modifier">{% icon 'edit' %} Modifier</a>
+                {# data-confirm : le JavaScript du site demande « Êtes-vous sûr ? » avant d'envoyer #}
+                <form method="post" action="/admin/evenements/{{ e.id }}/supprimer" class="inline" data-confirm="Supprimer « {{ e.titre }} » et ses {{ e.nb_inscrits }} inscription(s) ? Cette action est définitive.">
+                  {% csrf_token %}
+                  <button class="btn btn-small btn-danger" type="submit">{% icon 'trash' %} Supprimer</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

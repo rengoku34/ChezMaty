@@ -1,0 +1,4 @@
+Django>=5.2,<5.3
+requests>=2.32
+qrcode[pil]>=8.0
+openpyxl>=3.1
