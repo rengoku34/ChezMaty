@@ -20,11 +20,18 @@ def page_lien_expire(request, evenement):
     return render(request, "public/expire.html", {"title": "Lien expiré", "evenement": evenement}, status=410)
 
 
+def page_complet(request, evenement):
+    """La page affichée quand toutes les places sont prises."""
+    return render(request, "public/complet.html", {"title": "Complet", "evenement": evenement})
+
+
 def evenement_accueil(request, lien):
     """/e/<lien>/ : la page d'accueil de l'événement : son nom, son lieu et le bouton « Démarrer »."""
     evenement = get_object_or_404(Evenement, lien=lien)
     if not evenement.inscriptions_ouvertes:
         return page_lien_expire(request, evenement)
+    if evenement.complet:
+        return page_complet(request, evenement)
     return render(request, "public/evenement.html", {"title": evenement.nom, "evenement": evenement})
 
 
@@ -33,6 +40,8 @@ def evenement_formulaire(request, lien):
     evenement = get_object_or_404(Evenement, lien=lien)
     if not evenement.inscriptions_ouvertes:
         return page_lien_expire(request, evenement)
+    if evenement.complet:
+        return page_complet(request, evenement)
     return render(request, "public/formulaire.html", {
         "title": "Inscription", "evenement": evenement, "filiales": settings.FILIALES,
     })

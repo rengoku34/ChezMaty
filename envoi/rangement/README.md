@@ -31,9 +31,10 @@ Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête.
 | `http://localhost:8000/admin/` | Le backoffice Django (comptes et inscriptions) |
 | `http://localhost:8000/snedai-scan.apk` | L'installation de l'application mobile sur le Zebra |
 
-## Les lieux et le jeton
+## Les lieux, les places et le jeton
 
 - Les **lieux** des événements se gèrent dans la page « Lieux » de l'application web (ajouter, renommer, supprimer). Un lieu utilisé par un événement ne peut pas être supprimé.
+- Chaque événement peut avoir une **date limite d'inscription** et un **nombre de places** (facultatifs) : passé la date, ou quand toutes les places sont prises, le lien n'accepte plus d'inscription.
 - Le **jeton** de connexion expire après `JETON_DUREE_HEURES` heures (12 par défaut, dans `backend/config/settings.py`). Passé ce délai, il faut se reconnecter. Changer le mot de passe d'un compte déconnecte aussi ses appareils.
 
 ## L'application mobile
@@ -46,4 +47,6 @@ Voir `mobile/README.md` : `flutter test`, puis `flutter build apk --release`.
 - `ADRESSES_DIFFUSION` : les destinataires du bouton « Envoyer le lien à tous les employés ».
 - `CONTACT_EVENEMENTS` (facultatif) : la personne à contacter, affichée en bas des e-mails (ex. `"le Département Relation Sociale au 00 00 00 00"`).
 - `SIGNATURE_EVENEMENTS` (facultatif) : la signature des e-mails (`"SNEDAI"` par défaut).
+- `NOM_EXPEDITEUR` (facultatif) : le nom affiché de l'expéditeur (`"SNEDAI Événements"` par défaut ; par exemple `"Direction Communication"`).
+- `OBJET_INVITATION` (facultatif) : l'objet de l'invitation, avec `{nom}` pour le nom de l'événement (`"Invitation : {nom}"` par défaut).
 - Les e-mails utilisent les variables Windows `EMAIL_USER` et `EMAIL_MOT_DE_PASSE` (jamais écrites dans le code).

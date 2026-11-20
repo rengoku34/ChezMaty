@@ -36,6 +36,14 @@
 
   const formaterDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 
+  /* Une date renvoyée par l'API (« 2026-12-08T12:00:00Z ») devient la valeur d'un champ date + heure du navigateur. */
+  function versChampLocal(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const deux = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}T${deux(d.getHours())}:${deux(d.getMinutes())}`;
+  }
+
   /* Transforme la réponse d'erreur de l'API en phrases lisibles. */
   function phrases(donnees) {
     if (!donnees) return ["Une erreur est survenue."];
@@ -164,10 +172,11 @@
     };
 
     const lignes = evenements.map((e) => h("tr", {},
-      h("td", {}, h("strong", {}, e.nom), e.inscriptions_ouvertes ? null : h("span", { class: "badge non", style: "margin-left:.5rem" }, "Terminé")),
+      h("td", {}, h("strong", {}, e.nom), e.inscriptions_ouvertes ? null : h("span", { class: "badge non", style: "margin-left:.5rem" }, "Inscriptions closes")),
       h("td", {}, formaterDate(e.date)),
       h("td", {}, e.lieu),
-      h("td", {}, String(e.nombre_inscrits)),
+      h("td", {}, e.places ? `${e.nombre_inscrits} / ${e.places}` : String(e.nombre_inscrits),
+        e.complet ? h("span", { class: "badge non", style: "margin-left:.5rem" }, "Complet") : null),
       h("td", {}, String(e.nombre_presents)),
       h("td", {}, h("div", { class: "actions" },
         h("a", { class: "btn btn-clair btn-petit", href: `#/evenement/${e.id}/participants` }, "Participants"),
@@ -188,7 +197,7 @@
 
   async function vueFormulaire(id) {
     coque(h("p", { class: "muted" }, "Chargement…"));
-    let evenement = { nom: "", date: "", lieu: "", description: "", creneaux: [] };
+    let evenement = { nom: "", date: "", lieu: "", description: "", creneaux: [], inscriptions_jusqu_au: null, places: null };
     let lieux;
     try {
       [lieux, evenement] = await Promise.all([toutesLesPages("/api/lieux/"), id ? api(`/api/evenements/${id}/`) : Promise.resolve(evenement)]);
@@ -259,7 +268,9 @@
       Object.values(erreursChamps).forEach((zone) => { zone.textContent = ""; });
       const f = Object.fromEntries(new FormData(formulaire));
       const corps = { nom: f.nom, date: f.date, lieu: f.lieu, description: f.description,
-        creneaux: lignes.map((l) => `${l.champDebut.value}-${l.champFin.value}`) };
+        creneaux: lignes.map((l) => `${l.champDebut.value}-${l.champFin.value}`),
+        inscriptions_jusqu_au: f.inscriptions_jusqu_au ? new Date(f.inscriptions_jusqu_au).toISOString() : null,
+        places: f.places ? Number(f.places) : null };
       bouton.disabled = true;
       try {
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
@@ -283,6 +294,12 @@
       champ("description", "Description", h("textarea", { id: "description", name: "description", rows: 4 }, evenement.description)),
       champ("creneaux", "Créneaux horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau),
         "Choisissez l'heure de début et de fin de chaque créneau (4 au maximum). Sans créneau, l'événement dure toute la journée."),
+      champ("inscriptions_jusqu_au", "Date limite d'inscription (facultatif)",
+        h("input", { id: "inscriptions_jusqu_au", name: "inscriptions_jusqu_au", type: "datetime-local", value: versChampLocal(evenement.inscriptions_jusqu_au) }),
+        "Après cette date et cette heure, le lien d'inscription expire. Sans date limite, on peut s'inscrire jusqu'à la fin de l'événement."),
+      champ("places", "Nombre de places (facultatif)",
+        h("input", { id: "places", name: "places", type: "number", min: 1, step: 1, value: evenement.places || "" }),
+        "Quand toutes les places sont prises, plus personne ne peut s'inscrire. Sans nombre, les places ne sont pas limitées."),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
@@ -403,7 +420,7 @@
 
     /* Envoi du lien à tous les employés : un seul bouton, vers la liste de diffusion de l'entreprise. */
     const diffusion = JSON.parse(sessionStorage.getItem("diffusion") || "[]");
-    const boutonEnvoi = h("button", { class: "btn", type: "button", disabled: diffusion.length === 0 || !evenement.inscriptions_ouvertes, onclick: async () => {
+    const boutonEnvoi = h("button", { class: "btn", type: "button", disabled: diffusion.length === 0 || !evenement.inscriptions_ouvertes || evenement.complet, onclick: async () => {
       if (!confirm(`Envoyer le lien d'inscription de « ${evenement.nom} » à tous les employés ?`)) return;
       boutonEnvoi.disabled = true;
       try {
@@ -415,7 +432,9 @@
 
     const sectionEnvoi = h("div", { class: "carte" }, h("h2", {}, "Informer les employés"),
       h("p", { class: "muted", style: "margin:0 0 .8rem" }, !evenement.inscriptions_ouvertes
-        ? "Cet événement est terminé : le lien d'inscription a expiré."
+        ? "Les inscriptions sont closes : le lien d'inscription a expiré."
+        : evenement.complet
+        ? "Cet événement est complet : toutes les places sont prises."
         : diffusion.length
         ? "Le lien d'inscription est envoyé par e-mail à tous les employés. Chacun s'inscrit, puis reçoit son QR code par e-mail."
         : "Aucune adresse de diffusion n'est configurée : renseignez ADRESSES_DIFFUSION dans config/settings.py."),
@@ -430,9 +449,10 @@
       h("div", { class: "stats" },
         h("div", { class: "stat" }, h("strong", {}, String(participants.length)), h("span", {}, "Inscrits")),
         h("div", { class: "stat" }, h("strong", {}, String(nbPresents)), h("span", {}, "Présents")),
-        h("div", { class: "stat" }, h("strong", {}, String(participants.length - nbPresents)), h("span", {}, "Absents"))),
+        h("div", { class: "stat" }, h("strong", {}, String(participants.length - nbPresents)), h("span", {}, "Absents")),
+        evenement.places ? h("div", { class: "stat" }, h("strong", {}, String(evenement.places_restantes)), h("span", {}, "Places restantes")) : null),
       h("div", { class: "carte" }, h("h2", {}, "Lien d'inscription"),
-        evenement.inscriptions_ouvertes ? null : h("div", { class: "alerte" }, "Ce lien a expiré : l'événement est terminé, plus personne ne peut s'inscrire."),
+        evenement.inscriptions_ouvertes ? null : h("div", { class: "alerte" }, "Ce lien a expiré : les inscriptions sont closes, plus personne ne peut s'inscrire."),
         h("div", { class: "lien-inscription" }, h("code", {}, evenement.url_inscription), h("button", { class: "btn btn-clair btn-petit", type: "button", onclick: copier }, "Copier"))),
       h("div", { class: "carte" }, h("h2", {}, "Participants"),
         h("div", { class: "outils" }, recherche, filtre, compteur),

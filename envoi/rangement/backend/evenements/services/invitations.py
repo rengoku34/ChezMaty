@@ -39,6 +39,9 @@ def construire_invitation(evenement, adresse):
     jusque, moment = courrier.limite(evenement)
     contact = courrier.contact()
     signature = courrier.signature()
+    places = courrier.mention_places(evenement)
+    suite = "vous recevrez votre QR code par e-mail. Il sera à présenter à l'entrée."
+    nb = f"{places}. Dès votre inscription, {suite}" if places else f"dès votre inscription, {suite}"
 
     # --- la version texte ---
     lignes = ["Chers tous,", "", f"Nous avons le plaisir de vous inviter à « {evenement.nom} »."]
@@ -48,7 +51,7 @@ def construire_invitation(evenement, adresse):
     if sessions:
         lignes += ["", "Sessions :"] + [f"  - {s}" for s in sessions]
     lignes += ["", f"Les inscriptions s'effectuent via le lien ci-après, {jusque} {moment} :", lien,
-               "", "NB : dès votre inscription, vous recevrez votre QR code par e-mail. Il sera à présenter à l'entrée."]
+               "", f"NB : {nb}"]
     if contact:
         lignes += ["", f"Pour toutes informations complémentaires, prière de contacter {contact}."]
     lignes += ["", "Cordialement,", signature]
@@ -67,13 +70,12 @@ def construire_invitation(evenement, adresse):
              f'<p><a href="{escape(lien)}" style="display:inline-block;background:#f08a46;color:#ffffff;padding:12px 24px;'
              'border-radius:6px;text-decoration:none;font-weight:bold">Je m\'inscris</a></p>'
              f'<p style="font-size:13px;color:#4b5563">Ou copiez ce lien : <a href="{escape(lien)}">{escape(lien)}</a></p>'
-             "<p><strong>NB :</strong> dès votre inscription, vous recevrez votre QR code par e-mail. "
-             "Il sera à présenter à l'entrée.</p>")
+             f"<p><strong>NB :</strong> {escape(nb)}</p>")
     if contact:
         html += f"<p>Pour toutes informations complémentaires, prière de contacter {escape(contact)}.</p>"
     html += f"<p>Cordialement,<br><strong>{escape(signature)}</strong></p></div>"
 
-    message = EmailMultiAlternatives(f"Invitation : {evenement.nom}", texte, to=[adresse])
+    message = EmailMultiAlternatives(courrier.objet_invitation(evenement), texte, from_email=courrier.expediteur(), to=[adresse])
     message.attach_alternative(html, "text/html")
     return message
 

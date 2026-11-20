@@ -3,7 +3,7 @@ Les VUES DE L'API : le code qui répond quand quelqu'un appelle une adresse de l
 """
 from django.conf import settings
 from django.http import HttpResponse
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework import generics, permissions, status, viewsets
@@ -134,7 +134,9 @@ class EvenementViewSet(viewsets.ModelViewSet):
     def inviter(self, request, pk=None):
         evenement = self.get_object()
         if not evenement.inscriptions_ouvertes:
-            return Response({"detail": "Cet événement est terminé : le lien d'inscription a expiré."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Les inscriptions sont closes : le lien d'inscription a expiré."}, status=status.HTTP_400_BAD_REQUEST)
+        if evenement.complet:
+            return Response({"detail": "Cet événement est complet : toutes les places sont prises."}, status=status.HTTP_400_BAD_REQUEST)
         diffusion = adresses_diffusion()
         if not diffusion:
             return Response({"detail": "Aucune liste de diffusion n'est configurée (ADRESSES_DIFFUSION dans les réglages)."},
@@ -189,10 +191,14 @@ class InscriptionPubliqueView(generics.CreateAPIView):
         self.inscription = inscription
 
     def create(self, request, *args, **kwargs):
-        if not get_object_or_404(Evenement, lien=self.kwargs["lien"]).inscriptions_ouvertes:
-            return Response({"detail": "Les inscriptions sont closes : ce lien a expiré."}, status=status.HTTP_410_GONE)
         try:
-            reponse = super().create(request, *args, **kwargs)
+            with transaction.atomic():              # la vérification des places et l'inscription forment un seul bloc : pas de place en trop
+                evenement = get_object_or_404(Evenement, lien=self.kwargs["lien"])
+                if not evenement.inscriptions_ouvertes:
+                    return Response({"detail": "Les inscriptions sont closes : ce lien a expiré."}, status=status.HTTP_410_GONE)
+                if evenement.complet:
+                    return Response({"detail": "Désolé, toutes les places sont prises."}, status=status.HTTP_409_CONFLICT)
+                reponse = super().create(request, *args, **kwargs)
         except IntegrityError:
             # Deux envois au même instant avec la même adresse : la base de données refuse le second.
             return Response(

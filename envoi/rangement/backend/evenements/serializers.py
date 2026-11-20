@@ -5,7 +5,7 @@ et ils VÉRIFIENT les données reçues.
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import Evenement, Inscription, Lieu
+from .models import Evenement, Inscription, Lieu, moment_de_fin
 from .services.conflits import message_conflit, normaliser, trouver_conflit
 
 
@@ -56,18 +56,29 @@ class EvenementSerializer(serializers.ModelSerializer):
     nombre_inscrits = serializers.SerializerMethodField()
     nombre_presents = serializers.SerializerMethodField()
     inscriptions_ouvertes = serializers.BooleanField(read_only=True)
+    places_restantes = serializers.IntegerField(read_only=True, allow_null=True)
+    complet = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Evenement
         fields = [
             "id", "nom", "date", "description", "lieu", "creneaux",
+            "inscriptions_jusqu_au", "places", "places_restantes", "complet",
             "lien", "url_inscription", "inscriptions_ouvertes", "nombre_inscrits", "nombre_presents", "cree_le",
         ]
         read_only_fields = ["id", "lien", "cree_le"]      # calculés par le serveur : on ne les envoie pas
 
     def validate(self, donnees):
-        """Deux événements ne peuvent pas occuper le même lieu, le même jour, à des heures qui se chevauchent."""
+        """Deux événements ne peuvent pas occuper le même lieu à des heures qui se chevauchent ; la date limite et le nombre de places doivent être cohérents."""
         instance = self.instance
+        date = donnees.get("date", instance.date if instance else None)
+        creneaux = donnees.get("creneaux", instance.creneaux if instance else [])
+        limite = donnees.get("inscriptions_jusqu_au", instance.inscriptions_jusqu_au if instance else None)
+        if limite and date and limite > moment_de_fin(date, creneaux):
+            raise serializers.ValidationError({"inscriptions_jusqu_au": "La date limite ne peut pas être après la fin de l'événement."})
+        places = donnees.get("places", instance.places if instance else None)
+        if instance and places is not None and places < instance.inscriptions.count():
+            raise serializers.ValidationError({"places": f"Il y a déjà {instance.inscriptions.count()} inscrit(s) : le nombre de places ne peut pas être plus petit."})
         # On ne vérifie que si le lieu, la date ou les créneaux changent (modifier seulement la description ne doit rien bloquer).
         if instance is None or any(c in donnees and donnees[c] != getattr(instance, c) for c in ("lieu", "date", "creneaux")):
             lieu = donnees.get("lieu", instance.lieu if instance else None)

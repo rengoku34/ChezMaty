@@ -50,7 +50,7 @@ flutter = shutil.which("flutter")
 if not flutter:
     sys.exit("ARRET : la commande flutter est introuvable. Ouvre un terminal ou 'flutter --version' fonctionne, puis relance ce script.")
 for fichier in (("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"),
-                ("backend", "evenements", "models.py"), ("backend", "evenements", "migrations", "0006_lieu_obligatoire.py"),
+                ("backend", "evenements", "models.py"), ("backend", "evenements", "migrations", "0007_limite_et_places.py"),
                 ("backend", "config", "urls.py"), ("web", "app.js")):
     if not os.path.exists(ici(*fichier)):
         sys.exit(f"ARRET : le fichier {os.path.join(*fichier)} manque a cote du script.")
@@ -107,13 +107,19 @@ lignes = [l for l in reglages.split("\n")
           if "CorsMiddleware" not in l
           and not l.startswith(("CORS_", "DOSSIER_", "JETON_DUREE_HEURES", 'REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]',
                                 'SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"]', "# --- Les trois dossiers du projet",
-                                "# --- Les dossiers du projet", "# --- La duree de vie du jeton"))]
+                                "# --- Les dossiers du projet", "# --- La duree de vie du jeton", "# --- Les places limitees",
+                                "import django", "if django.VERSION", '    DATABASES["default"].setdefault'))]
 ecrire(chemin("backend", "config", "settings.py"), "\n".join(lignes).rstrip("\n") + f'''
 
 # --- La duree de vie du jeton de connexion : passe ce delai (en heures), il faut se reconnecter ---
 JETON_DUREE_HEURES = {duree}
 REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["evenements.authentification.JetonExpirant", "rest_framework.authentication.SessionAuthentication"]
 SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"] = ["evenements.authentification.JetonExpirant"]
+
+# --- Les places limitees : des inscriptions envoyees au meme instant sont traitees l'une apres l'autre (jamais une place en trop) ---
+import django
+if django.VERSION >= (5, 1):
+    DATABASES["default"].setdefault("OPTIONS", {{}})["transaction_mode"] = "IMMEDIATE"
 
 # --- Les dossiers du projet : le meme serveur sert l'application web et le fichier d'installation de l'application mobile ---
 DOSSIER_WEB = BASE_DIR.parent / "web"

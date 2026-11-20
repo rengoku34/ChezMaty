@@ -50,7 +50,7 @@ def construire_email(inscription):
         html += f"<p>Pour toutes informations complémentaires, prière de contacter {escape(contact)}.</p>"
     html += f"<p>Cordialement,<br><strong>{escape(signature)}</strong></p></div>"
 
-    message = EmailMultiAlternatives(sujet, texte, to=[inscription.email])
+    message = EmailMultiAlternatives(sujet, texte, from_email=courrier.expediteur(), to=[inscription.email])
     message.attach_alternative(html, "text/html")
     message.attach("qrcode.png", qr_png(inscription.qr_token), "image/png")
     return message
