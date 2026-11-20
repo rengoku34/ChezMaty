@@ -14,3 +14,10 @@ Rôles : l'administrateur est un compte « staff », l'agent de scan appartient 
 
 Les lieux sont une table à part (`Lieu`) : un événement choisit son lieu dans la liste, et deux événements ne peuvent pas occuper le même lieu à des heures qui se chevauchent.
 Le jeton de connexion a une durée de vie limitée (12 heures par défaut) : un appareil perdu ne donne pas un accès éternel.
+
+## Rangement du code
+
+- `backend/evenements/api/` : l'API (vues par sujet, vérification des données, droits, jeton, adresses `/api/...`).
+- `backend/evenements/pages/` : les pages HTML vues par les employés.
+- `backend/evenements/services/` : le travail métier (e-mails, QR codes, conflits de lieu, scan, Excel).
+- `web/js/vues/` : une page de l'application web par fichier (connexion, événements, formulaire, lieux, participations).

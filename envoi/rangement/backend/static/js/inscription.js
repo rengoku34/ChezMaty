@@ -28,6 +28,10 @@
     }
   }
 
+  // Le téléphone : on n'accepte que des chiffres, 10 au maximum.
+  const telephone = formulaire.elements.telephone;
+  telephone.addEventListener("input", () => { telephone.value = telephone.value.replace(/\D/g, "").slice(0, 10); });
+
   formulaire.addEventListener("submit", async (evenement) => {
     evenement.preventDefault();
     effacerErreurs();

@@ -51,7 +51,7 @@ if not flutter:
     sys.exit("ARRET : la commande flutter est introuvable. Ouvre un terminal ou 'flutter --version' fonctionne, puis relance ce script.")
 for fichier in (("README.md",), ("architecture.md",), ("mobile_flutter", "pubspec.yaml"), ("mobile_flutter", "lib", "main.dart"), ("mobile_flutter", "android", "MainActivity.java"),
                 ("backend", "evenements", "models.py"), ("backend", "evenements", "migrations", "0007_limite_et_places.py"),
-                ("backend", "config", "urls.py"), ("web", "app.js")):
+                ("backend", "config", "urls.py"), ("web", "js", "main.js"), ("web", "css", "style.css"), ("backend", "evenements", "api", "urls.py")):
     if not os.path.exists(ici(*fichier)):
         sys.exit(f"ARRET : le fichier {os.path.join(*fichier)} manque a cote du script.")
 
@@ -113,8 +113,8 @@ ecrire(chemin("backend", "config", "settings.py"), "\n".join(lignes).rstrip("\n"
 
 # --- La duree de vie du jeton de connexion : passe ce delai (en heures), il faut se reconnecter ---
 JETON_DUREE_HEURES = {duree}
-REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["evenements.authentification.JetonExpirant", "rest_framework.authentication.SessionAuthentication"]
-SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"] = ["evenements.authentification.JetonExpirant"]
+REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = ["evenements.api.authentification.JetonExpirant", "rest_framework.authentication.SessionAuthentication"]
+SPECTACULAR_SETTINGS["AUTHENTICATION_WHITELIST"] = ["evenements.api.authentification.JetonExpirant"]
 
 # --- Les places limitees : des inscriptions envoyees au meme instant sont traitees l'une apres l'autre (jamais une place en trop) ---
 import django
@@ -125,15 +125,25 @@ if django.VERSION >= (5, 1):
 DOSSIER_WEB = BASE_DIR.parent / "web"
 DOSSIER_LIVRABLES = BASE_DIR.parent / "livrables"       # le fichier d'installation de l'application mobile (snedai-scan.apk)
 ''')
+# Les anciens fichiers (maintenant rangés dans evenements/api et evenements/pages) sont supprimes : ils feraient doublon
+for ancien in ("views.py", "serializers.py", "permissions.py", "authentification.py", "pages.py"):
+    if os.path.exists(chemin("backend", "evenements", ancien)):
+        os.remove(chemin("backend", "evenements", ancien))
 for dossier in ("evenements", "templates", "static"):
     shutil.copytree(ici("backend", dossier), chemin("backend", dossier), dirs_exist_ok=True)
+shutil.copy(ici("backend", "README.md"), chemin("backend", "README.md"))
+if os.path.exists(chemin("requirements.txt")) and not os.path.exists(chemin("backend", "requirements.txt")):
+    shutil.move(chemin("requirements.txt"), chemin("backend", "requirements.txt"))
 shutil.copy(ici("backend", "config", "urls.py"), chemin("backend", "config", "urls.py"))
 print(f"  fait : evenements, templates, static, urls.py, reglages (jeton : {duree} heures)")
 
 # ------------------------------------------------------------------ 4. l'application web a jour
 etape("4. L'application web a jour : lieux, selecteurs de date et d'heure, liens relatifs vers l'API")
+for ancien in ("app.js", "style.css", "logo.png", "icon-192.png"):          # l'ancienne disposition a plat
+    if os.path.exists(chemin("web", ancien)):
+        os.remove(chemin("web", ancien))
 shutil.copytree(ici("web"), chemin("web"), dirs_exist_ok=True)
-print("  fait : web/ (app.js, style.css, index.html)")
+print("  fait : web/ (index.html, css/, js/, img/)")
 
 # ------------------------------------------------------------------ 5. documentation, livrables, nettoyage
 etape("5. Documentation, livrables et nettoyage")

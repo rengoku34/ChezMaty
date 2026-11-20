@@ -5,8 +5,9 @@ et ils VÉRIFIENT les données reçues.
 from django.conf import settings
 from rest_framework import serializers
 
-from .models import Evenement, Inscription, Lieu, moment_de_fin
-from .services.conflits import message_conflit, normaliser, trouver_conflit
+from ..validators import chiffres_du_telephone
+from ..models import Evenement, Inscription, Lieu, moment_de_fin
+from ..services.conflits import message_conflit, normaliser, trouver_conflit
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +122,9 @@ class InscriptionPubliqueSerializer(serializers.ModelSerializer):
         if filiale not in settings.FILIALES:
             raise serializers.ValidationError("Choisissez une filiale dans la liste.")
         return filiale
+
+    def validate_telephone(self, telephone):
+        return chiffres_du_telephone(telephone)      # on enregistre seulement les 10 chiffres
 
     def validate_email(self, email):
         return email.strip().lower()      # on enregistre toujours en minuscules

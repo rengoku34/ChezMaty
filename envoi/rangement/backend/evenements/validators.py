@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 MAX_CRENEAUX = 4
 FORMAT_CRENEAU = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$")    # ex. 09:00-10:30
-TELEPHONE = re.compile(r"^\+?[0-9 .\-()]{8,20}$")
+TELEPHONE = re.compile(r"^[0-9 .\-]+$")
 
 
 def valider_creneaux(creneaux):
@@ -23,7 +23,12 @@ def valider_creneaux(creneaux):
             raise ValidationError(f"« {creneau} » : la fin doit être après le début.")
 
 
+def chiffres_du_telephone(telephone):
+    """Ne garde que les chiffres : « 07 00-00.00 00 » devient « 0700000000 »."""
+    return "".join(c for c in str(telephone) if c.isdigit())
+
+
 def valider_telephone(telephone):
-    """Au moins 8 chiffres ; espaces, points, tirets, parenthèses et « + » au début acceptés."""
-    if not TELEPHONE.match(telephone) or sum(c.isdigit() for c in telephone) < 8:
-        raise ValidationError("Numéro de téléphone invalide.")
+    """Exactement 10 chiffres (espaces, points et tirets acceptés entre les chiffres)."""
+    if not TELEPHONE.match(str(telephone)) or len(chiffres_du_telephone(telephone)) != 10:
+        raise ValidationError("Le numéro doit contenir exactement 10 chiffres.")
