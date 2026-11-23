@@ -304,6 +304,8 @@
       try { const dernier = (await api("/api/evenements/")).results.filter((e) => e.contact || e.conclusion).sort((x, y) => y.id - x.id)[0]; if (dernier) modele = { ...evenement, contact: dernier.contact, conclusion: dernier.conclusion }; } catch (erreur) { /* sans importance */ }
     }
     const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1),
+      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !", 1),
+      description: editeur(evenement.description, "Ex. : Dans le cadre de la sensibilisation du personnel…", 3),
       contact: editeur(modele.contact, "Ex. : Mme Mylène NANGO · Cheffe du Département Relations Sociales · mylene.nango@snedai.com · 05 04 02 96 22", 2),
       conclusion: editeur(modele.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous pour une meilleure prévention.", 2) };
 
@@ -324,7 +326,7 @@
           lieux.push(lieu);
         }
         const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
-          sous_titre: riches.sous_titre.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
+          sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(), description: riches.description.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
           creneaux: lignes.map((l) => `${l.champDebut.valeur()}-${l.champFin.valeur()}`),
           inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
@@ -347,8 +349,11 @@
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
         champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
       champ("lieu", "Lieu", choixLieu.element),
-      champ("contact", "Contact (pour plus d'informations)", riches.contact.element),
-      champ("conclusion", "Phrase de fin", riches.conclusion.element),
+      h("details", { class: "options" }, h("summary", {}, "Personnaliser le message"),
+        champ("accroche", "Phrase d'accroche", riches.accroche.element),
+        champ("description", "Message", riches.description.element),
+        champ("contact", "Contact", riches.contact.element),
+        champ("conclusion", "Phrase de fin", riches.conclusion.element)),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
