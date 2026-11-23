@@ -298,7 +298,14 @@
     }
     evenement.creneaux.forEach((creneau) => { const [debut, fin] = creneau.split("-"); ajouterCreneau(debut, fin); });
 
-    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1) };
+    /* Un nouvel événement reprend le contact et la phrase de fin du dernier événement : on les écrit une fois, on les change si besoin. */
+    let modele = evenement;
+    if (!id) {
+      try { const dernier = (await api("/api/evenements/")).results.filter((e) => e.contact || e.conclusion).sort((x, y) => y.id - x.id)[0]; if (dernier) modele = { ...evenement, contact: dernier.contact, conclusion: dernier.conclusion }; } catch (erreur) { /* sans importance */ }
+    }
+    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1),
+      contact: editeur(modele.contact, "Ex. : Mme Mylène NANGO · Cheffe du Département Relations Sociales · mylene.nango@snedai.com · 05 04 02 96 22", 2),
+      conclusion: editeur(modele.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous pour une meilleure prévention.", 2) };
 
     const aujourdhui = new Date().toLocaleDateString("fr-CA");           /* AAAA-MM-JJ : on ne peut pas choisir un jour passé pour un nouvel événement */
     const bouton = h("button", { class: "btn", type: "submit" }, id ? "Enregistrer les modifications" : "Créer l'événement");
@@ -317,7 +324,7 @@
           lieux.push(lieu);
         }
         const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
-          sous_titre: riches.sous_titre.html(),
+          sous_titre: riches.sous_titre.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
           creneaux: lignes.map((l) => `${l.champDebut.valeur()}-${l.champFin.valeur()}`),
           inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
@@ -340,6 +347,8 @@
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
         champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
       champ("lieu", "Lieu", choixLieu.element),
+      champ("contact", "Contact (pour plus d'informations)", riches.contact.element),
+      champ("conclusion", "Phrase de fin", riches.conclusion.element),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
