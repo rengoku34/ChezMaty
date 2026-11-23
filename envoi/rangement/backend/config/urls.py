@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path, re_path
+from django.views.decorators.cache import never_cache
 from django.views.static import serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework import routers
@@ -47,8 +48,9 @@ urlpatterns = [
     path("schema/", SpectacularAPIView.as_view(), name="schema"),                         # le plan de l'API (fichier technique)
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),         # Swagger : tester l'API dans le navigateur
 
+    # never_cache : le navigateur redemande toujours la page au serveur. Serveur arrêté (Ctrl+C) = la page ne s'affiche plus.
     # --- Le même serveur sert l'application web (dossier web) et le fichier d'installation de l'application mobile ---
     path("snedai-scan.apk", serve, {"path": "snedai-scan.apk", "document_root": settings.DOSSIER_LIVRABLES}),
-    path("", serve, {"path": "index.html", "document_root": settings.DOSSIER_WEB}, name="accueil"),  # l'application de l'administrateur
-    re_path(r"^(?P<path>app\.js|style\.css|logo\.png|icon-192\.png)$", serve, {"document_root": settings.DOSSIER_WEB}),
+    path("", never_cache(serve), {"path": "index.html", "document_root": settings.DOSSIER_WEB}, name="accueil"),  # l'application de l'administrateur
+    re_path(r"^(?P<path>app\.js|style\.css|logo\.png|icon-192\.png)$", never_cache(serve), {"document_root": settings.DOSSIER_WEB}),
 ]
