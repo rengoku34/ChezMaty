@@ -101,6 +101,12 @@ except PermissionError as erreur:
 # ------------------------------------------------------------------ 3. le backend a jour (code, e-mails, lieux, jeton) et ses reglages
 etape("3. Le backend a jour : lieux, jeton qui expire, e-mails, page de remerciement")
 reglages = lire(chemin("backend", "config", "settings.py"))
+if "Ã" in reglages or "Â" in reglages:        # accents abimes (UTF-8 relu en Windows-1252, par exemple par Get-Content/Set-Content) : on les repare
+    try:
+        reglages = reglages.encode("cp1252").decode("utf-8")
+        print("  fait : les accents de settings.py sont repares")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        print("  ATTENTION : settings.py contient des accents abimes que le script ne sait pas reparer seul.")
 duree = re.search(r"^JETON_DUREE_HEURES\s*=\s*(\d+)", reglages, re.MULTILINE)
 duree = duree.group(1) if duree else "12"                                 # une duree deja choisie est conservee
 lignes = [l for l in reglages.split("\n")
