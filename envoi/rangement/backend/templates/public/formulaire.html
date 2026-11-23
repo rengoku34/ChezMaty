@@ -3,7 +3,8 @@
 {% block nav %}{% endblock %}
 {% block content %}
 <section class="card">
-  <h2>Je m'inscris</h2>
+  <h2>{{ evenement.nom }}</h2>
+  <p class="hint"><strong>{{ evenement.date|date:"l j F Y" }}</strong> · {{ evenement.lieu }}</p>
   <p class="hint">Remplissez ce formulaire : vous recevrez aussitôt votre <strong>QR code</strong> par e-mail, à présenter à l'entrée.</p>
   {% if evenement.places %}<p class="hint">Places limitées : il reste <strong>{{ evenement.places_restantes }}</strong> place(s) sur {{ evenement.places }}.</p>{% endif %}
   <div class="alerte" id="alerte" hidden></div>

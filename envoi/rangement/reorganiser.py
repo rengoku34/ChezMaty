@@ -131,6 +131,8 @@ if django.VERSION >= (5, 1):
 DOSSIER_WEB = BASE_DIR.parent / "web"
 DOSSIER_LIVRABLES = BASE_DIR.parent / "livrables"       # le fichier d'installation de l'application mobile (snedai-scan.apk)
 ''')
+if os.path.exists(chemin("backend", "templates", "public", "evenement.html")):      # le lien ouvre directement le formulaire : cette page n'existe plus
+    os.remove(chemin("backend", "templates", "public", "evenement.html"))
 if os.path.exists(chemin("backend", "templates", "admin", "base_site.html")):       # le back-office redevient l'administration Django simple (sans logo)
     os.remove(chemin("backend", "templates", "admin", "base_site.html"))
 for ancien in ("api", "pages"):                                   # la version decoupee en sous-dossiers est remplacee par la version simple

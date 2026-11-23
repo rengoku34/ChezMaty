@@ -26,13 +26,8 @@ def page_complet(request, evenement):
 
 
 def evenement_accueil(request, lien):
-    """/e/<lien>/ : la page d'accueil de l'événement : son nom, son lieu et le bouton « Démarrer »."""
-    evenement = get_object_or_404(Evenement, lien=lien)
-    if not evenement.inscriptions_ouvertes:
-        return page_lien_expire(request, evenement)
-    if evenement.complet:
-        return page_complet(request, evenement)
-    return render(request, "public/evenement.html", {"title": evenement.nom, "evenement": evenement})
+    """/e/<lien>/ : le lien envoyé aux employés ouvre directement le formulaire d'inscription."""
+    return evenement_formulaire(request, lien)
 
 
 def evenement_formulaire(request, lien):
