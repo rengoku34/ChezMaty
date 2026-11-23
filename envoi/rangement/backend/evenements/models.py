@@ -62,7 +62,12 @@ class Evenement(models.Model):
 
     nom = models.CharField("nom de l'événement", max_length=150)
     date = models.DateField("date de l'événement")
-    description = models.TextField(blank=True)
+    titre = models.TextField("titre du message", blank=True, help_text="Mis en forme (gras, couleur...). Vide : le nom de l'événement est utilisé.")
+    sous_titre = models.TextField("thème", blank=True)
+    accroche = models.TextField("phrase d'accroche", blank=True)
+    description = models.TextField("message", blank=True)
+    contact = models.TextField("contact", blank=True)
+    conclusion = models.TextField("phrase de fin", blank=True)
     lieu = models.ForeignKey(Lieu, on_delete=models.PROTECT, related_name="evenements")      # un lieu utilisé ne peut pas être supprimé
     creneaux = models.JSONField(
         "créneaux horaires", default=list, blank=True, validators=[valider_creneaux],

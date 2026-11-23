@@ -97,3 +97,20 @@ tr:hover td { background: #fafafe; }
 
 .grille-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2rem; align-items: start; }
 @media (max-width: 700px) { .grille-2 { grid-template-columns: 1fr; } }
+
+.vide-centre { display: flex; justify-content: center; padding: 3rem 1rem; }
+.btn-grand { font-size: 1.1rem; padding: .9rem 1.8rem; display: inline-flex; align-items: center; gap: .6rem; }
+.btn-grand .plus { font-size: 1.6rem; line-height: 1; font-weight: 400; }
+.btn-icone { display: inline-flex; align-items: center; padding: .35rem .5rem; }
+.envoi-centre { display: flex; justify-content: center; margin: 1.5rem 0; }
+.sous-titre { font-size: 1.05rem; margin: .5rem 0 0; color: var(--primary); }
+.editeur { border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.editeur:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.editeur-barre { display: flex; align-items: center; gap: .4rem; padding: .3rem .5rem; border-bottom: 1px solid var(--border); background: #f5f6fa; flex-wrap: wrap; }
+.outil { border: 1px solid var(--border); background: #fff; border-radius: 4px; padding: .15rem .55rem; cursor: pointer; font: inherit; font-size: .85rem; }
+.outil.gras { font-weight: 700; } .outil.souligne { text-decoration: underline; }
+.outil-libelle { font-size: .8rem; color: var(--muted); margin-left: .3rem; }
+.champ .outil-couleur { width: 2rem; height: 1.6rem; padding: 0; border: 1px solid var(--border); background: none; }
+.editeur-zone { min-height: 3.2rem; padding: .55rem .75rem; outline: none; }
+.editeur-zone:empty:before { content: attr(data-indication); color: #9aa0b4; }
+.editeur-zone a { color: #1d4ed8; text-decoration: underline; }

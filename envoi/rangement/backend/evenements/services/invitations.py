@@ -11,7 +11,7 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.validators import validate_email
 from django.utils.html import escape
 
-from . import courrier
+from . import courrier, texte_riche
 
 logger = logging.getLogger(__name__)
 
@@ -31,49 +31,51 @@ def adresses_diffusion():
 
 
 def construire_invitation(evenement, adresse):
-    """Fabrique l'e-mail d'invitation : une lettre (texte + version HTML) avec le thème, les sessions, le lien et la signature."""
+    """Fabrique l'e-mail d'invitation (texte + HTML) : titre, thème, accroche, message, date, lieu, sessions, inscriptions, contact, phrase de fin.
+    Les parties écrites par l'administrateur (titre, thème, accroche, message, contact, phrase de fin) gardent leur mise en forme."""
     lien = evenement.url_inscription
-    date = courrier.jour(evenement.date)
-    sessions = [courrier.creneau_lisible(c) for c in evenement.creneaux]
-    description = (evenement.description or "").strip()
     jusque, moment = courrier.limite(evenement)
-    contact = courrier.contact()
-    signature = courrier.signature()
-    places = courrier.mention_places(evenement)
-    suite = "vous recevrez votre QR code par e-mail. Il sera à présenter à l'entrée."
-    nb = f"{places}. Dès votre inscription, {suite}" if places else f"dès votre inscription, {suite}"
+    places = " dans la limite des places disponibles" if evenement.places else ""
+    sessions = [courrier.session(c) for c in evenement.creneaux]
+    titre = evenement.titre or escape(evenement.nom)
+    blocs = {nom: getattr(evenement, nom) for nom in ("sous_titre", "accroche", "description", "contact", "conclusion")}
+    phrase = f"Les inscriptions sont ouvertes {jusque} {moment}{places}."
 
     # --- la version texte ---
-    lignes = ["Chers tous,", "", f"Nous avons le plaisir de vous inviter à « {evenement.nom} »."]
-    if description:
-        lignes += ["", description]
-    lignes += ["", f"Date : {date}", f"Lieu : {evenement.lieu}"]
+    lignes = [texte_riche.en_texte(titre).upper()]
+    for nom in ("sous_titre", "accroche", "description"):
+        if blocs[nom]:
+            lignes += ["", texte_riche.en_texte(blocs[nom])]
+    lignes += ["", f"Date : {courrier.jour(evenement.date)}", f"Lieu : {evenement.lieu}"]
     if sessions:
-        lignes += ["", "Sessions :"] + [f"  - {s}" for s in sessions]
-    lignes += ["", f"Les inscriptions s'effectuent via le lien ci-après, {jusque} {moment} :", lien,
-               "", f"NB : {nb}"]
-    if contact:
-        lignes += ["", f"Pour toutes informations complémentaires, prière de contacter {contact}."]
-    lignes += ["", "Cordialement,", signature]
+        lignes += ["Sessions :"] + [f"  - {s}" for s in sessions]
+    lignes += ["", "INSCRIPTIONS", phrase, f"Pour vous inscrire : {lien}"]
+    if blocs["contact"]:
+        lignes += ["", texte_riche.en_texte(blocs["contact"])]
+    if blocs["conclusion"]:
+        lignes += ["", texte_riche.en_texte(blocs["conclusion"])]
+    lignes += ["", courrier.signature()]
     texte = "\n".join(lignes)
 
     # --- la version HTML ---
-    html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1f2937;max-width:620px">'
-    html += "<p>Chers tous,</p>"
-    html += f"<p>Nous avons le plaisir de vous inviter à <strong>{escape(evenement.nom)}</strong>.</p>"
-    if description:
-        html += f"<p>{escape(description).replace(chr(10), '<br>')}</p>"
-    html += f"<p><strong>Date :</strong> {escape(date)}<br><strong>Lieu :</strong> {escape(evenement.lieu)}</p>"
+    def bloc(nom, style=""):
+        return f'<div style="margin:0 0 14px;{style}">{blocs[nom]}</div>' if blocs[nom] else ""
+
+    html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1f2937;max-width:640px">'
+    html += f'<div style="margin:0 0 12px;font-size:20px;font-weight:bold;color:#252566;text-align:center;text-transform:uppercase">{titre}</div>'
+    html += bloc("sous_titre", "font-size:17px;font-weight:bold;text-align:center;")
+    html += bloc("accroche", "font-weight:bold;")
+    html += bloc("description")
+    html += f'<div style="margin:0 0 14px">📅 <strong>Date :</strong> {escape(courrier.jour(evenement.date))}<br>📍 <strong>Lieu :</strong> {escape(str(evenement.lieu))}'
     if sessions:
-        html += "<p><strong>Sessions :</strong></p><ul style=\"margin-top:0\">" + "".join(f"<li>{escape(s)}</li>" for s in sessions) + "</ul>"
-    html += (f"<p>Les inscriptions s'effectuent via le lien ci-après, {jusque} <strong>{escape(moment)}</strong> :</p>"
-             f'<p><a href="{escape(lien)}" style="display:inline-block;background:#f08a46;color:#ffffff;padding:12px 24px;'
-             'border-radius:6px;text-decoration:none;font-weight:bold">Je m\'inscris</a></p>'
-             f'<p style="font-size:13px;color:#4b5563">Ou copiez ce lien : <a href="{escape(lien)}">{escape(lien)}</a></p>'
-             f"<p><strong>NB :</strong> {escape(nb)}</p>")
-    if contact:
-        html += f"<p>Pour toutes informations complémentaires, prière de contacter {escape(contact)}.</p>"
-    html += f"<p>Cordialement,<br><strong>{escape(signature)}</strong></p></div>"
+        html += "<br>🕘 <strong>" + ("Deux sessions au choix" if len(sessions) == 2 else "Sessions") + " :</strong></div>"
+        html += '<ul style="margin:0 0 14px">' + "".join(f"<li>{escape(s)}</li>" for s in sessions) + "</ul>"
+    else:
+        html += "</div>"
+    html += ('<div style="margin:0 0 6px;font-weight:bold;color:#252566">INSCRIPTIONS</div>'
+             f'<div style="margin:0 0 14px">{escape(phrase)}<br>👉 <a href="{escape(lien)}" style="color:#1d4ed8;text-decoration:underline">Cliquez ici pour vous inscrire</a></div>')
+    html += bloc("contact") + bloc("conclusion")
+    html += f'<div style="margin-top:18px;font-weight:bold">{escape(courrier.signature())}</div></div>'
 
     message = EmailMultiAlternatives(courrier.objet_invitation(evenement), texte, from_email=courrier.expediteur(), to=[adresse])
     message.attach_alternative(html, "text/html")

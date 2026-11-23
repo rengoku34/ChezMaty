@@ -96,10 +96,17 @@
 
   /* ------------------------------------------------------------------ structure commune ------------------------------------------------------------------ */
 
+  const ICONE_OEIL = (() => {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("width", "18"); svg.setAttribute("height", "18");
+    svg.setAttribute("fill", "none"); svg.setAttribute("stroke", "currentColor"); svg.setAttribute("stroke-width", "2");
+    svg.innerHTML = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+    return svg;
+  })();
+
   function coque(...contenu) {
     const entete = h("header", { class: "entete" },
       h("a", { class: "marque", href: "#/" }, h("span", { class: "logo" }, h("img", { src: "logo.png", alt: "SNEDAI" }))),
-      h("nav", { class: "menu" }, h("a", { href: "#/" }, "Événements"), h("a", { href: "#/lieux" }, "Lieux")),
       h("div", { class: "droite" },
         h("span", {}, sessionStorage.getItem("nom") || ""),
         h("button", { class: "lien-bouton", type: "button", onclick: deconnecter }, "Déconnexion")));
@@ -179,25 +186,46 @@
         e.complet ? h("span", { class: "badge non", style: "margin-left:.5rem" }, "Complet") : null),
       h("td", {}, String(e.nombre_presents)),
       h("td", {}, h("div", { class: "actions" },
-        h("a", { class: "btn btn-clair btn-petit", href: `#/evenement/${e.id}/participations` }, "Participations"),
+        h("a", { class: "btn btn-clair btn-petit btn-icone", href: `#/evenement/${e.id}/participations`, title: "Voir les participations", "aria-label": "Voir les participations" }, ICONE_OEIL),
         h("a", { class: "btn btn-clair btn-petit", href: `#/evenement/${e.id}/modifier` }, "Modifier"),
         h("button", { class: "btn btn-danger btn-petit", type: "button", onclick: () => supprimer(e) }, "Supprimer")))));
 
     coque(
       h("div", { class: "barre" }, h("div", {}, h("h1", {}, "Événements"), h("span", { class: "muted" }, `${evenements.length} événement(s)`)),
-        h("a", { class: "btn", href: "#/evenement/nouveau" }, "Nouvel événement")),
+        evenements.length ? h("a", { class: "btn", href: "#/evenement/nouveau" }, "Nouvel événement") : null),
       h("div", { class: "carte" }, evenements.length === 0
-        ? h("div", { class: "vide" }, "Aucun événement pour l'instant. Créez le premier avec le bouton « Nouvel événement ».")
+        ? h("div", { class: "vide-centre" }, h("a", { class: "btn btn-grand", href: "#/evenement/nouveau" }, h("span", { class: "plus" }, "+"), "Nouvel événement"))
         : h("div", { class: "tableau-conteneur" }, h("table", {},
           h("thead", {}, h("tr", {}, ["Événement", "Date", "Lieu", "Inscrits", "Présents", "Actions"].map((t) => h("th", {}, t)))),
           h("tbody", {}, lignes)))));
+  }
+
+  /* Un champ de texte mis en forme, comme dans Word : on sélectionne, puis Gras, Souligné, couleur ou lien. Rend { element, html() }. */
+  function editeur(valeur, indication) {
+    const zone = h("div", { class: "editeur-zone", contenteditable: "true", "data-indication": indication });
+    zone.innerHTML = valeur || "";
+    const commande = (nom, argument) => { zone.focus(); document.execCommand("styleWithCSS", false, true); document.execCommand(nom, false, argument); };
+    const bouton = (contenu, titre, action, classe = "") => h("button", { class: "outil " + classe, type: "button", title: titre, "aria-label": titre,
+      onmousedown: (e) => e.preventDefault(), onclick: action }, contenu);
+    const couleur = h("input", { type: "color", value: "#c00000", title: "Couleur du texte", "aria-label": "Couleur du texte", class: "outil-couleur",
+      onmousedown: (e) => e.stopPropagation(), oninput: () => commande("foreColor", couleur.value) });
+    const barre = h("div", { class: "editeur-barre" },
+      bouton("G", "Gras", () => commande("bold"), "gras"),
+      bouton("S", "Souligné", () => commande("underline"), "souligne"),
+      h("span", { class: "outil-libelle" }, "Couleur"), couleur,
+      bouton("Lien", "Transformer le texte sélectionné en lien", () => {
+        const adresse = prompt("Adresse du lien (https://…)", "https://");
+        if (adresse && /^(https?:\/\/|mailto:)/i.test(adresse)) commande("createLink", adresse);
+      }),
+      bouton("Effacer la mise en forme", "Enlever la mise en forme", () => commande("removeFormat")));
+    return { element: h("div", { class: "editeur" }, barre, zone), html: () => (zone.textContent.trim() || zone.querySelector("a") ? zone.innerHTML : "") };
   }
 
   /* ------------------------------------------------------------------ vue : créer / modifier un événement ------------------------------------------------------------------ */
 
   async function vueFormulaire(id) {
     coque(h("p", { class: "muted" }, "Chargement…"));
-    let evenement = { nom: "", date: "", lieu: "", description: "", creneaux: [], inscriptions_jusqu_au: null, places: null };
+    let evenement = { nom: "", date: "", lieu: "", titre: "", sous_titre: "", accroche: "", description: "", contact: "", conclusion: "", creneaux: [], inscriptions_jusqu_au: null, places: null };
     let lieux;
     try {
       [lieux, evenement] = await Promise.all([toutesLesPages("/api/lieux/"), id ? api(`/api/evenements/${id}/`) : Promise.resolve(evenement)]);
@@ -210,8 +238,8 @@
       return h("div", { class: "champ" }, h("label", { for: nom }, etiquette), saisie, aide ? h("div", { class: "aide" }, aide) : null, erreursChamps[nom]);
     };
 
-    /* --- Le lieu : une liste où l'on peut aussi taper pour retrouver le site (les lieux se gèrent dans la page « Lieux ») --- */
-    const choixLieu = h("input", { id: "lieu", name: "lieu", list: "liste-lieux", required: true, autocomplete: "off", placeholder: "Choisir ou taper un lieu…", value: evenement.lieu });
+    /* --- Le lieu : une liste de sites ; on peut aussi taper un nouveau site, il est alors enregistré dans la liste --- */
+    const choixLieu = h("input", { id: "lieu", name: "lieu", list: "liste-lieux", required: true, autocomplete: "off", placeholder: "Choisir un lieu ou écrire un nouveau…", value: evenement.lieu });
     const listeLieux = h("datalist", { id: "liste-lieux" }, ...lieux.map((lieu) => h("option", { value: lieu.nom })));
 
     /* --- Les créneaux : un sélecteur d'heure pour le début et pour la fin (4 au maximum) --- */
@@ -234,6 +262,13 @@
     }
     evenement.creneaux.forEach((creneau) => { const [debut, fin] = creneau.split("-"); ajouterCreneau(debut, fin); });
 
+    const riches = { titre: editeur(evenement.titre, "Ex. : CONFÉRENCE DE SENSIBILISATION – SNEDAI (vide : le nom de l'événement)"),
+      sous_titre: editeur(evenement.sous_titre, "Ex. : 🎗️ TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT"),
+      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !"),
+      description: editeur(evenement.description, "Le message : contexte, organisateurs, thème…"),
+      contact: editeur(evenement.contact, "Ex. : Mme … · Cheffe du Département … · e-mail · téléphone"),
+      conclusion: editeur(evenement.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous…") };
+
     const aujourdhui = new Date().toLocaleDateString("fr-CA");           /* AAAA-MM-JJ : on ne peut pas choisir un jour passé pour un nouvel événement */
     const bouton = h("button", { class: "btn", type: "submit" }, id ? "Enregistrer les modifications" : "Créer l'événement");
     const formulaire = h("form", { class: "formulaire", onsubmit: async (evenementForm) => {
@@ -241,14 +276,20 @@
       zoneErreur.hidden = true;
       Object.values(erreursChamps).forEach((zone) => { zone.textContent = ""; });
       const f = Object.fromEntries(new FormData(formulaire));
-      const lieu = lieux.find((l) => l.nom.toLowerCase() === f.lieu.trim().toLowerCase());
-      if (!lieu) { erreursChamps.lieu.textContent = "Choisissez un lieu de la liste (ajoutez-le d'abord dans la page « Lieux » s'il n'existe pas)."; choixLieu.focus(); return; }
-      const corps = { nom: f.nom, date: f.date, lieu: lieu.nom, description: f.description,
-        creneaux: lignes.map((l) => `${l.champDebut.value}-${l.champFin.value}`),
-        inscriptions_jusqu_au: f.inscriptions_jusqu_au ? new Date(f.inscriptions_jusqu_au).toISOString() : null,
-        places: f.places ? Number(f.places) : null };
       bouton.disabled = true;
       try {
+        const saisi = f.lieu.trim();
+        let lieu = lieux.find((l) => l.nom.toLowerCase() === saisi.toLowerCase());
+        if (!lieu) {                                         /* un nouveau lieu : on l'enregistre dans la liste */
+          try { lieu = await api("/api/lieux/", { methode: "POST", corps: { nom: saisi } }); }
+          catch (erreur) { erreursChamps.lieu.textContent = erreur.donnees && erreur.donnees.nom ? erreur.donnees.nom.join(" ") : phrases(erreur.donnees).join(" "); return; }
+          lieux.push(lieu);
+        }
+        const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
+          titre: riches.titre.html(), sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(),
+          description: riches.description.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
+          creneaux: lignes.map((l) => `${l.champDebut.value}-${l.champFin.value}`),
+          inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
         notifier(id ? "Événement modifié" : "Événement créé");
         location.hash = "#/";
@@ -266,88 +307,19 @@
       champ("nom", "Nom de l'événement", h("input", { id: "nom", name: "nom", required: true, maxlength: 150, value: evenement.nom })),
       h("div", { class: "grille-2" },
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
-        champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau), "Sans horaire, l'événement dure toute la journée (4 au maximum).")),
-      champ("lieu", "Lieu", h("div", {}, choixLieu, listeLieux), "Cliquez pour voir la liste ou tapez quelques lettres pour retrouver le site."),
-      champ("description", "Description", h("textarea", { id: "description", name: "description", rows: 4 }, evenement.description)),
-      h("div", { class: "grille-2" },
-      champ("inscriptions_jusqu_au", "Date limite d'inscription (facultatif)",
-        h("input", { id: "inscriptions_jusqu_au", name: "inscriptions_jusqu_au", type: "datetime-local", value: versChampLocal(evenement.inscriptions_jusqu_au) }),
-        "Après cette date et cette heure, le lien d'inscription expire. Sans date limite, on peut s'inscrire jusqu'à la fin de l'événement."),
-      champ("places", "Nombre de places (facultatif)",
-        h("input", { id: "places", name: "places", type: "number", min: 1, step: 1, value: evenement.places || "" }),
-        "Quand toutes les places sont prises, plus personne ne s'inscrit.")),
+        champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
+      champ("lieu", "Lieu", h("div", {}, choixLieu, listeLieux)),
+      h("h2", { class: "sous-titre" }, "Message envoyé par e-mail"),
+      champ("titre", "Titre", riches.titre.element),
+      champ("sous_titre", "Thème", riches.sous_titre.element),
+      champ("accroche", "Phrase d'accroche", riches.accroche.element),
+      champ("description", "Message", riches.description.element),
+      champ("contact", "Contact", riches.contact.element),
+      champ("conclusion", "Phrase de fin", riches.conclusion.element),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
       h("div", { class: "carte" }, zoneErreur, formulaire));
-  }
-
-  /* ------------------------------------------------------------------ vue : les lieux (ajouter, renommer, supprimer) ------------------------------------------------------------------ */
-
-  async function vueLieux() {
-    coque(h("p", { class: "muted" }, "Chargement…"));
-    let lieux;
-    try { lieux = await toutesLesPages("/api/lieux/"); } catch (erreur) { return erreur.statut === 401 ? null : coque(h("div", { class: "alerte" }, phrases(erreur.donnees).join(" "))); }
-
-    let enEdition = null;
-    const zoneErreur = h("div", { class: "alerte", hidden: true });
-    const corpsTableau = h("tbody");
-    const montrer = (erreur) => {
-      zoneErreur.textContent = erreur.donnees && erreur.donnees.nom ? erreur.donnees.nom.join(" ") : phrases(erreur.donnees).join(" ");
-      zoneErreur.hidden = false;
-    };
-    const recharger = async () => {
-      try { lieux = await toutesLesPages("/api/lieux/"); enEdition = null; afficher(); } catch (erreur) { if (erreur.statut !== 401) montrer(erreur); }
-    };
-
-    function ligneNormale(lieu) {
-      return h("tr", {},
-        h("td", {}, h("strong", {}, lieu.nom)),
-        h("td", {}, String(lieu.nombre_evenements)),
-        h("td", {}, h("div", { class: "actions" },
-          h("button", { class: "btn btn-clair btn-petit", type: "button", onclick: () => { enEdition = lieu.id; zoneErreur.hidden = true; afficher(); } }, "Modifier"),
-          h("button", { class: "btn btn-danger btn-petit", type: "button", onclick: async () => {
-            if (!confirm(`Supprimer le lieu « ${lieu.nom} » ?`)) return;
-            try { await api(`/api/lieux/${lieu.id}/`, { methode: "DELETE" }); notifier("Lieu supprimé"); zoneErreur.hidden = true; await recharger(); }
-            catch (erreur) { montrer(erreur); }
-          } }, "Supprimer"))));
-    }
-
-    function ligneEdition(lieu) {
-      const saisie = h("input", { value: lieu.nom, maxlength: 200, "aria-label": "Nom du lieu" });
-      const enregistrer = async () => {
-        try { await api(`/api/lieux/${lieu.id}/`, { methode: "PATCH", corps: { nom: saisie.value } }); notifier("Lieu modifié"); zoneErreur.hidden = true; await recharger(); }
-        catch (erreur) { montrer(erreur); }
-      };
-      saisie.addEventListener("keydown", (e) => { if (e.key === "Enter") enregistrer(); if (e.key === "Escape") { enEdition = null; afficher(); } });
-      setTimeout(() => saisie.focus(), 0);
-      return h("tr", {}, h("td", {}, saisie), h("td", {}, String(lieu.nombre_evenements)),
-        h("td", {}, h("div", { class: "actions" },
-          h("button", { class: "btn btn-petit", type: "button", onclick: enregistrer }, "Enregistrer"),
-          h("button", { class: "btn btn-clair btn-petit", type: "button", onclick: () => { enEdition = null; zoneErreur.hidden = true; afficher(); } }, "Annuler"))));
-    }
-
-    function afficher() {
-      corpsTableau.replaceChildren(...(lieux.length
-        ? lieux.map((lieu) => (lieu.id === enEdition ? ligneEdition(lieu) : ligneNormale(lieu)))
-        : [h("tr", {}, h("td", { colspan: 3, class: "vide" }, "Aucun lieu pour l'instant. Ajoutez le premier ci-dessus."))]));
-    }
-
-    const nouveau = h("input", { id: "nouveau-lieu", maxlength: 200, placeholder: "Ex. : Salle Plateau, Siège du Groupe…", "aria-label": "Nom du nouveau lieu" });
-    const formulaire = h("form", { class: "ligne-lieu", onsubmit: async (evenement) => {
-      evenement.preventDefault();
-      if (!nouveau.value.trim()) return;
-      try { await api("/api/lieux/", { methode: "POST", corps: { nom: nouveau.value } }); nouveau.value = ""; zoneErreur.hidden = true; notifier("Lieu ajouté"); await recharger(); }
-      catch (erreur) { montrer(erreur); }
-    } }, nouveau, h("button", { class: "btn", type: "submit" }, "Ajouter le lieu"));
-
-    afficher();
-    coque(
-      h("div", { class: "barre" }, h("div", {}, h("h1", {}, "Lieux"), h("span", { class: "muted" }, "Les endroits où se tiennent les événements : on les choisit dans une liste en créant un événement."))),
-      h("div", { class: "carte" }, zoneErreur, formulaire,
-        h("div", { class: "tableau-conteneur" }, h("table", {},
-          h("thead", {}, h("tr", {}, ["Lieu", "Événements", "Actions"].map((t) => h("th", {}, t)))),
-          corpsTableau))));
   }
 
   /* ------------------------------------------------------------------ vue : participations d'un événement ------------------------------------------------------------------ */
@@ -406,15 +378,7 @@
       finally { boutonEnvoi.disabled = false; }
     } }, "Envoyer le lien à tous les employés");
 
-    const sectionEnvoi = h("div", { class: "carte" }, h("h2", {}, "Informer les employés"),
-      h("p", { class: "muted", style: "margin:0 0 .8rem" }, !evenement.inscriptions_ouvertes
-        ? "Les inscriptions sont closes : le lien d'inscription a expiré."
-        : evenement.complet
-        ? "Cet événement est complet : toutes les places sont prises."
-        : diffusion.length
-        ? "Le lien d'inscription est envoyé par e-mail à tous les employés. Chacun s'inscrit, puis reçoit son QR code par e-mail."
-        : "Aucune adresse de diffusion n'est configurée : renseignez ADRESSES_DIFFUSION dans config/settings.py."),
-      boutonEnvoi);
+    const sectionEnvoi = h("div", { class: "envoi-centre" }, boutonEnvoi);
 
     coque(
       h("div", { class: "barre" },
@@ -446,7 +410,6 @@
     if (!sessionStorage.getItem("jeton")) return vueConnexion();
     let m;
     if (adresse === "/") return vueEvenements();
-    if (adresse === "/lieux") return vueLieux();
     if (adresse === "/evenement/nouveau") return vueFormulaire(null);
     if ((m = adresse.match(/^\/evenement\/(\d+)\/modifier$/))) return vueFormulaire(Number(m[1]));
     if ((m = adresse.match(/^\/evenement\/(\d+)\/participations$/))) return vueParticipations(Number(m[1]));

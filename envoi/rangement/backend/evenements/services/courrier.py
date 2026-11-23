@@ -4,7 +4,7 @@ Le style des e-mails : une lettre simple, comme les annonces internes de l'entre
 
 Deux réglages facultatifs dans settings.py :
   CONTACT_EVENEMENTS    la personne à contacter pour plus d'informations (laisser vide pour ne rien afficher) ;
-  SIGNATURE_EVENEMENTS  la signature en bas du message (« SNEDAI » par défaut).
+  SIGNATURE_EVENEMENTS  la signature en bas du message (« La Direction de la Communication » par défaut).
 """
 from email.utils import parseaddr
 
@@ -28,6 +28,12 @@ def creneau_lisible(creneau):
     """« 09:00-10:30 » devient « de 9h à 10h30 »."""
     debut, fin = creneau.split("-")
     return f"de {heure(debut)} à {heure(fin)}"
+
+
+def session(creneau):
+    """« 09:00-10:30 » devient « 09h00 – 10h30 »."""
+    debut, fin = creneau.split("-")
+    return f"{debut.replace(':', 'h')} – {fin.replace(':', 'h')}"
 
 
 def limite(evenement):
@@ -65,4 +71,4 @@ def contact():
 
 
 def signature():
-    return (getattr(settings, "SIGNATURE_EVENEMENTS", "") or "SNEDAI").strip()
+    return (getattr(settings, "SIGNATURE_EVENEMENTS", "") or "La Direction de la Communication").strip()

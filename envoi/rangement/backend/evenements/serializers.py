@@ -5,6 +5,7 @@ et ils VÉRIFIENT les données reçues.
 from django.conf import settings
 from rest_framework import serializers
 
+from .services.texte_riche import nettoyer
 from .validators import chiffres_du_telephone
 from .models import Evenement, Inscription, Lieu, moment_de_fin
 from .services.conflits import message_conflit, normaliser, trouver_conflit
@@ -63,7 +64,7 @@ class EvenementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evenement
         fields = [
-            "id", "nom", "date", "description", "lieu", "creneaux",
+            "id", "nom", "date", "titre", "sous_titre", "accroche", "description", "contact", "conclusion", "lieu", "creneaux",
             "inscriptions_jusqu_au", "places", "places_restantes", "complet",
             "lien", "url_inscription", "inscriptions_ouvertes", "nombre_inscrits", "nombre_presents", "cree_le",
         ]
@@ -71,6 +72,9 @@ class EvenementSerializer(serializers.ModelSerializer):
 
     def validate(self, donnees):
         """Deux événements ne peuvent pas occuper le même lieu à des heures qui se chevauchent ; la date limite et le nombre de places doivent être cohérents."""
+        for champ in ("titre", "sous_titre", "accroche", "description", "contact", "conclusion"):
+            if champ in donnees:
+                donnees[champ] = nettoyer(donnees[champ])         # seule la mise en forme autorisée est gardée
         instance = self.instance
         date = donnees.get("date", instance.date if instance else None)
         creneaux = donnees.get("creneaux", instance.creneaux if instance else [])
