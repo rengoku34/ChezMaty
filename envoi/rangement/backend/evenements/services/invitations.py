@@ -37,8 +37,12 @@ def construire_invitation(evenement, adresse):
     jusque, moment = courrier.limite(evenement)
     places = " dans la limite des places disponibles" if evenement.places else ""
     sessions = [courrier.session(c) for c in evenement.creneaux]
-    titre = evenement.titre or escape(evenement.nom)
+    titre = escape(evenement.nom)                    # le titre du message : le nom de l'événement
     blocs = {nom: getattr(evenement, nom) for nom in ("sous_titre", "accroche", "description", "contact", "conclusion")}
+    if not blocs["description"] and blocs["sous_titre"]:     # sans message écrit : une phrase d'invitation avec le thème
+        blocs["description"] = escape(f"Nous avons le plaisir de vous inviter à cet événement consacré au thème : « {texte_riche.en_texte(blocs['sous_titre'])} ».")
+    if not blocs["contact"] and courrier.contact():
+        blocs["contact"] = escape("Pour toute information complémentaire : " + courrier.contact())
     phrase = f"Les inscriptions sont ouvertes {jusque} {moment}{places}."
 
     # --- la version texte ---

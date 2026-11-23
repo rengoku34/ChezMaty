@@ -201,6 +201,52 @@
           h("tbody", {}, lignes)))));
   }
 
+  /* Liste de lieux : on clique pour voir la liste, ou on tape pour retrouver un site. Un nom nouveau est proposé en « Ajouter ». */
+  const sansAccent = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function listeLieux(lieux, valeur) {
+    const saisie = h("input", { id: "lieu", name: "lieu", required: true, autocomplete: "off", placeholder: "Choisir un site ou en écrire un nouveau…", value: valeur || "" });
+    const liste = h("ul", { class: "combo-liste", hidden: true, role: "listbox" });
+    let actif = -1;
+    const fermer = () => { liste.hidden = true; actif = -1; };
+    const choisir = (nom) => { saisie.value = nom; fermer(); };
+    function ouvrir() {
+      const mot = sansAccent(saisie.value.trim());
+      const trouves = lieux.filter((l) => !mot || sansAccent(l.nom).includes(mot));
+      const exact = lieux.some((l) => sansAccent(l.nom) === mot);
+      const lignes = trouves.map((l) => h("li", { class: "combo-option", role: "option", onmousedown: (e) => { e.preventDefault(); choisir(l.nom); } }, l.nom));
+      if (mot && !exact) lignes.push(h("li", { class: "combo-option combo-ajout", role: "option", onmousedown: (e) => { e.preventDefault(); choisir(saisie.value.trim()); } }, `Ajouter « ${saisie.value.trim()} »`));
+      liste.replaceChildren(...(lignes.length ? lignes : [h("li", { class: "combo-vide" }, "Aucun site")]));
+      liste.hidden = false; actif = -1;
+    }
+    const surligner = () => [...liste.querySelectorAll(".combo-option")].forEach((li, k) => li.classList.toggle("actif", k === actif));
+    saisie.addEventListener("focus", ouvrir);
+    saisie.addEventListener("click", ouvrir);
+    saisie.addEventListener("input", ouvrir);
+    saisie.addEventListener("blur", fermer);
+    saisie.addEventListener("keydown", (e) => {
+      const options = [...liste.querySelectorAll(".combo-option")];
+      if (e.key === "ArrowDown") { e.preventDefault(); if (liste.hidden) ouvrir(); actif = Math.min(options.length - 1, actif + 1); surligner(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); actif = Math.max(0, actif - 1); surligner(); }
+      else if (e.key === "Enter" && !liste.hidden && actif >= 0) { e.preventDefault(); options[actif].dispatchEvent(new MouseEvent("mousedown")); }
+      else if (e.key === "Escape") fermer();
+    });
+    const fleche = h("button", { class: "combo-fleche", type: "button", tabindex: "-1", "aria-label": "Voir la liste des sites",
+      onmousedown: (e) => { e.preventDefault(); if (liste.hidden) { saisie.focus(); ouvrir(); } else fermer(); } }, "▾");
+    return { element: h("div", { class: "combo" }, saisie, fleche, liste), saisie };
+  }
+
+  /* Une heure en 24 h avec deux listes : heures (00 à 23) et minutes (de 5 en 5). */
+  function selecteurHeure(valeur, libelle) {
+    const [hh, mm] = (valeur || "09:00").split(":");
+    const deux = (n) => String(n).padStart(2, "0");
+    const heures = h("select", { "aria-label": `${libelle} : heures` }, Array.from({ length: 24 }, (_, k) => h("option", { value: deux(k), selected: deux(k) === hh }, deux(k))));
+    const minutes = Array.from({ length: 12 }, (_, k) => deux(k * 5));
+    if (!minutes.includes(mm)) minutes.push(mm);
+    minutes.sort();
+    const mins = h("select", { "aria-label": `${libelle} : minutes` }, minutes.map((m) => h("option", { value: m, selected: m === mm }, m)));
+    return { element: h("span", { class: "heure" }, heures, h("span", { class: "deux-points" }, ":"), mins), valeur: () => `${heures.value}:${mins.value}` };
+  }
+
   /* Un champ de texte simple pour une partie du message. Le texte est enregistré tel quel (les retours à la ligne sont gardés). */
   const echapper = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   function versTexte(html) {
@@ -229,36 +275,34 @@
       return h("div", { class: "champ" }, h("label", { for: nom }, etiquette), saisie, aide ? h("div", { class: "aide" }, aide) : null, erreursChamps[nom]);
     };
 
-    /* --- Le lieu : une liste de sites ; on peut aussi taper un nouveau site, il est alors enregistré dans la liste --- */
-    const choixLieu = h("input", { id: "lieu", name: "lieu", list: "liste-lieux", required: true, autocomplete: "off", placeholder: "Choisir un lieu ou écrire un nouveau…", value: evenement.lieu });
-    const listeLieux = h("datalist", { id: "liste-lieux" }, ...lieux.map((lieu) => h("option", { value: lieu.nom })));
+    /* --- Le lieu : une liste de sites ; un nom nouveau est enregistré dans la liste --- */
+    const choixLieu = listeLieux(lieux, evenement.lieu);
 
-    /* --- Les créneaux : un sélecteur d'heure pour le début et pour la fin (4 au maximum) --- */
+    /* --- Les horaires : début et fin choisis dans des listes (24 h), 4 au maximum --- */
     const listeCreneaux = h("div", { id: "creneaux" });
     const lignes = [];
-    const boutonAjoutCreneau = h("button", { class: "btn btn-clair btn-petit", type: "button", onclick: () => { ajouterCreneau("", ""); } }, "Ajouter un horaire");
-    const majBoutonCreneau = () => { boutonAjoutCreneau.disabled = lignes.length >= 4; };
+    const boutonAjoutCreneau = h("button", { class: "btn-pointille", type: "button", onclick: () => { ajouterCreneau("09:00", "10:00"); } }, "+ Ajouter un horaire");
+    const majBoutonCreneau = () => { boutonAjoutCreneau.hidden = lignes.length >= 4; };
     function ajouterCreneau(debut, fin) {
-      const champDebut = h("input", { type: "time", "aria-label": "Heure de début", value: debut, required: true });
-      const champFin = h("input", { type: "time", "aria-label": "Heure de fin", value: fin, required: true });
-      const ligne = h("div", { class: "ligne-creneau" }, h("span", {}, "De"), champDebut, h("span", {}, "à"), champFin,
-        h("button", { class: "btn btn-danger btn-petit", type: "button", onclick: () => {
+      const champDebut = selecteurHeure(debut, "Début");
+      const champFin = selecteurHeure(fin, "Fin");
+      const ligne = h("div", { class: "ligne-creneau" }, h("span", { class: "mot" }, "De"), champDebut.element, h("span", { class: "mot" }, "à"), champFin.element,
+        h("button", { class: "croix", type: "button", title: "Retirer cet horaire", "aria-label": "Retirer cet horaire", onclick: () => {
           lignes.splice(lignes.findIndex((l) => l.element === ligne), 1);
           ligne.remove();
           majBoutonCreneau();
-        } }, "Retirer"));
+        } }, "✕"));
       lignes.push({ element: ligne, champDebut, champFin });
       listeCreneaux.append(ligne);
       majBoutonCreneau();
     }
     evenement.creneaux.forEach((creneau) => { const [debut, fin] = creneau.split("-"); ajouterCreneau(debut, fin); });
 
-    const riches = { titre: editeur(evenement.titre, "Ex. : CONFÉRENCE DE SENSIBILISATION – SNEDAI (vide : le nom de l'événement)"),
-      sous_titre: editeur(evenement.sous_titre, "Ex. : 🎗️ TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT"),
-      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !"),
-      description: editeur(evenement.description, "Le message : contexte, organisateurs, thème…", 4),
-      contact: editeur(evenement.contact, "Ex. : Mme … · Cheffe du Département … · e-mail · téléphone"),
-      conclusion: editeur(evenement.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous…") };
+    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1),
+      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !", 1),
+      description: editeur(evenement.description, "Ex. : Dans le cadre de la sensibilisation du personnel…", 3),
+      contact: editeur(evenement.contact, "Ex. : Mme … · Cheffe du Département … · e-mail · téléphone", 2),
+      conclusion: editeur(evenement.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous…", 2) };
 
     const aujourdhui = new Date().toLocaleDateString("fr-CA");           /* AAAA-MM-JJ : on ne peut pas choisir un jour passé pour un nouvel événement */
     const bouton = h("button", { class: "btn", type: "submit" }, id ? "Enregistrer les modifications" : "Créer l'événement");
@@ -269,7 +313,7 @@
       const f = Object.fromEntries(new FormData(formulaire));
       bouton.disabled = true;
       try {
-        const saisi = f.lieu.trim();
+        const saisi = choixLieu.saisie.value.trim();
         let lieu = lieux.find((l) => l.nom.toLowerCase() === saisi.toLowerCase());
         if (!lieu) {                                         /* un nouveau lieu : on l'enregistre dans la liste */
           try { lieu = await api("/api/lieux/", { methode: "POST", corps: { nom: saisi } }); }
@@ -277,9 +321,9 @@
           lieux.push(lieu);
         }
         const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
-          titre: riches.titre.html(), sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(),
+          sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(),
           description: riches.description.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
-          creneaux: lignes.map((l) => `${l.champDebut.value}-${l.champFin.value}`),
+          creneaux: lignes.map((l) => `${l.champDebut.valeur()}-${l.champFin.valeur()}`),
           inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
         notifier(id ? "Événement modifié" : "Événement créé");
@@ -295,18 +339,17 @@
         bouton.disabled = false;
       }
     } },
-      champ("nom", "Nom de l'événement", h("input", { id: "nom", name: "nom", required: true, maxlength: 150, value: evenement.nom })),
+      champ("nom", "Nom de l'événement", h("input", { id: "nom", name: "nom", required: true, maxlength: 150, value: evenement.nom, placeholder: "Ex. : CONFÉRENCE DE SENSIBILISATION – SNEDAI" })),
+      champ("sous_titre", "Thème", riches.sous_titre.element),
       h("div", { class: "grille-2" },
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
         champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
-      champ("lieu", "Lieu", h("div", {}, choixLieu, listeLieux)),
-      h("h2", { class: "sous-titre" }, "Message envoyé par e-mail"),
-      champ("titre", "Titre", riches.titre.element),
-      champ("sous_titre", "Thème", riches.sous_titre.element),
-      champ("accroche", "Phrase d'accroche", riches.accroche.element),
-      champ("description", "Message", riches.description.element),
-      champ("contact", "Contact", riches.contact.element),
-      champ("conclusion", "Phrase de fin", riches.conclusion.element),
+      champ("lieu", "Lieu", choixLieu.element),
+      h("details", { class: "options" }, h("summary", {}, "Personnaliser le message (facultatif)"),
+        champ("accroche", "Phrase d'accroche", riches.accroche.element),
+        champ("description", "Message", riches.description.element),
+        champ("contact", "Contact", riches.contact.element),
+        champ("conclusion", "Phrase de fin", riches.conclusion.element)),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
