@@ -200,25 +200,15 @@
           h("tbody", {}, lignes)))));
   }
 
-  /* Un champ de texte mis en forme, comme dans Word : on sélectionne, puis Gras, Souligné, couleur ou lien. Rend { element, html() }. */
-  function editeur(valeur, indication) {
-    const zone = h("div", { class: "editeur-zone", contenteditable: "true", "data-indication": indication });
-    zone.innerHTML = valeur || "";
-    const commande = (nom, argument) => { zone.focus(); document.execCommand("styleWithCSS", false, true); document.execCommand(nom, false, argument); };
-    const bouton = (contenu, titre, action, classe = "") => h("button", { class: "outil " + classe, type: "button", title: titre, "aria-label": titre,
-      onmousedown: (e) => e.preventDefault(), onclick: action }, contenu);
-    const couleur = h("input", { type: "color", value: "#c00000", title: "Couleur du texte", "aria-label": "Couleur du texte", class: "outil-couleur",
-      onmousedown: (e) => e.stopPropagation(), oninput: () => commande("foreColor", couleur.value) });
-    const barre = h("div", { class: "editeur-barre" },
-      bouton("G", "Gras", () => commande("bold"), "gras"),
-      bouton("S", "Souligné", () => commande("underline"), "souligne"),
-      h("span", { class: "outil-libelle" }, "Couleur"), couleur,
-      bouton("Lien", "Transformer le texte sélectionné en lien", () => {
-        const adresse = prompt("Adresse du lien (https://…)", "https://");
-        if (adresse && /^(https?:\/\/|mailto:)/i.test(adresse)) commande("createLink", adresse);
-      }),
-      bouton("Effacer la mise en forme", "Enlever la mise en forme", () => commande("removeFormat")));
-    return { element: h("div", { class: "editeur" }, barre, zone), html: () => (zone.textContent.trim() || zone.querySelector("a") ? zone.innerHTML : "") };
+  /* Un champ de texte simple pour une partie du message. Le texte est enregistré tel quel (les retours à la ligne sont gardés). */
+  const echapper = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  function versTexte(html) {
+    return (html || "").replace(/<br\s*\/?>|<\/(p|div|li)>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").trim();
+  }
+  function editeur(valeur, indication, lignes = 2) {
+    const zone = h("textarea", { rows: lignes, placeholder: indication });
+    zone.value = versTexte(valeur);
+    return { element: zone, html: () => echapper(zone.value.trim()).replace(/\n/g, "<br>") };
   }
 
   /* ------------------------------------------------------------------ vue : créer / modifier un événement ------------------------------------------------------------------ */
@@ -265,7 +255,7 @@
     const riches = { titre: editeur(evenement.titre, "Ex. : CONFÉRENCE DE SENSIBILISATION – SNEDAI (vide : le nom de l'événement)"),
       sous_titre: editeur(evenement.sous_titre, "Ex. : 🎗️ TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT"),
       accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !"),
-      description: editeur(evenement.description, "Le message : contexte, organisateurs, thème…"),
+      description: editeur(evenement.description, "Le message : contexte, organisateurs, thème…", 4),
       contact: editeur(evenement.contact, "Ex. : Mme … · Cheffe du Département … · e-mail · téléphone"),
       conclusion: editeur(evenement.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous…") };
 

@@ -42,7 +42,7 @@ Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête.
 ## Les lieux, les places et le jeton
 
 - Les **lieux** sont une liste de sites (une liste de départ est fournie). Dans le formulaire d'un événement, on choisit un site ou on en écrit un nouveau : il est enregistré dans la liste.
-- Le **message de l'e-mail** (titre, thème, phrase d'accroche, message, contact, phrase de fin) se met en forme comme dans Word : gras, souligné, couleur, lien. Le lien d'inscription se ferme à la fin de l'événement.
+- Le **message de l'e-mail** (titre, thème, phrase d'accroche, message, contact, phrase de fin) s'écrit dans des champs simples. Le lien d'inscription se ferme à la fin de l'événement.
 - Le **numéro de téléphone** d'un employé compte exactement 10 chiffres.
 - Le **jeton** de connexion expire après `JETON_DUREE_HEURES` heures (12 par défaut, dans `backend/config/settings.py`). Passé ce délai, il faut se reconnecter. Changer le mot de passe d'un compte déconnecte aussi ses appareils.
 
