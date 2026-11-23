@@ -41,6 +41,8 @@ def construire_invitation(evenement, adresse):
     blocs = {nom: getattr(evenement, nom) for nom in ("sous_titre", "accroche", "description", "contact", "conclusion")}
     if not blocs["description"] and blocs["sous_titre"]:     # sans message écrit : une phrase d'invitation avec le thème
         blocs["description"] = escape(f"Nous avons le plaisir de vous inviter à cet événement consacré au thème : « {texte_riche.en_texte(blocs['sous_titre'])} ».")
+    if not blocs["conclusion"] and courrier.phrase_fin():
+        blocs["conclusion"] = escape(courrier.phrase_fin())
     if not blocs["contact"] and courrier.contact():
         blocs["contact"] = escape("Pour toute information complémentaire : " + courrier.contact())
     phrase = f"Les inscriptions sont ouvertes {jusque} {moment}{places}."

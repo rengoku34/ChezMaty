@@ -298,11 +298,7 @@
     }
     evenement.creneaux.forEach((creneau) => { const [debut, fin] = creneau.split("-"); ajouterCreneau(debut, fin); });
 
-    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1),
-      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !", 1),
-      description: editeur(evenement.description, "Ex. : Dans le cadre de la sensibilisation du personnel…", 3),
-      contact: editeur(evenement.contact, "Ex. : Mme … · Cheffe du Département … · e-mail · téléphone", 2),
-      conclusion: editeur(evenement.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous…", 2) };
+    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1) };
 
     const aujourdhui = new Date().toLocaleDateString("fr-CA");           /* AAAA-MM-JJ : on ne peut pas choisir un jour passé pour un nouvel événement */
     const bouton = h("button", { class: "btn", type: "submit" }, id ? "Enregistrer les modifications" : "Créer l'événement");
@@ -321,8 +317,7 @@
           lieux.push(lieu);
         }
         const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
-          sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(),
-          description: riches.description.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
+          sous_titre: riches.sous_titre.html(),
           creneaux: lignes.map((l) => `${l.champDebut.valeur()}-${l.champFin.valeur()}`),
           inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
@@ -345,11 +340,6 @@
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
         champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
       champ("lieu", "Lieu", choixLieu.element),
-      h("details", { class: "options" }, h("summary", {}, "Personnaliser le message (facultatif)"),
-        champ("accroche", "Phrase d'accroche", riches.accroche.element),
-        champ("description", "Message", riches.description.element),
-        champ("contact", "Contact", riches.contact.element),
-        champ("conclusion", "Phrase de fin", riches.conclusion.element)),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),

@@ -70,5 +70,10 @@ def contact():
     return (getattr(settings, "CONTACT_EVENEMENTS", "") or "").strip()
 
 
+def phrase_fin():
+    """La phrase qui termine le message (réglage facultatif PHRASE_FIN_EVENEMENTS)."""
+    return (getattr(settings, "PHRASE_FIN_EVENEMENTS", "") or "").strip()
+
+
 def signature():
     return (getattr(settings, "SIGNATURE_EVENEMENTS", "") or "La Direction de la Communication").strip()
