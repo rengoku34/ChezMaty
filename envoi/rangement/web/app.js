@@ -67,6 +67,7 @@
     try {
       reponse = await fetch(API + chemin, { method: methode, headers: entetes, body: corps === undefined ? undefined : JSON.stringify(corps) });
     } catch (erreur) {
+      location.reload();        /* le serveur est arrêté (Ctrl+C) : on recharge, le navigateur affiche « Ce site est inaccessible » */
       throw { statut: 0, donnees: { detail: "Connexion au serveur impossible. Vérifiez que le backend est lancé." } };
     }
     if (reponse.status === 401 && jeton) {
