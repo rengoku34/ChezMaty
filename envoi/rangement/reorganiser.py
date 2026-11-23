@@ -132,6 +132,7 @@ for ancien in ("api", "pages"):                                   # la version d
 for dossier in ("evenements", "templates", "static"):
     shutil.copytree(ici("backend", dossier), chemin("backend", dossier), dirs_exist_ok=True)
 shutil.copy(ici("backend", "config", "urls.py"), chemin("backend", "config", "urls.py"))
+shutil.copy(ici("backend", "manage.py"), chemin("backend", "manage.py"))        # « manage.py runserver » seul suffit (ecoute sur tout le reseau)
 print(f"  fait : evenements, templates, static, urls.py, reglages (jeton : {duree} heures)")
 
 # ------------------------------------------------------------------ 4. l'application web a jour

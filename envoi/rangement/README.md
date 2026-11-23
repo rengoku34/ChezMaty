@@ -26,7 +26,7 @@ mobile/     l'application Flutter
 Dans le dossier `backend` :
 
 ```
-python manage.py runserver 0.0.0.0:8000
+python manage.py runserver
 ```
 
 Pour arrêter : `Ctrl+C` dans ce terminal. Tout s'arrête.
