@@ -72,6 +72,7 @@ def construire_invitation(evenement, adresse):
         return f'<div style="margin:0 0 14px;{style}">{blocs[nom]}</div>' if blocs[nom] else ""
 
     html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1f2937;max-width:640px">'
+    html += courrier.logo_html()
     html += f'<div style="margin:0 0 12px;font-size:20px;font-weight:bold;color:#252566;text-align:center;text-transform:uppercase">{titre}</div>'
     html += bloc("sous_titre", "font-size:17px;font-weight:bold;text-align:center;")
     html += bloc("accroche", "font-weight:bold;")
@@ -89,6 +90,7 @@ def construire_invitation(evenement, adresse):
 
     message = EmailMultiAlternatives(courrier.objet_invitation(evenement), texte, from_email=courrier.expediteur(), to=[adresse])
     message.attach_alternative(html, "text/html")
+    courrier.joindre_logo(message)
     return message
 
 

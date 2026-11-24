@@ -6,6 +6,7 @@ Deux réglages facultatifs dans settings.py :
   CONTACT_EVENEMENTS    la personne à contacter pour plus d'informations (laisser vide pour ne rien afficher) ;
   SIGNATURE_EVENEMENTS  la signature en bas du message (« La Direction de la Communication » par défaut).
 """
+from email.mime.image import MIMEImage
 from email.utils import parseaddr
 
 from django.conf import settings
@@ -77,3 +78,28 @@ def phrase_fin():
 
 def signature():
     return (getattr(settings, "SIGNATURE_EVENEMENTS", "") or "La Direction de la Communication").strip()
+
+
+def _logo():
+    """Le fichier du logo (static/img/logo.png), ou None s'il n'existe pas."""
+    chemin = settings.BASE_DIR / "static" / "img" / "logo.png"
+    return chemin if chemin.exists() else None
+
+
+def logo_html():
+    """La balise du logo, en haut de l'e-mail (vide si le logo est introuvable)."""
+    if not _logo():
+        return ""
+    return '<div style="margin:0 0 16px"><img src="cid:logo-snedai" alt="SNEDAI" width="150" style="display:block;border:0;height:auto"></div>'
+
+
+def joindre_logo(message):
+    """Joint le logo au message : il s'affiche dans l'e-mail lui-même (sans pièce jointe à ouvrir)."""
+    chemin = _logo()
+    if not chemin:
+        return
+    message.mixed_subtype = "related"
+    image = MIMEImage(chemin.read_bytes(), _subtype="png")
+    image.add_header("Content-ID", "<logo-snedai>")
+    image.add_header("Content-Disposition", "inline", filename="logo.png")
+    message.attach(image)

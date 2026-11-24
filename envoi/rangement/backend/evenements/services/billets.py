@@ -37,6 +37,7 @@ def construire_email(inscription):
     texte = "\n".join(lignes)
 
     html = '<div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1f2937;max-width:620px">'
+    html += courrier.logo_html()
     html += f"<p>Bonjour {escape(inscription.prenom)},</p>"
     html += f"<p>Votre inscription à <strong>{escape(evenement.nom)}</strong> est enregistrée.</p>"
     html += f"<p><strong>Date :</strong> {escape(date)}<br><strong>Lieu :</strong> {escape(evenement.lieu)}"
@@ -52,6 +53,7 @@ def construire_email(inscription):
 
     message = EmailMultiAlternatives(sujet, texte, from_email=courrier.expediteur(), to=[inscription.email])
     message.attach_alternative(html, "text/html")
+    courrier.joindre_logo(message)
     message.attach("qrcode.png", qr_png(inscription.qr_token), "image/png")
     return message
 
