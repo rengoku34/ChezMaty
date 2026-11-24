@@ -16,9 +16,10 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .authentification import expiration, jeton_expire
-from .models import Evenement, Lieu
+from .models import Evenement, Lieu, ReglageMessage
 from .permissions import EstAdministrateur, EstAgentOuAdministrateur, est_administrateur, est_agent
 from .serializers import (
+    ReglageMessageSerializer,
     EvenementSerializer,
     InscriptionPubliqueSerializer,
     InscriptionSerializer,
@@ -165,6 +166,18 @@ class LieuViewSet(viewsets.ModelViewSet):
 # Côté public : les employés qui ouvrent le lien d'un événement (aucune connexion demandée)
 # ---------------------------------------------------------------------------
 @extend_schema(tags=["Public (employés)"], summary="S'inscrire à un événement", auth=[])
+@extend_schema(tags=["Message (administrateur)"])
+class MessageView(generics.RetrieveUpdateAPIView):
+    """Le contact et la phrase de fin qui terminent chaque e-mail : on les écrit une fois, ils servent pour tous les événements."""
+
+    serializer_class = ReglageMessageSerializer
+    permission_classes = [EstAdministrateur]
+    pagination_class = None
+
+    def get_object(self):
+        return ReglageMessage.actuel()
+
+
 class InscriptionPubliqueView(generics.CreateAPIView):
     """
     Le formulaire d'inscription d'un employé. Une même adresse e-mail ne peut s'inscrire qu'une fois.

@@ -108,6 +108,7 @@
   function coque(...contenu) {
     const entete = h("header", { class: "entete" },
       h("a", { class: "marque", href: "#/" }, h("span", { class: "logo" }, h("img", { src: "logo.png", alt: "SNEDAI" }))),
+      h("nav", { class: "menu" }, h("a", { href: "#/" }, "Événements"), h("a", { href: "#/message" }, "Message")),
       h("div", { class: "droite" },
         h("span", {}, sessionStorage.getItem("nom") || ""),
         h("button", { class: "lien-bouton", type: "button", onclick: deconnecter }, "Déconnexion")));
@@ -298,16 +299,7 @@
     }
     evenement.creneaux.forEach((creneau) => { const [debut, fin] = creneau.split("-"); ajouterCreneau(debut, fin); });
 
-    /* Un nouvel événement reprend le contact et la phrase de fin du dernier événement : on les écrit une fois, on les change si besoin. */
-    let modele = evenement;
-    if (!id) {
-      try { const dernier = (await api("/api/evenements/")).results.filter((e) => e.contact || e.conclusion).sort((x, y) => y.id - x.id)[0]; if (dernier) modele = { ...evenement, contact: dernier.contact, conclusion: dernier.conclusion }; } catch (erreur) { /* sans importance */ }
-    }
-    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1),
-      accroche: editeur(evenement.accroche, "Ex. : La lutte contre le cancer du sein est l'affaire de tous !", 1),
-      description: editeur(evenement.description, "Ex. : Dans le cadre de la sensibilisation du personnel…", 3),
-      contact: editeur(modele.contact, "Ex. : Mme Mylène NANGO · Cheffe du Département Relations Sociales · mylene.nango@snedai.com · 05 04 02 96 22", 2),
-      conclusion: editeur(modele.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous pour une meilleure prévention.", 2) };
+    const riches = { sous_titre: editeur(evenement.sous_titre, "Ex. : TUMEUR DU SEIN : PRÉVENTION ET TRAITEMENT", 1) };
 
     const aujourdhui = new Date().toLocaleDateString("fr-CA");           /* AAAA-MM-JJ : on ne peut pas choisir un jour passé pour un nouvel événement */
     const bouton = h("button", { class: "btn", type: "submit" }, id ? "Enregistrer les modifications" : "Créer l'événement");
@@ -326,7 +318,7 @@
           lieux.push(lieu);
         }
         const corps = { nom: f.nom, date: f.date, lieu: lieu.nom,
-          sous_titre: riches.sous_titre.html(), accroche: riches.accroche.html(), description: riches.description.html(), contact: riches.contact.html(), conclusion: riches.conclusion.html(),
+          sous_titre: riches.sous_titre.html(),
           creneaux: lignes.map((l) => `${l.champDebut.valeur()}-${l.champFin.valeur()}`),
           inscriptions_jusqu_au: evenement.inscriptions_jusqu_au, places: evenement.places };
         await api(id ? `/api/evenements/${id}/` : "/api/evenements/", { methode: id ? "PUT" : "POST", corps });
@@ -349,14 +341,36 @@
         champ("date", "Date", h("input", { id: "date", name: "date", type: "date", required: true, value: evenement.date, min: id ? null : aujourdhui })),
         champ("creneaux", "Horaires", h("div", {}, listeCreneaux, boutonAjoutCreneau))),
       champ("lieu", "Lieu", choixLieu.element),
-      h("details", { class: "options" }, h("summary", {}, "Personnaliser le message"),
-        champ("accroche", "Phrase d'accroche", riches.accroche.element),
-        champ("description", "Message", riches.description.element),
-        champ("contact", "Contact", riches.contact.element),
-        champ("conclusion", "Phrase de fin", riches.conclusion.element)),
       h("div", { class: "actions" }, bouton, h("a", { class: "btn btn-clair", href: "#/" }, "Annuler")));
 
     coque(h("div", { class: "barre" }, h("h1", {}, id ? "Modifier l'événement" : "Nouvel événement")),
+      h("div", { class: "carte" }, zoneErreur, formulaire));
+  }
+
+  /* ------------------------------------------------------------------ vue : le message (contact et phrase de fin, écrits une fois pour tous les événements) ------------------------------------------------------------------ */
+
+  async function vueMessage() {
+    coque(h("p", { class: "muted" }, "Chargement…"));
+    let reglage;
+    try { reglage = await api("/api/message/"); } catch (erreur) { return erreur.statut === 401 ? null : coque(h("div", { class: "alerte" }, phrases(erreur.donnees).join(" "))); }
+    const contact = editeur(reglage.contact, "Ex. : Mme Mylène NANGO · Cheffe du Département Relations Sociales · mylene.nango@snedai.com · 05 04 02 96 22", 3);
+    const conclusion = editeur(reglage.conclusion, "Ex. : Ensemble, informons-nous, sensibilisons-nous et mobilisons-nous pour une meilleure prévention.", 3);
+    const zoneErreur = h("div", { class: "alerte", hidden: true });
+    const bouton = h("button", { class: "btn", type: "submit" }, "Enregistrer");
+    const formulaire = h("form", { class: "formulaire", onsubmit: async (e) => {
+      e.preventDefault();
+      zoneErreur.hidden = true;
+      bouton.disabled = true;
+      try {
+        await api("/api/message/", { methode: "PUT", corps: { contact: contact.html(), conclusion: conclusion.html() } });
+        notifier("Message enregistré");
+      } catch (erreur) { zoneErreur.textContent = phrases(erreur.donnees).join(" "); zoneErreur.hidden = false; }
+      finally { bouton.disabled = false; }
+    } },
+      h("div", { class: "champ" }, h("label", {}, "Contact (pour plus d'informations)"), contact.element),
+      h("div", { class: "champ" }, h("label", {}, "Phrase de fin"), conclusion.element),
+      h("div", { class: "actions" }, bouton));
+    coque(h("div", { class: "barre" }, h("div", {}, h("h1", {}, "Message"), h("span", { class: "muted" }, "Écrit une seule fois : il termine l'e-mail de tous les événements."))),
       h("div", { class: "carte" }, zoneErreur, formulaire));
   }
 
@@ -448,6 +462,7 @@
     if (!sessionStorage.getItem("jeton")) return vueConnexion();
     let m;
     if (adresse === "/") return vueEvenements();
+    if (adresse === "/message") return vueMessage();
     if (adresse === "/evenement/nouveau") return vueFormulaire(null);
     if ((m = adresse.match(/^\/evenement\/(\d+)\/modifier$/))) return vueFormulaire(Number(m[1]));
     if ((m = adresse.match(/^\/evenement\/(\d+)\/participations$/))) return vueParticipations(Number(m[1]));

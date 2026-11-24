@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from .services.texte_riche import nettoyer
 from .validators import chiffres_du_telephone
-from .models import Evenement, Inscription, Lieu, moment_de_fin
+from .models import Evenement, Inscription, Lieu, ReglageMessage, moment_de_fin
 from .services.conflits import message_conflit, normaliser, trouver_conflit
 
 
@@ -171,3 +171,14 @@ class ScanReponseSerializer(serializers.Serializer):
     statut = serializers.ChoiceField(choices=["present", "deja", "inconnu"])
     message = serializers.CharField()
     personne = PersonneScanneeSerializer(required=False)
+
+
+class ReglageMessageSerializer(serializers.ModelSerializer):
+    """Le contact et la phrase de fin des e-mails (page « Message » de l'application web)."""
+
+    class Meta:
+        model = ReglageMessage
+        fields = ["contact", "conclusion"]
+
+    def validate(self, donnees):
+        return {champ: nettoyer(valeur) for champ, valeur in donnees.items()}

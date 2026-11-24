@@ -42,6 +42,7 @@ urlpatterns = [
     path("api/auth/deconnexion/", views.deconnexion_jeton, name="api-deconnexion"),           # se déconnecter : supprimer le jeton
     path("api/scan/", views.ScanView.as_view(), name="api-scan"),                             # scanner un QR code
     path("api/public/evenements/<str:lien>/inscriptions/", views.InscriptionPubliqueView.as_view(), name="api-public-inscription"),
+    path("api/message/", views.MessageView.as_view(), name="api-message"),                   # le contact et la phrase de fin des e-mails
     path("api/", include(router.urls)),                                   # /api/evenements/
 
     # --- La documentation automatique de l'API ---

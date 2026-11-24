@@ -123,6 +123,20 @@ class Evenement(models.Model):
         return self.places is not None and self.places_restantes == 0
 
 
+class ReglageMessage(models.Model):
+    """Le contact et la phrase de fin de l'e-mail : écrits une seule fois (page « Message »), ils servent pour tous les événements."""
+
+    contact = models.TextField(blank=True)
+    conclusion = models.TextField("phrase de fin", blank=True)
+
+    class Meta:
+        verbose_name = "réglage du message"
+
+    @classmethod
+    def actuel(cls):
+        return cls.objects.get_or_create(pk=1)[0]
+
+
 class Inscription(models.Model):
     """Une personne inscrite à un événement."""
 

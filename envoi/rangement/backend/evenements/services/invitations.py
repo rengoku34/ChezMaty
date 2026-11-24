@@ -11,6 +11,7 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.core.validators import validate_email
 from django.utils.html import escape
 
+from ..models import ReglageMessage
 from . import courrier, texte_riche
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,9 @@ def construire_invitation(evenement, adresse):
     blocs = {nom: getattr(evenement, nom) for nom in ("sous_titre", "accroche", "description", "contact", "conclusion")}
     if not blocs["description"] and blocs["sous_titre"]:     # sans message écrit : une phrase d'invitation avec le thème
         blocs["description"] = escape(f"Nous avons le plaisir de vous inviter à cet événement consacré au thème : « {texte_riche.en_texte(blocs['sous_titre'])} ».")
+    reglage = ReglageMessage.actuel()                  # le contact et la phrase de fin écrits dans la page « Message »
+    blocs["contact"] = blocs["contact"] or reglage.contact
+    blocs["conclusion"] = blocs["conclusion"] or reglage.conclusion
     if not blocs["conclusion"] and courrier.phrase_fin():
         blocs["conclusion"] = escape(courrier.phrase_fin())
     if not blocs["contact"] and courrier.contact():
