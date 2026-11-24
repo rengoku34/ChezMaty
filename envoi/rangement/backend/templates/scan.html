@@ -1,0 +1,49 @@
+{% extends 'base.html' %}{% load static %}
+{# Réservé aux agents de scan et à l'administrateur. Page volontairement épurée : seul le résultat du scan s'affiche. #}
+
+{# Dans le menu, seulement « Déconnexion ». #}
+{% block nav %}
+<nav>
+  <form method="post" action="/deconnexion/">{% csrf_token %}<button type="submit">Déconnexion</button></form>
+</nav>
+{% endblock %}
+
+{% block content %}
+<style>
+  .scan-page { text-align: center; padding: 1rem 0; }
+  .scan-etat { margin: 1.5rem auto; max-width: 420px; padding: 2rem 1rem; border-radius: 18px; color: #fff; transition: background .2s; }
+  .scan-etat.attente { background: #e8e8f0; color: #555; }
+  .scan-etat.ok { background: #17703a; }
+  .scan-etat.deja { background: #c46a12; }
+  .scan-etat.inconnu { background: #b42318; }
+  .scan-icone { font-size: 6rem; line-height: 1; font-weight: bold; }
+  .scan-etat.attente .scan-icone { display: none; }
+  .scan-titre { font-size: 1.6rem; font-weight: bold; margin: .5rem 0 .2rem; }
+  .scan-detail { font-size: 1.1rem; margin: 0; min-height: 1.4em; white-space: pre-line; }
+  .scan-son { color: #62647a; font-size: .85rem; margin: 0; }
+  .scan-liste { list-style: none; padding: 0; margin: 1.5rem auto; max-width: 420px; text-align: left; font-size: .9rem; }
+  .scan-liste li { padding: .45rem .7rem; border-radius: 8px; margin-bottom: .3rem; }
+  .scan-liste li.ok { background: #e3f4ea; color: #17703a; }
+  .scan-liste li.deja { background: #fdf0e0; color: #8a4a0c; }
+  .scan-liste li.inconnu { background: #fbe7e5; color: #b42318; }
+  /* Le champ de saisie existe (le lecteur y « tape » le code) mais on ne le voit pas. */
+  #scan-saisie { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; }
+</style>
+
+<section class="scan-page" id="scan-page" data-api="{% url 'api-scan' %}">
+  <form id="scan-form" autocomplete="off">
+    <input id="scan-saisie" autocomplete="off" autocapitalize="off" aria-label="Code scanné">
+  </form>
+
+  <div class="scan-etat attente" id="scan-etat" role="status">
+    <div class="scan-icone" id="scan-icone">&#9711;</div>
+    <p class="scan-titre" id="scan-titre">Prêt à scanner</p>
+    <p class="scan-detail" id="scan-detail"></p>
+  </div>
+  <p class="scan-son" id="scan-son">Touchez l'écran une fois pour activer le son</p>
+
+  <ul class="scan-liste" id="scan-liste"></ul>
+</section>
+
+<script src="{% static 'js/lecteur.js' %}"></script>
+{% endblock %}

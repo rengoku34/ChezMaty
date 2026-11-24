@@ -1,0 +1,62 @@
+{% extends 'base.html' %}{% load snedai %}
+{% block content %}
+<div class="page-head">
+  {% include 'partials/breadcrumb.html' with parent_label='Tableau de bord' parent_href='/admin/tableau-de-bord' current='Comptes' %}
+</div>
+<section class="card">
+  <h1>Comptes</h1>
+  <p class="hint">Tous les comptes inscrits sur le site. Les <strong>agents de scan</strong> peuvent seulement ouvrir la page « Scanner » pour valider les QR codes à l’entrée : ils ne voient ni le tableau de bord, ni les listes, ni l’export Excel.</p>
+  <p class="hint">Supprimer un compte efface aussi ses réponses aux événements, et la personne est déconnectée. Elle pourra recréer un compte plus tard.</p>
+  {% if not users %}
+    <p class="empty">Aucun inscrit pour le moment.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nom</th><th>Prénom</th><th>E-mail</th><th>Filiale</th><th>Agent de scan</th><th>Supprimer</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.nom }}</td><td>{{ u.prenom }}</td><td>{{ u.email }}</td><td>{{ u.filiale }}</td>
+            {% if u.is_admin %}
+              <td colspan="2"><span class="badge badge-ok">Administrateur{% if u.id == user.id %} (vous){% endif %}</span></td>
+            {% else %}
+              <td>
+                <form method="post" action="/admin/agents/{{ u.id }}" class="inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="agent" value="{% if u.is_agent %}0{% else %}1{% endif %}">
+                  <button class="btn btn-small btn-secondary" type="submit">{% if u.is_agent %}Retirer{% else %}Nommer agent{% endif %}</button>
+                </form>
+              </td>
+              <td>
+                <form method="post" action="/admin/comptes/{{ u.id }}/supprimer" class="inline" data-confirm="Supprimer le compte de {{ u.prenom }} {{ u.nom }} ? Cette action est définitive.">
+                  {% csrf_token %}
+                  <button class="btn btn-small btn-danger" type="submit">{% icon 'trash' %} Supprimer</button>
+                </form>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Vérifier les e-mails</h2>
+  {% if not mail.provider %}
+    <div class="alert alert-error">Aucun service d’envoi d’e-mails n’est configuré. Ajoutez <code>AGENTMAIL_API_KEY</code> et <code>AGENTMAIL_INBOX</code> dans Render (Environment).</div>
+  {% else %}
+    <p class="hint">Service utilisé : <strong>{{ mail.provider }}</strong> (expéditeur : {{ mail.sender }}).</p>
+    {% if mail.last_error %}
+      <div class="alert alert-error"><strong>Dernier échec d’envoi ({{ mail.last_error_at|ts }}) :</strong> {{ mail.last_error }}</div>
+    {% endif %}
+    {% if mail.last_ok_at %}<p class="hint">Dernier envoi réussi : {{ mail.last_ok_at|ts }}.</p>{% endif %}
+  {% endif %}
+  <p class="hint">Envoie un e-mail de test à votre adresse et affiche l’erreur exacte si l’envoi échoue.</p>
+  <form method="post" action="/admin/test-email" class="inline">
+    {% csrf_token %}
+    <button class="btn" type="submit">{% icon 'mail' %} Envoyer un e-mail de test</button>
+  </form>
+</section>
+{% endblock %}

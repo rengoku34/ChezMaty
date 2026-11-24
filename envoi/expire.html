@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{# PUBLIC : le lien d'inscription a expiré (l'événement est terminé). #}
+{% block nav %}{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Lien expiré</h1>
+  <p>Les inscriptions à « {{ evenement.nom }} » sont closes : l'événement a eu lieu le {{ evenement.date|date:"l j F Y" }}.</p>
+  <p class="hint">Pour toute question, rapprochez-vous de l'organisateur.</p>
+</section>
+{% endblock %}

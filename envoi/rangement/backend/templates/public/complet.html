@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{# PUBLIC : toutes les places de l'événement sont prises. #}
+{% block nav %}{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Événement complet</h1>
+  <p>Toutes les places de « {{ evenement.nom }} » sont prises : il n'est plus possible de s'inscrire.</p>
+  <p class="hint">Pour toute question, rapprochez-vous de l'organisateur.</p>
+</section>
+{% endblock %}

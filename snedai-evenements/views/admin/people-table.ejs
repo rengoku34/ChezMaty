@@ -1,0 +1,14 @@
+<% if (!rows.length) { %>
+  <p class="empty">Personne pour le moment.</p>
+<% } else { %>
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Nom</th><th>Prénom</th><th>Adresse e-mail</th><th>Filiale</th><th><%= dateLabel %></th></tr></thead>
+    <tbody>
+      <% rows.forEach((r, i) => { %>
+        <tr><td><%= i + 1 %></td><td><%= r.nom %></td><td><%= r.prenom %></td><td><%= r.email %></td><td><%= r.filiale %></td><td><%= format.timestamp(r[dateKey]) %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>

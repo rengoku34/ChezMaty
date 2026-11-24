@@ -1,0 +1,20 @@
+{% load snedai %}{% with p=ev.participation day=ev.day_chip %}
+<article class="event-card {% if ev.termine_at %}is-finished{% endif %}">
+  <a href="/evenements/{{ ev.id }}" class="event-link">
+    <div class="event-cover">
+      {% if ev.has_photo %}<img src="/evenements/{{ ev.id }}/photo" alt="" class="event-photo" loading="lazy">{% else %}<div class="event-photo placeholder">{% icon 'calendar' %}</div>{% endif %}
+      {% if day %}<span class="date-chip"><strong>{{ day.jour }}</strong><small>{{ day.mois }}</small></span>{% endif %}
+      {% if ev.termine_at %}<span class="status status-done">Terminé</span>
+      {% elif p and p.scanne_at %}<span class="status status-ok">Présence validée</span>
+      {% elif p %}<span class="status status-ok">Inscrit(e)</span>
+      {% else %}<span class="status status-todo">À confirmer</span>{% endif %}
+    </div>
+    <div class="event-body">
+      <h3>{{ ev.titre }}</h3>
+      {% if ev.debut %}<p class="meta">{% icon 'clock' %} {{ ev.hours_text }}</p>{% endif %}
+      {% if ev.lieu %}<p class="meta">{% icon 'pin' %} {{ ev.lieu }}</p>{% endif %}
+      <span class="card-cta">{% if ev.termine_at %}Voir le détail{% elif p %}Voir mon billet{% else %}Répondre{% endif %} {% icon 'chevron-right' %}</span>
+    </div>
+  </a>
+</article>
+{% endwith %}

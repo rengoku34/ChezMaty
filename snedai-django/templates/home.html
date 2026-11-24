@@ -1,0 +1,63 @@
+{% extends 'base.html' %}{% load snedai %}
+{% block content %}
+<section>
+  <div class="welcome">
+    <h1>Bonjour {{ user.prenom }}</h1>
+    <p class="lead">Confirmez votre présence aux événements de SNEDAI pour recevoir votre billet avec QR code.</p>
+  </div>
+
+  <div id="install-banner" class="install-banner" hidden>
+    <span>Installez le site sur votre téléphone pour retrouver votre QR code en un geste.</span>
+    <button type="button" class="btn btn-small" id="install-button">Installer l’application</button>
+  </div>
+
+  {% if prochain %}{% with ev=prochain.event part=prochain.event.participation %}
+    <div class="hero">
+      <div class="hero-text">
+        <span class="hero-kicker">{% if prochain.en_cours %}En ce moment{% else %}Prochain événement{% endif %}</span>
+        <h2>{{ ev.titre }}</h2>
+        <p class="meta">{% icon 'calendar' %} {{ ev.range_text }}</p>
+        {% if ev.lieu %}<p class="meta">{% icon 'pin' %} {{ ev.lieu }}</p>{% endif %}
+        <a class="btn" href="/evenements/{{ ev.id }}">{% if part %}Voir mon QR code{% else %}Je confirme ma présence{% endif %}</a>
+      </div>
+      {% if prochain.en_cours %}
+        <div class="countdown live"><strong>En cours</strong><span>Présentez votre QR code à l’entrée</span></div>
+      {% else %}
+        <div class="countdown" data-countdown="{{ prochain.start }}" aria-label="Temps restant avant l’événement">
+          <div><strong data-unit="j">–</strong><span>jours</span></div>
+          <div><strong data-unit="h">–</strong><span>heures</span></div>
+          <div><strong data-unit="m">–</strong><span>min</span></div>
+          <div><strong data-unit="s">–</strong><span>s</span></div>
+        </div>
+      {% endif %}
+    </div>
+  {% endwith %}{% endif %}
+
+  <div class="section-head">
+    <h2>Événements à venir</h2>
+    {% if actifs %}<span class="count">{{ actifs|length }}</span>{% endif %}
+  </div>
+  {% if not actifs %}
+    <div class="empty-state">
+      {% icon 'calendar' %}
+      <strong>Aucun événement pour le moment</strong>
+      <span>Vous serez prévenu(e) par e-mail dès qu’un nouvel événement sera publié.</span>
+    </div>
+  {% else %}
+    <div class="event-grid">
+      {% for ev in actifs %}{% include 'partials/event_card.html' %}{% endfor %}
+    </div>
+  {% endif %}
+</section>
+
+{% if termines %}
+<section class="history">
+  <details>
+    <summary>Événements passés ({{ termines|length }})</summary>
+    <div class="event-grid">
+      {% for ev in termines %}{% include 'partials/event_card.html' %}{% endfor %}
+    </div>
+  </details>
+</section>
+{% endif %}
+{% endblock %}

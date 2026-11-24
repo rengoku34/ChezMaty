@@ -1,0 +1,8 @@
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+linter:
+  rules:
+    - avoid_print
+    - prefer_const_constructors
